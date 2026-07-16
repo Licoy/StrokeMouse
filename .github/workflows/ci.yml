@@ -1,0 +1,72 @@
+name: CI
+
+# Not on every push. Run tests on PRs that touch the app, or manually.
+# Release packaging stays in release.yml (tag push). Manual package via workflow_dispatch.
+on:
+  pull_request:
+    paths:
+      - "StrokeMouse/**"
+      - "StrokeMouseTests/**"
+      - "project.yml"
+      - "scripts/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Also build arm64 + x86_64 release packages"
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Verify generated Xcode project
+        run: |
+          ./scripts/generate_project.sh
+          git diff --exit-code -- StrokeMouse.xcodeproj
+      - name: Test
+        run: |
+          arch="$(uname -m)"
+          xcodebuild \
+            -project StrokeMouse.xcodeproj \
+            -scheme StrokeMouse \
+            -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/StrokeMouseTests" \
+            -destination "platform=macOS,arch=$arch" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            DEVELOPMENT_TEAM= \
+            test
+
+  package:
+    # Manual only (or check the package box on workflow_dispatch). Tags use release.yml.
+    if: github.event_name == 'workflow_dispatch' && inputs.package
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x86_64
+            runner: macos-26-intel
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Package ${{ matrix.arch }}
+        env:
+          EXPECTED_MACOS_SDK_MAJOR: "26"
+          # Disposable public-only key; CI artifacts are never published.
+          SPARKLE_PUBLIC_KEY: "Ih8Ezm5gKh1xeB6kG1mixJgjzV86LhfkjLXwc0LrSHo="
+        run: |
+          host="$(uname -m)"
+          test "$host" = "${{ matrix.arch }}" || {
+            echo "Runner arch $host != package arch ${{ matrix.arch }}"
+            exit 1
+          }
+          ARCH=${{ matrix.arch }} ./scripts/package-app.sh

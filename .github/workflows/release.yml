@@ -1,0 +1,193 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify tag matches project version
+        run: |
+          version="$(awk -F'"' '/MARKETING_VERSION:/ { print $2; exit }' project.yml)"
+          build="$(awk -F'"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' project.yml)"
+          test "$GITHUB_REF_NAME" = "v$version" || {
+            echo "Tag $GITHUB_REF_NAME does not match project version $version"
+            exit 1
+          }
+          IFS=. read -r major minor patch <<<"$version"
+          expected_build=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+          test "$build" = "$expected_build" || {
+            echo "Build $build does not match version-derived build $expected_build"
+            exit 1
+          }
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Verify generated Xcode project
+        run: |
+          ./scripts/generate_project.sh
+          git diff --exit-code -- StrokeMouse.xcodeproj
+      - name: Test
+        run: |
+          arch="$(uname -m)"
+          xcodebuild \
+            -project StrokeMouse.xcodeproj \
+            -scheme StrokeMouse \
+            -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/StrokeMouseTests" \
+            -destination "platform=macOS,arch=$arch" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            DEVELOPMENT_TEAM= \
+            test
+
+  package:
+    needs: test
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-26
+          - arch: x86_64
+            runner: macos-26-intel
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Check Sparkle signing secrets
+        env:
+          SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          test -n "$SPARKLE_PUBLIC_KEY" || { echo "Missing SPARKLE_PUBLIC_KEY secret"; exit 1; }
+          test -n "$SPARKLE_PRIVATE_KEY" || { echo "Missing SPARKLE_PRIVATE_KEY secret"; exit 1; }
+      - name: Package ${{ matrix.arch }}
+        env:
+          EXPECTED_MACOS_SDK_MAJOR: "26"
+          SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+        run: |
+          host="$(uname -m)"
+          test "$host" = "${{ matrix.arch }}" || {
+            echo "Runner arch $host != package arch ${{ matrix.arch }}"
+            exit 1
+          }
+          version="${GITHUB_REF_NAME#v}"
+          EXPECTED_VERSION="$version" ARCH=${{ matrix.arch }} ./scripts/package-app.sh
+      - name: Generate appcast ${{ matrix.arch }}
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          arch="${{ matrix.arch }}"
+          tool="build/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast"
+          test -x "$tool" || { echo "Sparkle generate_appcast tool not found"; exit 1; }
+          mkdir -p "dist/appcast-$arch"
+          cp "dist/StrokeMouse-macos-$arch.zip" "dist/appcast-$arch/"
+          printf '%s' "$SPARKLE_PRIVATE_KEY" | "$tool" \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/Licoy/StrokeMouse/releases/download/${GITHUB_REF_NAME}/" \
+            --link "https://github.com/Licoy/StrokeMouse/releases/tag/${GITHUB_REF_NAME}" \
+            -o "dist/appcast-$arch.xml" \
+            "dist/appcast-$arch"
+          xmllint --noout "dist/appcast-$arch.xml"
+          version="${GITHUB_REF_NAME#v}"
+          build="$(awk -F'"' '/CURRENT_PROJECT_VERSION:/ { print $2; exit }' project.yml)"
+          grep -Fq "<sparkle:shortVersionString>$version</sparkle:shortVersionString>" "dist/appcast-$arch.xml"
+          grep -Fq "<sparkle:version>$build</sparkle:version>" "dist/appcast-$arch.xml"
+          grep -Fq "https://github.com/Licoy/StrokeMouse/releases/download/${GITHUB_REF_NAME}/StrokeMouse-macos-$arch.zip" "dist/appcast-$arch.xml"
+          grep -Fq 'sparkle:edSignature=' "dist/appcast-$arch.xml"
+          if [[ "$arch" == "arm64" ]]; then
+            grep -Fq '<sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>' "dist/appcast-$arch.xml"
+          fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: StrokeMouse-macos-${{ matrix.arch }}
+          path: |
+            dist/StrokeMouse-macos-${{ matrix.arch }}.zip
+            dist/StrokeMouse-macos-${{ matrix.arch }}.app.tar.gz
+            dist/StrokeMouse-macos-${{ matrix.arch }}.dmg
+            dist/appcast-${{ matrix.arch }}.xml
+
+  release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: cliff
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Write release notes
+        env:
+          GENERATED_NOTES: ${{ steps.cliff.outputs.content }}
+        run: |
+          printf '%s\n' "$GENERATED_NOTES" > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            printf 'macOS builds for Apple Silicon and Intel.\n' > release-notes.md
+          fi
+          cat >> release-notes.md <<'EOF'
+
+          These builds are ad-hoc signed and not notarized. Prefer the .dmg for manual installation. If macOS blocks the app, right-click Open or use Privacy & Security > Open Anyway.
+
+          当前构建使用 ad-hoc 签名且未经 Apple 公证。建议手动安装 .dmg；若 macOS 阻止启动，请右键选择“打开”，或前往“隐私与安全性”选择“仍要打开”。
+          EOF
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes.md
+
+  release:
+    needs: [package, release-notes]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: StrokeMouse-macos-*
+          path: dist
+          merge-multiple: true
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-notes
+          path: .
+      - name: Verify release assets
+        run: |
+          for arch in arm64 x86_64; do
+            test -f "dist/StrokeMouse-macos-$arch.zip"
+            test -f "dist/StrokeMouse-macos-$arch.app.tar.gz"
+            test -f "dist/StrokeMouse-macos-$arch.dmg"
+            test -f "dist/appcast-$arch.xml"
+          done
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            dist/StrokeMouse-macos-arm64.zip \
+            dist/StrokeMouse-macos-x86_64.zip \
+            dist/StrokeMouse-macos-arm64.app.tar.gz \
+            dist/StrokeMouse-macos-x86_64.app.tar.gz \
+            dist/StrokeMouse-macos-arm64.dmg \
+            dist/StrokeMouse-macos-x86_64.dmg \
+            dist/appcast-arm64.xml \
+            dist/appcast-x86_64.xml \
+            --title "$tag" \
+            --notes-file release-notes.md

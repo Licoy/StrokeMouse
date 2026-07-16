@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="140 70 760 900">
+  <defs>
+    <linearGradient id="blue" x1="220" y1="512" x2="900" y2="512" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#075CE5"/>
+      <stop offset="0.52" stop-color="#168BFF"/>
+      <stop offset="1" stop-color="#78C8FF"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#blue)" d="M 642 730 C 575 770 495 811 420 810 C 315 810 240 746 218 655 C 190 540 234 410 288 315 C 342 219 414 141 500 122 C 568 107 629 135 659 184 C 706 260 681 354 637 442 C 602 510 572 580 576 620 C 579 656 597 674 624 676 C 650 678 680 654 706 649 C 750 642 786 647 813 678 C 850 721 846 778 816 824 C 788 850 710 887 565 920 C 665 885 730 850 764 815 C 793 785 803 749 787 722 C 769 691 740 688 703 697 C 675 706 635 728 590 713 C 542 696 518 659 522 611 C 527 555 560 485 593 419 C 631 341 647 273 617 213 C 591 161 542 144 495 156 C 423 174 359 247 311 337 C 260 432 224 547 242 638 C 260 730 329 775 419 776 C 497 777 568 750 642 730 Z"/>
+  <path d="M 579 150 C 566 181 553 211 540 242" fill="none" stroke="url(#blue)" stroke-width="16" stroke-linecap="round"/>
+  <rect x="512" y="225" width="39" height="110" rx="19.5" fill="url(#blue)" transform="rotate(23 531.5 280)"/>
+</svg>
