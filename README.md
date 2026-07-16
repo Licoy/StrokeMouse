@@ -137,6 +137,9 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 - [Sparkle](https://github.com/sparkle-project/Sparkle) 签名校验与应用内更新
 - XcodeGen 管理工程
 
+## 社区支持
+- [LinuxDO](https://linux.do)
+
 ## 许可与免责
 
 本项目采用 [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE) 开源。
