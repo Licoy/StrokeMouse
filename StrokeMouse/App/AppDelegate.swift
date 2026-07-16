@@ -11,8 +11,60 @@ enum BrandIconProvider {
         return image
     }
 
+    /// Menu bar status item ignores SwiftUI `foregroundStyle`; bake tints into a non-template bitmap.
+    static func menuBarIcon(for style: MenuBarIconStyle, status: MenuBarIconStatus) -> NSImage {
+        switch status {
+        case .normal:
+            return menuBarIcon(for: style)
+        case .paused:
+            return tintedTemplateMenuBarIcon(with: .systemYellow)
+        case .needPermission:
+            return tintedTemplateMenuBarIcon(with: .systemRed)
+        }
+    }
+
     static func applicationIcon() -> NSImage {
         let image = image(named: "BrandAppIcon")
+        image.isTemplate = false
+        return image
+    }
+
+    private static func tintedTemplateMenuBarIcon(with color: NSColor) -> NSImage {
+        let template = image(named: MenuBarIconStyle.monochrome.assetName)
+        template.size = menuBarPointSize
+        // Draw real alpha/black pixels (not template-substituted) before recoloring.
+        template.isTemplate = false
+
+        let pointSize = menuBarPointSize
+        let scale: CGFloat = 2
+        let pixelWidth = Int(pointSize.width * scale)
+        let pixelHeight = Int(pointSize.height * scale)
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: pixelWidth,
+            pixelsHigh: pixelHeight,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ) else {
+            return menuBarIcon(for: .monochrome)
+        }
+        rep.size = pointSize
+
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        let rect = NSRect(origin: .zero, size: pointSize)
+        template.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1.0)
+        color.setFill()
+        rect.fill(using: .sourceAtop)
+        NSGraphicsContext.restoreGraphicsState()
+
+        let image = NSImage(size: pointSize)
+        image.addRepresentation(rep)
         image.isTemplate = false
         return image
     }
@@ -24,6 +76,19 @@ enum BrandIconProvider {
             preconditionFailure("Missing required image asset: \(name)")
         }
         return image
+    }
+}
+
+/// Visual state for the menu bar icon. Unauthorized outranks paused.
+enum MenuBarIconStatus: Equatable, Sendable {
+    case normal
+    case paused
+    case needPermission
+
+    static func resolve(isAccessibilityTrusted: Bool, isGesturesEnabled: Bool) -> Self {
+        if !isAccessibilityTrusted { return .needPermission }
+        if !isGesturesEnabled { return .paused }
+        return .normal
     }
 }
 

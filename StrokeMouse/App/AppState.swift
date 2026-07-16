@@ -20,6 +20,8 @@ final class AppState {
     var settingsOpenToken: UInt = 0
     /// Bumped when language changes so SwiftUI rebuilds string-based UI.
     var languageEpoch: UInt = 0
+    /// Stored so MenuBarExtra label observes AppState directly (nested Observation is unreliable there).
+    private(set) var menuBarIconStatus: MenuBarIconStatus = .normal
 
     var resolvedLocale: Locale { L10n.locale }
 
@@ -47,6 +49,9 @@ final class AppState {
         permissionManager.onBecameTrusted = { [weak gestureEngine] in
             gestureEngine?.startIfPossible()
         }
+        permissionManager.onTrustChanged = { [weak self] _ in
+            self?.refreshMenuBarIconStatus()
+        }
 
         // Per-gesture triggers: refresh watched mouse buttons whenever the catalog changes.
         configStore.onGesturesChanged = { [weak gestureEngine] in
@@ -55,7 +60,15 @@ final class AppState {
 
         applyLaunchPreferences()
         gestureEngine.startIfPossible()
+        refreshMenuBarIconStatus()
         installSettingsWindowCloseObserver()
+    }
+
+    func refreshMenuBarIconStatus() {
+        menuBarIconStatus = MenuBarIconStatus.resolve(
+            isAccessibilityTrusted: permissionManager.isAccessibilityTrusted,
+            isGesturesEnabled: gestureEngine.isEnabled
+        )
     }
 
     private static func preconfigureLocalization() {
@@ -130,6 +143,7 @@ final class AppState {
             minDistance: minDistance > 0 ? minDistance : Constants.defaultMinStrokeDistance,
             enabled: enabled
         )
+        refreshMenuBarIconStatus()
 
         applyLanguage()
         applyAppearance()
@@ -154,6 +168,7 @@ final class AppState {
     func setGesturesEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(enabled, forKey: PreferenceKey.gesturesEnabled)
         gestureEngine.setEnabled(enabled)
+        refreshMenuBarIconStatus()
     }
 
     func updateMinStrokeDistance(_ value: Double) {

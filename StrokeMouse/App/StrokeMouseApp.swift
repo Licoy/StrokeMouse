@@ -5,7 +5,6 @@ import SwiftUI
 struct StrokeMouseApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
-    @AppStorage(PreferenceKey.menuBarIconStyle) private var menuBarIconStyle = MenuBarIconStyle.default
 
     var body: some Scene {
         MenuBarExtra {
@@ -13,17 +12,8 @@ struct StrokeMouseApp: App {
                 .environment(appState)
                 .environment(\.locale, appState.resolvedLocale)
         } label: {
-            let _ = appState.languageEpoch
-            ZStack {
-                Image(nsImage: BrandIconProvider.menuBarIcon(for: menuBarIconStyle))
-                    .accessibilityLabel(Text(L10n.string("app.name")))
-                SettingsWindowOpener()
-                    .environment(appState)
-            }
-            .frame(
-                width: BrandIconProvider.menuBarPointSize.width,
-                height: BrandIconProvider.menuBarPointSize.height
-            )
+            MenuBarExtraLabel()
+                .environment(appState)
         }
         .menuBarExtraStyle(.menu)
 
@@ -38,5 +28,35 @@ struct StrokeMouseApp: App {
         .windowResizability(.contentSize)
         .commandsRemoved()
     }
+}
 
+/// Isolated label so AppState.menuBarIconStatus invalidates the status item image.
+private struct MenuBarExtraLabel: View {
+    @Environment(AppState.self) private var appState
+    @AppStorage(PreferenceKey.menuBarIconStyle) private var menuBarIconStyle = MenuBarIconStyle.default
+
+    var body: some View {
+        let _ = appState.languageEpoch
+        let status = appState.menuBarIconStatus
+        let icon = BrandIconProvider.menuBarIcon(for: menuBarIconStyle, status: status)
+
+        ZStack {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+                .frame(
+                    width: BrandIconProvider.menuBarPointSize.width,
+                    height: BrandIconProvider.menuBarPointSize.height
+                )
+                .accessibilityLabel(Text(L10n.string("app.name")))
+            SettingsWindowOpener()
+                .environment(appState)
+        }
+        .frame(
+            width: BrandIconProvider.menuBarPointSize.width,
+            height: BrandIconProvider.menuBarPointSize.height
+        )
+        // Force status-item image swap; MenuBarExtra often caches identical Image identity.
+        .id("\(status)-\(menuBarIconStyle.rawValue)")
+    }
 }

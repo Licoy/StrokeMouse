@@ -9,6 +9,8 @@ final class PermissionManager {
     private(set) var isAccessibilityTrusted = false
     /// Fired when accessibility trust flips from false → true (e.g. user enabled it in System Settings).
     var onBecameTrusted: (() -> Void)?
+    /// Fired whenever accessibility trust changes (true→false or false→true).
+    var onTrustChanged: ((Bool) -> Void)?
     nonisolated(unsafe) private var timer: Timer?
 
     init() {
@@ -25,18 +27,20 @@ final class PermissionManager {
     }
 
     func refresh() {
-        let wasTrusted = isAccessibilityTrusted
-        isAccessibilityTrusted = AXIsProcessTrusted()
-        if isAccessibilityTrusted, !wasTrusted {
-            onBecameTrusted?()
-        }
+        applyTrust(AXIsProcessTrusted())
     }
 
     func requestAccessibility() {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        applyTrust(AXIsProcessTrustedWithOptions(options))
+    }
+
+    private func applyTrust(_ trusted: Bool) {
         let wasTrusted = isAccessibilityTrusted
-        isAccessibilityTrusted = AXIsProcessTrustedWithOptions(options)
-        if isAccessibilityTrusted, !wasTrusted {
+        guard trusted != wasTrusted else { return }
+        isAccessibilityTrusted = trusted
+        onTrustChanged?(trusted)
+        if trusted {
             onBecameTrusted?()
         }
     }
