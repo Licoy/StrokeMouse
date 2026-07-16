@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Verify generated Xcode project
+        run: |
+          ./scripts/generate_project.sh
+          git diff --exit-code -- StrokeMouse.xcodeproj
+      - name: Test
+        run: |
+          arch="$(uname -m)"
+          xcodebuild \
+            -project StrokeMouse.xcodeproj \
+            -scheme StrokeMouse \
+            -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/StrokeMouseTests" \
+            -destination "platform=macOS,arch=$arch" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY=- \
+            DEVELOPMENT_TEAM= \
+            test
+
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Build website
+        working-directory: website
+        run: |
+          npm ci
+          npm run build
+
+  package:
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, x86_64]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Package ${{ matrix.arch }}
+        env:
+          EXPECTED_MACOS_SDK_MAJOR: "26"
+          # Disposable public-only key; CI artifacts are never published.
+          SPARKLE_PUBLIC_KEY: "Ih8Ezm5gKh1xeB6kG1mixJgjzV86LhfkjLXwc0LrSHo="
+        run: ARCH=${{ matrix.arch }} ./scripts/package-app.sh

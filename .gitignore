@@ -1,0 +1,39 @@
+# Xcode
+build/
+output/
+dist/
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+xcuserdata/
+*.xcscmblueprint
+*.xcworkspace/xcuserdata/
+
+# Generated (optional keep: we commit xcodeproj after generate for convenience)
+# StrokeMouse.xcodeproj/ is generated from project.yml — regenerate with scripts/generate_project.sh
+
+# SPM
+.swiftpm/
+SourcePackages/
+.package.resolved
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Secrets / local
+*.mobileprovision
+*.p12
+.env
+.env.*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
