@@ -18,6 +18,49 @@ struct ActionPickerView: View {
     @State private var isRecordingShortcut = false
     @State private var didHydrate = false
     @State private var recorderFailed = false
+    @State private var showOpenAppPicker = false
+
+    private var openAppInfo: AppInfoLookup.Info? {
+        let trimmed = appBundleId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let resolved = AppInfoLookup.info(forBundleId: trimmed)
+        // Use disk-resolved name when the app is installed; otherwise fall back to stored name.
+        if !resolved.path.isEmpty {
+            return resolved
+        }
+        let displayName = appName.isEmpty ? trimmed : appName
+        return AppInfoLookup.Info(bundleId: trimmed, name: displayName, path: "")
+    }
+
+    @ViewBuilder
+    private var openAppEditor: some View {
+        if let app = openAppInfo {
+            SelectedAppsCard {
+                SelectedAppRow(app: app, onRemove: clearOpenApp)
+            }
+        } else {
+            Text(L10n.string("action.openAppEmpty"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        HStack {
+            Button {
+                showOpenAppPicker = true
+            } label: {
+                Label(
+                    L10n.string(openAppInfo == nil ? "action.openAppChoose" : "action.openAppChange"),
+                    systemImage: openAppInfo == nil ? "plus.circle" : "arrow.triangle.2.circlepath"
+                )
+            }
+            Spacer()
+        }
+
+        Text(L10n.string("action.openAppHelp"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
 
     var body: some View {
         Group {
@@ -91,16 +134,7 @@ struct ActionPickerView: View {
                 }
 
             case .openApp:
-                HStack {
-                    TextField(L10n.string("action.appName"), text: $appName)
-                    TextField(L10n.string("action.bundleId"), text: $appBundleId)
-                    Button(L10n.string("action.chooseApp")) {
-                        chooseApp()
-                    }
-                }
-                .onChange(of: appBundleId) { _, _ in
-                    action = .openApp(bundleId: appBundleId, name: appName.isEmpty ? appBundleId : appName)
-                }
+                openAppEditor
 
             case .openURL:
                 TextField("URL", text: $urlString)
@@ -156,6 +190,30 @@ struct ActionPickerView: View {
         .onDisappear {
             stopRecording()
         }
+        .sheet(isPresented: $showOpenAppPicker) {
+            InstalledAppPickerSheet(
+                mode: .single(currentBundleId: appBundleId.isEmpty ? nil : appBundleId),
+                onConfirm: { selected in
+                    if let app = selected.first {
+                        applyOpenApp(app)
+                    }
+                    showOpenAppPicker = false
+                },
+                onCancel: { showOpenAppPicker = false }
+            )
+        }
+    }
+
+    private func applyOpenApp(_ app: AppInfoLookup.Info) {
+        appBundleId = app.bundleId
+        appName = app.name
+        action = .openApp(bundleId: app.bundleId, name: app.name)
+    }
+
+    private func clearOpenApp() {
+        appBundleId = ""
+        appName = ""
+        action = .openApp(bundleId: "", name: "")
     }
 
     // MARK: - Recording
@@ -243,20 +301,4 @@ struct ActionPickerView: View {
         }
     }
 
-    private func chooseApp() {
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        panel.allowsMultipleSelection = false
-        panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.allowedContentTypes = [.application]
-        if panel.runModal() == .OK, let url = panel.url {
-            if let bundle = Bundle(url: url) {
-                appBundleId = bundle.bundleIdentifier ?? ""
-                appName = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
-                    ?? url.deletingPathExtension().lastPathComponent
-                action = .openApp(bundleId: appBundleId, name: appName)
-            }
-        }
-    }
 }

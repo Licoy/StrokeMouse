@@ -2929,50 +2929,98 @@
         }
       }
     },
-    "action.appName": {
+    "action.openAppEmpty": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "App Name"
+            "value": "No app selected. Choose an app to open when this gesture matches."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "应用名"
+            "value": "尚未选择应用。选择一个应用后，匹配到手势时将打开它。"
           }
         }
       }
     },
-    "action.bundleId": {
+    "action.openAppChoose": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bundle ID"
+            "value": "Choose App…"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bundle ID"
+            "value": "选择应用…"
           }
         }
       }
     },
-    "action.chooseApp": {
+    "action.openAppChange": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose…"
+            "value": "Change App…"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择…"
+            "value": "更换应用…"
+          }
+        }
+      }
+    },
+    "action.openAppHelp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When this gesture matches, StrokeMouse will launch the selected app."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匹配到该手势时，将启动所选应用。"
+          }
+        }
+      }
+    },
+    "action.openAppPickerTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Application"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择应用"
+          }
+        }
+      }
+    },
+    "action.openAppConfirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择"
           }
         }
       }

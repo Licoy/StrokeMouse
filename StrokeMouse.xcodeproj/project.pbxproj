@@ -40,6 +40,7 @@
 		4CCD1DEF59DD8181617B7749 /* DirectionQuantizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AD548EE50042DF725316A2E /* DirectionQuantizer.swift */; };
 		5013BB200F437C3F74F0F95A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 147B4215AD8AB06B41161F4A /* Assets.xcassets */; };
 		52A2E7657189F2AE59B06896 /* UpdateInstallEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49154A7D7A13DAC7BB56C19E /* UpdateInstallEnvironmentTests.swift */; };
+		543E9746C988D0E9FF494CB9 /* InstalledAppPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 822A88F82CA58D4ED1CE45FF /* InstalledAppPickerSheet.swift */; };
 		5481CC5F8E2F2A01D0CF2EEF /* SettingsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5BF1D107974DDF46B0DCC31 /* SettingsRootView.swift */; };
 		62EB66605E25A5D9D4969CD4 /* TemplateMatcherRobustnessTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13949AD7FB3A58C54F920653 /* TemplateMatcherRobustnessTests.swift */; };
 		6D1F01F353DD34C2D2DED17C /* PathSimplifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2ED089878497180E5171D33 /* PathSimplifierTests.swift */; };
@@ -136,6 +137,7 @@
 		6DFE7ABED11FF3DE10C7A885 /* GestureMatchAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureMatchAcceptanceTests.swift; sourceTree = "<group>"; };
 		7A9936C0BB33B4D8EC8AB38B /* StrokeMouse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StrokeMouse.entitlements; sourceTree = "<group>"; };
 		7CA6D366778AFF733AE72056 /* StrokeStructureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeStructureExtractor.swift; sourceTree = "<group>"; };
+		822A88F82CA58D4ED1CE45FF /* InstalledAppPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAppPickerSheet.swift; sourceTree = "<group>"; };
 		84952723214A84B48A39B49C /* MouseEventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseEventTap.swift; sourceTree = "<group>"; };
 		91945376E1575B55EC3AD3A4 /* PathSimplifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathSimplifier.swift; sourceTree = "<group>"; };
 		94753CFBD2B86AEC2877E1F1 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 				602385BB4F214193DE32572E /* GesturePreviewGeometry.swift */,
 				D79557E37E9938D8280DEF14 /* GestureRecorderView.swift */,
 				1D8050E5F97418EEFD5A9705 /* GestureTestView.swift */,
+				822A88F82CA58D4ED1CE45FF /* InstalledAppPickerSheet.swift */,
 			);
 			path = GestureEditor;
 			sourceTree = "<group>";
@@ -573,6 +576,7 @@
 				F70094A2F3CD92A4EF03B019 /* GestureTestView.swift in Sources */,
 				0C12F324F567CA73C88F835F /* GestureToastController.swift in Sources */,
 				44B7279194D90FFBFE32AD2C /* GesturesSettingsView.swift in Sources */,
+				543E9746C988D0E9FF494CB9 /* InstalledAppPickerSheet.swift in Sources */,
 				294740A2D214386A7D6D8B90 /* KeyCodeNames.swift in Sources */,
 				398517CFA655FE0CBA4FDB39 /* L10n.swift in Sources */,
 				B8EAD7909208F1B62AE87E28 /* MediaActions.swift in Sources */,
