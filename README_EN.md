@@ -11,6 +11,33 @@
 
 Custom mouse gestures for macOS. Hold a **per-gesture trigger** (right button by default; middle or side buttons also work), draw a stroke, and run shortcuts, open apps, window commands, media keys, Shell / AppleScript, and more. Gestures can be **global or app-scoped**, configs are **importable/exportable**, and everything runs locally from the menu bar.
 
+## Screenshots
+
+<p align="center">
+  <img src="website/docs/public/screenshots/1.png" width="720" alt="Gesture list" /><br/>
+  <sub>Gesture list</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/2.png" width="720" alt="Gesture test" /><br/>
+  <sub>Gesture test</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/3.png" width="720" alt="General settings" /><br/>
+  <sub>General settings</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/4.png" width="720" alt="Permissions" /><br/>
+  <sub>Permissions</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/5.png" width="480" alt="Record stroke" /><br/>
+  <sub>Record stroke</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/6.png" width="480" alt="App scope" /><br/>
+  <sub>App scope</sub>
+</p>
+
 ## Features
 
 - **Menu bar app**: enable/disable gestures, open settings, permission status, quit

@@ -28,6 +28,20 @@ description: "StrokeMouse is a macOS mouse gesture tool. Hold a trigger, draw a 
   ]"
 />
 
+<ScreenshotCarousel
+  heading="Screenshots"
+  description="Gesture library, testing, settings, and permissions — what you see is what you get."
+  frame-tag="Preview"
+  :shots="[
+    { src: '/screenshots/1.png', alt: 'Gesture list' },
+    { src: '/screenshots/2.png', alt: 'Gesture test' },
+    { src: '/screenshots/3.png', alt: 'General settings' },
+    { src: '/screenshots/4.png', alt: 'Permissions' },
+    { src: '/screenshots/5.png', alt: 'Record stroke' },
+    { src: '/screenshots/6.png', alt: 'App scope' },
+  ]"
+/>
+
 <FeatureGrid
   subheading="Capabilities"
   heading="Built for power users"

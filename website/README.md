@@ -32,12 +32,15 @@ docs/
   .vitepress/     # 配置 + 主题 + 组件
   guide/          # 中文文档
   en/             # 英文首页与文档
-  public/         # logo / favicon
+  public/         # logo / favicon / screenshots
+    screenshots/  # 产品截图唯一源（README 与官网共用）
   index.md        # 中文首页
 ```
 
 修改导航 / 侧栏：`docs/.vitepress/config/zh.ts`、`en.ts`。  
 修改全站视觉：`docs/.vitepress/theme/style.css` 与 `components/`。
+
+**截图单源**：`docs/public/screenshots/` 为仓库内唯一产品截图目录。官网首页幻灯片使用 `/screenshots/*.png`；根目录 `README.md` / `README_EN.md` 引用 `website/docs/public/screenshots/`。
 
 ## 与 App 仓库的关系
 

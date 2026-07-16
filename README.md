@@ -11,6 +11,33 @@
 
 macOS 鼠标手势自定义工具。按住**该手势的触发键**（默认右键，也可中键 / 侧键）绘制轨迹，匹配后执行快捷键、打开应用、窗口操作、媒体键、Shell / AppleScript 等。支持**全局或指定 App** 生效，手势配置可**导入导出**，本地运行、菜单栏常驻。
 
+## 界面预览
+
+<p align="center">
+  <img src="website/docs/public/screenshots/1.png" width="720" alt="手势配置列表" /><br/>
+  <sub>手势配置列表</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/2.png" width="720" alt="手势测试" /><br/>
+  <sub>手势测试</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/3.png" width="720" alt="通用设置" /><br/>
+  <sub>通用设置</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/4.png" width="720" alt="权限与引擎状态" /><br/>
+  <sub>权限与引擎状态</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/5.png" width="480" alt="新建手势 · 录制轨迹" /><br/>
+  <sub>新建手势 · 录制轨迹</sub>
+</p>
+<p align="center">
+  <img src="website/docs/public/screenshots/6.png" width="480" alt="应用范围" /><br/>
+  <sub>应用范围</sub>
+</p>
+
 ## 功能
 
 - **菜单栏常驻**：启停手势、打开设置、权限状态、退出

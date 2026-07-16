@@ -8,6 +8,7 @@ import GestureTable from './components/GestureTable.vue'
 import CalloutBanner from './components/CalloutBanner.vue'
 import DownloadPage from './components/DownloadPage.vue'
 import DefaultGestures from './components/DefaultGestures.vue'
+import ScreenshotCarousel from './components/ScreenshotCarousel.vue'
 import './style.css'
 
 export default {
@@ -21,5 +22,6 @@ export default {
     app.component('CalloutBanner', CalloutBanner)
     app.component('DownloadPage', DownloadPage)
     app.component('DefaultGestures', DefaultGestures)
+    app.component('ScreenshotCarousel', ScreenshotCarousel)
   },
 } satisfies Theme
