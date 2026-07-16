@@ -3041,6 +3041,38 @@
         }
       }
     },
+    "action.shellPlaceholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a shell command…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 Shell 命令…"
+          }
+        }
+      }
+    },
+    "action.appleScriptPlaceholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter AppleScript…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入 AppleScript…"
+          }
+        }
+      }
+    },
     "media.playPause": {
       "localizations": {
         "en": {

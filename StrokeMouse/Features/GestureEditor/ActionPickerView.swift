@@ -143,12 +143,17 @@ struct ActionPickerView: View {
                     }
 
             case .shell:
-                TextField(L10n.string("action.shell"), text: $shellCommand, axis: .vertical)
-                    .lineLimit(2...5)
-                    .font(.system(.body, design: .monospaced))
-                    .onChange(of: shellCommand) { _, newValue in
-                        action = .shell(newValue)
-                    }
+                Text(L10n.string("action.shell"))
+                    .font(.body)
+                ScriptTextArea(
+                    text: $shellCommand,
+                    language: .shell,
+                    minHeight: 100,
+                    placeholder: L10n.string("action.shellPlaceholder")
+                )
+                .onChange(of: shellCommand) { _, newValue in
+                    action = .shell(newValue)
+                }
                 Text(L10n.string("action.shellWarning"))
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -174,12 +179,17 @@ struct ActionPickerView: View {
                 }
 
             case .appleScript:
-                TextField(L10n.string("action.appleScript"), text: $appleScript, axis: .vertical)
-                    .lineLimit(3...8)
-                    .font(.system(.body, design: .monospaced))
-                    .onChange(of: appleScript) { _, newValue in
-                        action = .appleScript(newValue)
-                    }
+                Text(L10n.string("action.appleScript"))
+                    .font(.body)
+                ScriptTextArea(
+                    text: $appleScript,
+                    language: .appleScript,
+                    minHeight: 140,
+                    placeholder: L10n.string("action.appleScriptPlaceholder")
+                )
+                .onChange(of: appleScript) { _, newValue in
+                    action = .appleScript(newValue)
+                }
             }
         }
         .onAppear {
