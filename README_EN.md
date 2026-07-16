@@ -13,30 +13,17 @@ Custom mouse gestures for macOS. Hold a **per-gesture trigger** (right button by
 
 ## Screenshots
 
-<p align="center">
-  <img src="website/docs/public/screenshots/1.png" width="720" alt="Gesture list" /><br/>
-  <sub>Gesture list</sub>
-</p>
-<p align="center">
-  <img src="website/docs/public/screenshots/2.png" width="720" alt="Gesture test" /><br/>
-  <sub>Gesture test</sub>
-</p>
-<p align="center">
-  <img src="website/docs/public/screenshots/3.png" width="720" alt="General settings" /><br/>
-  <sub>General settings</sub>
-</p>
-<p align="center">
-  <img src="website/docs/public/screenshots/4.png" width="720" alt="Permissions" /><br/>
-  <sub>Permissions</sub>
-</p>
-<p align="center">
-  <img src="website/docs/public/screenshots/5.png" width="480" alt="Record stroke" /><br/>
-  <sub>Record stroke</sub>
-</p>
-<p align="center">
-  <img src="website/docs/public/screenshots/6.png" width="480" alt="App scope" /><br/>
-  <sub>App scope</sub>
-</p>
+| Gesture list | Gesture test |
+|:---:|:---:|
+| <img src="website/docs/public/screenshots/1.png" width="400" alt="Gesture list" /> | <img src="website/docs/public/screenshots/2.png" width="400" alt="Gesture test" /> |
+
+| General settings | Permissions |
+|:---:|:---:|
+| <img src="website/docs/public/screenshots/3.png" width="400" alt="General settings" /> | <img src="website/docs/public/screenshots/4.png" width="400" alt="Permissions" /> |
+
+| Record stroke | App scope |
+|:---:|:---:|
+| <img src="website/docs/public/screenshots/5.png" width="400" alt="Record stroke" /> | <img src="website/docs/public/screenshots/6.png" width="400" alt="App scope" /> |
 
 ## Features
 
