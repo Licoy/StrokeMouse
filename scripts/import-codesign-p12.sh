@@ -85,6 +85,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
+echo "==> [1/6] Decode / resolve PKCS#12"
 if [[ "$FROM_ENV" -eq 1 ]]; then
   [[ -n "${CODE_SIGN_P12_BASE64:-}" ]] || {
     echo "CODE_SIGN_P12_BASE64 is required with --from-env" >&2
@@ -99,6 +100,7 @@ if [[ "$FROM_ENV" -eq 1 ]]; then
   # Accept base64 with or without newlines.
   printf '%s' "$CODE_SIGN_P12_BASE64" | tr -d '\n\r' | base64 -D >"$TMP_P12"
   P12="$TMP_P12"
+  echo "    decoded p12 bytes: $(wc -c <"$P12" | tr -d ' ')"
 fi
 
 [[ -n "$P12" && -f "$P12" ]] || {
@@ -123,6 +125,7 @@ if [[ -z "$KEYCHAIN" ]]; then
   KEYCHAIN="$(security login-keychain | sed -e 's/^[[:space:]]*"//' -e 's/"[[:space:]]*$//')"
 fi
 
+echo "==> [2/6] Prepare keychain: $KEYCHAIN"
 if [[ "$CREATE_KEYCHAIN" -eq 1 ]]; then
   [[ -n "$KEYCHAIN_PASSWORD" ]] || {
     echo "--create-keychain requires --keychain-password" >&2
@@ -131,20 +134,22 @@ if [[ "$CREATE_KEYCHAIN" -eq 1 ]]; then
   if [[ ! -f "$KEYCHAIN" ]]; then
     security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
   fi
+  # -t lock timeout seconds; avoid auto-lock mid-build. -u is "lock when sleep" off via -lut.
   security set-keychain-settings -lut 21600 "$KEYCHAIN"
   security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-  # Prepend so codesign finds the identity first.
+  # Prefer this keychain for codesign lookups.
   existing="$(security list-keychains -d user | sed -e 's/^[[:space:]]*"//' -e 's/"[[:space:]]*$//')"
   # shellcheck disable=SC2086
   security list-keychains -d user -s "$KEYCHAIN" $existing
+  security default-keychain -s "$KEYCHAIN"
 fi
 
 if [[ -n "$KEYCHAIN_PASSWORD" && -f "$KEYCHAIN" ]]; then
   security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN" 2>/dev/null || true
 fi
 
-echo "==> Importing code signing identity into $KEYCHAIN"
-# -T allows codesign/security without ACL prompt in non-interactive CI.
+echo "==> [3/6] Import PKCS#12 into keychain"
+# -A / -T allows codesign without ACL GUI prompts on CI.
 security import "$P12" \
   -k "$KEYCHAIN" \
   -P "$PASSWORD" \
@@ -152,8 +157,9 @@ security import "$P12" \
   -T /usr/bin/security \
   -T /usr/bin/productbuild \
   -f pkcs12
+echo "    import done"
 
-# Allow codesign to use the private key non-interactively.
+echo "==> [4/6] set-key-partition-list (non-interactive private key use)"
 if [[ -n "$KEYCHAIN_PASSWORD" ]]; then
   security set-key-partition-list \
     -S apple-tool:,apple:,codesign: \
@@ -161,20 +167,33 @@ if [[ -n "$KEYCHAIN_PASSWORD" ]]; then
     -k "$KEYCHAIN_PASSWORD" \
     "$KEYCHAIN" >/dev/null
 else
-  # Login keychain: partition list may prompt if keychain is locked; try best-effort.
+  # Login keychain: may prompt if locked; best-effort.
   security set-key-partition-list \
     -S apple-tool:,apple:,codesign: \
     -s \
     "$KEYCHAIN" >/dev/null 2>&1 || true
 fi
+echo "    partition list done"
 
 # Self-signed identities need an explicit Code Signing trust entry or
-# find-identity reports CSSMERR_TP_NOT_TRUSTED.
+# find-identity reports CSSMERR_TP_NOT_TRUSTED (and codesign can hang on CI).
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+echo "==> [5/6] Trust certificate for Code Signing policy"
 if [[ -x "$SCRIPT_DIR/trust-codesign-cert.sh" ]]; then
-  echo "==> Trusting certificate for Code Signing policy"
   "$SCRIPT_DIR/trust-codesign-cert.sh" --from-p12 "$P12" --password "$PASSWORD"
+else
+  echo "WARNING: trust-codesign-cert.sh missing; identity may be untrusted" >&2
 fi
 
-echo "==> Available code signing identities (sample):"
+echo "==> [6/6] List valid code signing identities"
 security find-identity -v -p codesigning "$KEYCHAIN" | head -20
+if ! security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -q 'valid identities found'; then
+  : # always prints a summary line
+fi
+# Fail early if nothing is valid (trust step failed silently).
+if security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -q '0 valid identities found'; then
+  echo "ERROR: no valid code signing identities after import/trust" >&2
+  security find-identity -p codesigning "$KEYCHAIN" 2>&1 | head -30 >&2 || true
+  exit 1
+fi
+echo "==> Code signing identity import complete"

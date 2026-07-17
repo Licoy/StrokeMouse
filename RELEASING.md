@@ -25,6 +25,16 @@ Do **not** rotate this certificate casually: every user will need to re-grant Ac
 
 Users never install the certificate; only build machines and CI need the private key.
 
+### CI trust (headless)
+
+Import scripts mark the self-signed cert trusted for **Code Signing** via:
+
+```bash
+sudo security add-trusted-cert -d -r trustAsRoot -p codeSign cert.crt
+```
+
+GitHub-hosted macOS runners provide passwordless `sudo`. Do **not** rely on `security trust-settings-import` in CI — it waits for SecurityAgent UI and will hang forever.
+
 ## Local package
 
 ```bash
