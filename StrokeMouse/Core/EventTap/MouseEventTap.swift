@@ -6,13 +6,10 @@ import Foundation
 /// Active CGEventTap wrapper that reserves configured trigger-button gestures.
 ///
 /// Important design constraints (esp. macOS 14):
-/// - Use `.defaultTap` only for trigger down/up/drag — **never** put free `mouseMoved`
-///   in the mask; a filtering tap on mouseMoved gates system cursor updates on this
-///   process and can freeze the pointer until the app quits.
+/// - Use `.defaultTap` only for trigger down/up. Continuous movement must bypass
+///   the filtering tap so macOS can update the cursor independently of this process.
 /// - Run the tap on a dedicated CFRunLoop thread so main-thread UI work cannot stall
 ///   cursor delivery.
-/// - Always return the original event for dragged types so the cursor keeps moving
-///   after a consumed trigger-down.
 final class MouseEventTap: @unchecked Sendable {
     struct Sample {
         let location: CGPoint
@@ -22,22 +19,19 @@ final class MouseEventTap: @unchecked Sendable {
     enum EventKind {
         case buttonDown(MouseTriggerButton, CGPoint)
         case buttonUp(MouseTriggerButton, CGPoint)
-        case drag(CGPoint)
     }
 
     static let tapOptions: CGEventTapOptions = .defaultTap
     private static let replayEventMarker: Int64 = 0x5354524F4B454D4F
 
-    /// Trigger-related events only. Free `mouseMoved` and left-button traffic stay
-    /// outside the tap so the system updates the cursor without entering this process.
+    /// Trigger-button edges only. All continuous movement stays outside the tap so
+    /// the system updates the cursor without entering this process.
     static var eventsOfInterestMask: CGEventMask {
         let rightDown = CGEventMask(1) << CGEventType.rightMouseDown.rawValue
         let rightUp = CGEventMask(1) << CGEventType.rightMouseUp.rawValue
         let otherDown = CGEventMask(1) << CGEventType.otherMouseDown.rawValue
         let otherUp = CGEventMask(1) << CGEventType.otherMouseUp.rawValue
-        let rightDrag = CGEventMask(1) << CGEventType.rightMouseDragged.rawValue
-        let otherDrag = CGEventMask(1) << CGEventType.otherMouseDragged.rawValue
-        return rightDown | rightUp | otherDown | otherUp | rightDrag | otherDrag
+        return rightDown | rightUp | otherDown | otherUp
     }
 
     /// Buttons that arm gesture capture. Unwatched mouse input is not in the mask
@@ -213,12 +207,6 @@ final class MouseEventTap: @unchecked Sendable {
                 kind = .buttonUp(button, location)
                 swallow = true
             }
-        case .rightMouseDragged, .otherMouseDragged:
-            // Must always pass the event through so the system cursor keeps moving
-            // after a consumed trigger-down. Path sampling is primarily timer-based.
-            if let button, capturedButtons.contains(button) {
-                kind = .drag(location)
-            }
         default:
             break
         }
@@ -288,9 +276,9 @@ final class MouseEventTap: @unchecked Sendable {
 
     private func resolveButton(type: CGEventType, event: CGEvent) -> MouseTriggerButton? {
         switch type {
-        case .rightMouseDown, .rightMouseUp, .rightMouseDragged:
+        case .rightMouseDown, .rightMouseUp:
             return .right
-        case .otherMouseDown, .otherMouseUp, .otherMouseDragged:
+        case .otherMouseDown, .otherMouseUp:
             let number = event.getIntegerValueField(.mouseEventButtonNumber)
             switch number {
             case 2: return .middle

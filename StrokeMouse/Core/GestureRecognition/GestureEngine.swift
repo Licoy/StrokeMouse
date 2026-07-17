@@ -183,10 +183,6 @@ final class GestureEngine {
         case .buttonDown(let button, let quartzLocation):
             beginStroke(button: button, quartzLocation: quartzLocation)
 
-        case .drag:
-            // Prefer timer sampling; still accept drag events if they arrive.
-            appendSample(Self.appKitMouseLocation())
-
         case .buttonUp(let button, _):
             // Ignore up from a different button than the active stroke.
             if let active = activeButton, active != button { return }
@@ -225,6 +221,8 @@ final class GestureEngine {
     }
 
     private func endStroke() {
+        // Capture the release position in case a fast stroke ends before the next timer tick.
+        appendSample(Self.appKitMouseLocation())
         stopSampling()
         let path = currentPath
         let button = activeButton

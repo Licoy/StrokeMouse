@@ -9,35 +9,34 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertEqual(MouseEventTap.tapOptions, .defaultTap)
     }
 
-    func testEventsOfInterestExcludesFreeMouseMovedAndLeftButton() {
+    func testEventsOfInterestExcludesAllContinuousMouseMovement() {
         let mask = MouseEventTap.eventsOfInterestMask
 
         XCTAssertFalse(maskContains(mask, .mouseMoved),
-                       "Filtering mouseMoved freezes the system cursor on some macOS versions")
+                       "Filtering movement can freeze the system cursor on macOS 14")
         XCTAssertFalse(maskContains(mask, .leftMouseDown))
         XCTAssertFalse(maskContains(mask, .leftMouseUp))
         XCTAssertFalse(maskContains(mask, .leftMouseDragged))
+        XCTAssertFalse(maskContains(mask, .rightMouseDragged))
+        XCTAssertFalse(maskContains(mask, .otherMouseDragged))
 
         XCTAssertTrue(maskContains(mask, .rightMouseDown))
         XCTAssertTrue(maskContains(mask, .rightMouseUp))
-        XCTAssertTrue(maskContains(mask, .rightMouseDragged))
         XCTAssertTrue(maskContains(mask, .otherMouseDown))
         XCTAssertTrue(maskContains(mask, .otherMouseUp))
-        XCTAssertTrue(maskContains(mask, .otherMouseDragged))
     }
 
-    func testWatchedRightButtonKeepsCursorMovingWhileDownAndUpAreConsumed() throws {
+    func testWatchedRightButtonFiltersOnlyDownAndUp() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
         var observedKinds: [String] = []
+        var observedEventCount = 0
         tap.onEvent = { event in
-            switch event {
-            case .buttonDown:
+            observedEventCount += 1
+            if case .buttonDown = event {
                 observedKinds.append("down")
-            case .buttonUp:
+            } else if case .buttonUp = event {
                 observedKinds.append("up")
-            case .drag:
-                observedKinds.append("drag")
             }
         }
 
@@ -46,9 +45,28 @@ final class MouseEventTapTests: XCTestCase {
         let up = try makeMouseEvent(type: .rightMouseUp, button: .right)
 
         XCTAssertNil(tap.handle(type: .rightMouseDown, event: down))
-        XCTAssertNotNil(tap.handle(type: .rightMouseDragged, event: drag))
+        let returnedDrag = try XCTUnwrap(tap.handle(type: .rightMouseDragged, event: drag))
+        XCTAssertTrue(returnedDrag.takeUnretainedValue() === drag)
         XCTAssertNil(tap.handle(type: .rightMouseUp, event: up))
-        XCTAssertEqual(observedKinds, ["down", "drag", "up"])
+        XCTAssertEqual(observedKinds, ["down", "up"])
+        XCTAssertEqual(observedEventCount, 2)
+    }
+
+    func testWatchedOtherButtonDragPassesThroughUnchangedWithoutNotification() throws {
+        let tap = MouseEventTap()
+        tap.watchedButtons = [.middle]
+        var observedEventCount = 0
+        tap.onEvent = { _ in observedEventCount += 1 }
+
+        let down = try makeMouseEvent(type: .otherMouseDown, button: .center)
+        let drag = try makeMouseEvent(type: .otherMouseDragged, button: .center)
+        let up = try makeMouseEvent(type: .otherMouseUp, button: .center)
+
+        XCTAssertNil(tap.handle(type: .otherMouseDown, event: down))
+        let returnedDrag = try XCTUnwrap(tap.handle(type: .otherMouseDragged, event: drag))
+        XCTAssertTrue(returnedDrag.takeUnretainedValue() === drag)
+        XCTAssertNil(tap.handle(type: .otherMouseUp, event: up))
+        XCTAssertEqual(observedEventCount, 2)
     }
 
     func testLeftButtonEventsPassThroughIfHandled() throws {
