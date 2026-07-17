@@ -14,7 +14,10 @@ struct ActionPickerView: View {
     @State private var shellCommand = "echo 'Hello from StrokeMouse'"
     @State private var mediaCommand: MediaCommand = .playPause
     @State private var windowCommand: WindowCommand = .minimize
-    @State private var appleScript = "display notification \"StrokeMouse\" with title \"Gesture\""
+    @State private var appleScriptPreset: AppleScriptPreset = .sleep
+    @State private var appleScript = AppleScriptPreset.sleep.source ?? ""
+    /// Draft kept while the user is on a built-in so switching back to Custom restores it.
+    @State private var customAppleScriptDraft = "display notification \"StrokeMouse\" with title \"Gesture\""
     @State private var isRecordingShortcut = false
     @State private var didHydrate = false
     @State private var recorderFailed = false
@@ -179,16 +182,32 @@ struct ActionPickerView: View {
                 }
 
             case .appleScript:
-                Text(L10n.string("action.appleScript"))
-                    .font(.body)
-                ScriptTextArea(
-                    text: $appleScript,
-                    language: .appleScript,
-                    minHeight: 140,
-                    placeholder: L10n.string("action.appleScriptPlaceholder")
-                )
-                .onChange(of: appleScript) { _, newValue in
-                    action = .appleScript(newValue)
+                Picker(L10n.string("action.appleScriptCommand"), selection: $appleScriptPreset) {
+                    ForEach(AppleScriptPreset.allCases) { preset in
+                        Text(L10n.string(preset.displayKey)).tag(preset)
+                    }
+                }
+                .onChange(of: appleScriptPreset) { oldValue, newValue in
+                    if oldValue == .custom {
+                        customAppleScriptDraft = appleScript
+                    }
+                    applyAppleScriptPreset(newValue)
+                }
+
+                if appleScriptPreset == .custom {
+                    ScriptTextArea(
+                        text: $appleScript,
+                        language: .appleScript,
+                        minHeight: 140,
+                        placeholder: L10n.string("action.appleScriptPlaceholder")
+                    )
+                    .onChange(of: appleScript) { _, newValue in
+                        customAppleScriptDraft = newValue
+                        action = .appleScript(newValue)
+                    }
+                    Text(L10n.string("action.appleScriptWarning"))
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
         }
@@ -283,7 +302,13 @@ struct ActionPickerView: View {
         case .window(let command):
             windowCommand = command
         case .appleScript(let source):
+            let preset = AppleScriptPreset.matching(source: source)
+            // Set draft before preset so any onChange → custom restore uses the hydrated script.
+            if preset == .custom {
+                customAppleScriptDraft = source
+            }
             appleScript = source
+            appleScriptPreset = preset
         }
     }
 
@@ -307,6 +332,16 @@ struct ActionPickerView: View {
         case .window:
             action = .window(windowCommand)
         case .appleScript:
+            applyAppleScriptPreset(appleScriptPreset)
+        }
+    }
+
+    private func applyAppleScriptPreset(_ preset: AppleScriptPreset) {
+        if let source = preset.source {
+            appleScript = source
+            action = .appleScript(source)
+        } else {
+            appleScript = customAppleScriptDraft
             action = .appleScript(appleScript)
         }
     }

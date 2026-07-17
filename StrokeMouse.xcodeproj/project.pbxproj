@@ -59,6 +59,7 @@
 		ACAA0DB056E55B4DBB8CC47F /* SettingsWindowOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF19BCD2BA6BE1264B4D7754 /* SettingsWindowOpener.swift */; };
 		ACC22C5934BAC6C3D508658C /* RecordedPeakGestureFixture.json in Resources */ = {isa = PBXBuildFile; fileRef = E7D00A1B0CD2EDA8D001D417 /* RecordedPeakGestureFixture.json */; };
 		AE5A014CA2DE40FF80FCF82F /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C6FCA0A4196CE5CF54B1FE /* GeneralSettingsView.swift */; };
+		AFC1F6D12E7756E0E69FC246 /* AppleScriptPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336195192821619700D648E6 /* AppleScriptPresetTests.swift */; };
 		B80BE40DA1B47024F88B922E /* GestureEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E274C0BB3CD32706BC07696A /* GestureEditorView.swift */; };
 		B8EAD7909208F1B62AE87E28 /* MediaActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2997615DB065E884F3C9FC6E /* MediaActions.swift */; };
 		B9960543D46B76C5E9815B62 /* StrokeStructureMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03CB92F4A8F87C446CB53E21 /* StrokeStructureMatcher.swift */; };
@@ -113,6 +114,7 @@
 		30BE8EFED858C370814810DF /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		32664140059A4330B3CFED9E /* TemplateMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateMatcher.swift; sourceTree = "<group>"; };
 		32908A96E6C69947C2B8BF1F /* PathTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathTemplates.swift; sourceTree = "<group>"; };
+		336195192821619700D648E6 /* AppleScriptPresetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleScriptPresetTests.swift; sourceTree = "<group>"; };
 		3AD548EE50042DF725316A2E /* DirectionQuantizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectionQuantizer.swift; sourceTree = "<group>"; };
 		3CBD29CCBDF8CF4D7E74B146 /* BrandIconProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandIconProviderTests.swift; sourceTree = "<group>"; };
 		3EFEF2226F3465CF928289C0 /* GestureHUDController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureHUDController.swift; sourceTree = "<group>"; };
@@ -346,6 +348,7 @@
 			isa = PBXGroup;
 			children = (
 				DD90E1C62C582165F4E344E3 /* Fixtures */,
+				336195192821619700D648E6 /* AppleScriptPresetTests.swift */,
 				3CBD29CCBDF8CF4D7E74B146 /* BrandIconProviderTests.swift */,
 				98D9162552C06A30E1C09BE2 /* ConfigStoreTests.swift */,
 				6DFE7ABED11FF3DE10C7A885 /* GestureMatchAcceptanceTests.swift */,
@@ -535,6 +538,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFC1F6D12E7756E0E69FC246 /* AppleScriptPresetTests.swift in Sources */,
 				2D902E742A9EE33E7EEB9764 /* BrandIconProviderTests.swift in Sources */,
 				FBDA4146289AB98BC90DDFC7 /* ConfigStoreTests.swift in Sources */,
 				08EF0DFAFB058FB916B6B7EC /* GestureMatchAcceptanceTests.swift in Sources */,

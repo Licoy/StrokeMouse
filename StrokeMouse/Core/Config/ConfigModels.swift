@@ -143,6 +143,87 @@ enum WindowCommand: String, Codable, CaseIterable, Identifiable, Sendable {
     var displayKey: String { "window.\(rawValue)" }
 }
 
+/// Built-in AppleScript snippets for the action editor. Storage remains the raw
+/// script string on `GestureAction.appleScript` so custom scripts stay free-form.
+enum AppleScriptPreset: String, CaseIterable, Identifiable, Sendable {
+    case sleep
+    case emptyTrash
+    case lockScreen
+    case startScreenSaver
+    case logOut
+    case restart
+    case shutDown
+    case toggleDarkMode
+    case hideOthers
+    case muteVolume
+    case unmuteVolume
+    case openForceQuit
+    case screenshotToClipboard
+    case openDownloads
+    case custom
+
+    var id: String { rawValue }
+
+    var displayKey: String { "applescript.\(rawValue)" }
+
+    /// Stable script source for built-ins. `custom` has no fixed source.
+    /// Do not lightly reword these — exact match is used when hydrating the editor.
+    var source: String? {
+        switch self {
+        case .sleep:
+            return "tell application \"System Events\" to sleep"
+        case .emptyTrash:
+            return "tell application \"Finder\" to empty the trash"
+        case .lockScreen:
+            return "tell application \"System Events\" to keystroke \"q\" using {control down, command down}"
+        case .startScreenSaver:
+            return "tell application \"System Events\" to start current screen saver"
+        case .logOut:
+            return "tell application \"System Events\" to log out"
+        case .restart:
+            return "tell application \"System Events\" to restart"
+        case .shutDown:
+            return "tell application \"System Events\" to shut down"
+        case .toggleDarkMode:
+            return """
+            tell application "System Events"
+                tell appearance preferences
+                    set dark mode to not dark mode
+                end tell
+            end tell
+            """
+        case .hideOthers:
+            return "tell application \"System Events\" to keystroke \"h\" using {command down, option down}"
+        case .muteVolume:
+            return "set volume with output muted"
+        case .unmuteVolume:
+            return "set volume without output muted"
+        case .openForceQuit:
+            return "tell application \"System Events\" to keystroke escape using {command down, option down}"
+        case .screenshotToClipboard:
+            return "do shell script \"screencapture -c\""
+        case .openDownloads:
+            return "tell application \"Finder\" to open (path to downloads folder)"
+        case .custom:
+            return nil
+        }
+    }
+
+    /// Match a stored script to a preset (trim both sides). Unknown → `.custom`.
+    static func matching(source: String) -> AppleScriptPreset {
+        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        for preset in allCases where preset != .custom {
+            if let presetSource = preset.source?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+               presetSource == trimmed
+            {
+                return preset
+            }
+        }
+        return .custom
+    }
+}
+
 enum GestureAction: Codable, Equatable, Sendable {
     case none
     case shortcut(keyCode: UInt16, modifiers: UInt, display: String)
@@ -183,6 +264,10 @@ enum GestureAction: Codable, Equatable, Sendable {
         case .window(let cmd):
             return cmd.rawValue
         case .appleScript(let script):
+            let preset = AppleScriptPreset.matching(source: script)
+            if preset != .custom {
+                return L10n.string(preset.displayKey)
+            }
             let trimmed = script.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.count > 40 ? String(trimmed.prefix(40)) + "…" : trimmed
         }
