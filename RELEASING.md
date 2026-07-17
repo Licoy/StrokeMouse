@@ -27,13 +27,19 @@ Users never install the certificate; only build machines and CI need the private
 
 ### CI trust (headless)
 
-Import scripts mark the self-signed cert trusted for **Code Signing** via:
+Import scripts mark the self-signed cert trusted for **Code Signing** via admin-domain trust settings:
 
 ```bash
-sudo security add-trusted-cert -d -r trustAsRoot -p codeSign cert.crt
+# Preferred (works for leaf and CA self-signed certs)
+sudo security trust-settings-import -d trust.plist
+
+# Fallback only for CA:TRUE roots
+sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain cert.crt
 ```
 
-GitHub-hosted macOS runners provide passwordless `sudo`. Do **not** rely on `security trust-settings-import` in CI — it waits for SecurityAgent UI and will hang forever.
+GitHub-hosted macOS runners provide passwordless `sudo`.  
+**Do not** call user-domain `security trust-settings-import` on CI — it waits for SecurityAgent UI and hangs.  
+`add-trusted-cert -r trustAsRoot` fails on **CA:FALSE** leaves (`SecTrustSettingsSetTrustSettings: parameters not valid`).
 
 ## Local package
 

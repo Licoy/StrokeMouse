@@ -97,8 +97,9 @@ PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)"
   exit 1
 }
 
-# Match structure used by working local "StrokeMouse Dev" identities:
-# non-critical basicConstraints, O/C filled, codeSigning EKU.
+# Self-signed root + codeSigning EKU.
+# CA:TRUE lets `sudo security add-trusted-cert -r trustRoot` work on CI;
+# CA:FALSE leaves fail with SecTrustSettingsSetTrustSettings "parameters not valid".
 cat >"$CNF" <<EOF
 [req]
 distinguished_name = req_distinguished_name
@@ -111,8 +112,8 @@ O = StrokeMouse
 C = US
 
 [v3_codesign]
-basicConstraints = CA:FALSE
-keyUsage = critical,digitalSignature
+basicConstraints = critical,CA:TRUE
+keyUsage = critical,keyCertSign,digitalSignature
 extendedKeyUsage = critical,codeSigning
 subjectKeyIdentifier = hash
 EOF
