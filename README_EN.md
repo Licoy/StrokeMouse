@@ -83,9 +83,13 @@ Debug shows as **StrokeMouse Dev** (Bundle ID `com.strokemouse.app.dev`) so it c
 Build ZIP, TAR.GZ, and DMG per architecture, and verify signature, entitlements, and artifact integrity:
 
 ```bash
+# First time locally: ./scripts/generate-codesign-cert.sh --import
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ```
+
+Release packaging uses the stable self-signed identity **`StrokeMouse Release`** so Accessibility grants survive Sparkle updates. See `RELEASING.md` / `certs/README.md`.
+
 
 Bump versions with `./bump.sh -v x.y.z [-p]`. Re-tag the same version and push with `./bump.sh -v x.y.z --force`.
 

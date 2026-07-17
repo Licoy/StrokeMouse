@@ -10,7 +10,7 @@ titleTemplate: "StrokeMouse"
 
 Check in order:
 
-1. **Accessibility** for **this** app copy (path / re-sign resets trust)
+1. **Accessibility** for **this** app copy (path change, cert rotation, or ad-hoc → self-signed migration needs re-grant; same official identity in-app updates usually do not)
 2. Menu bar status for pause or permission errors
 3. Gesture **enabled**
 4. Holding the configured **trigger** (default right, not left)

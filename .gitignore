@@ -29,6 +29,10 @@ SourcePackages/
 # Secrets / local
 *.mobileprovision
 *.p12
+*.p12.b64
+*.password
+certs/*
+!certs/README.md
 .env
 .env.*
 

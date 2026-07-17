@@ -25,6 +25,9 @@ esac
 
 PLACEHOLDER_KEY="__REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY__"
 PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-}"
+# Stable self-signed identity so Accessibility TCC survives Sparkle updates.
+# Use CODE_SIGN_IDENTITY="-" only for throwaway smoke builds (TCC will not stick).
+IDENTITY="${CODE_SIGN_IDENTITY:-StrokeMouse Release}"
 DERIVED="$ROOT/build/release-$ARCH"
 SOURCE_PACKAGES="$ROOT/build/SourcePackages"
 DIST="$ROOT/dist"
@@ -100,6 +103,20 @@ fi
   exit 1
 }
 
+if [[ "$IDENTITY" == "-" ]]; then
+  echo "WARNING: CODE_SIGN_IDENTITY=- (ad-hoc). Accessibility TCC will NOT survive updates." >&2
+  echo "  For releases use a stable cert (default: StrokeMouse Release)." >&2
+  echo "  Generate: ./scripts/generate-codesign-cert.sh --import" >&2
+else
+  if ! security find-identity -v -p codesigning 2>/dev/null | grep -Fq "\"$IDENTITY\""; then
+    echo "Code signing identity not found in keychain: $IDENTITY" >&2
+    echo "  Generate + import: ./scripts/generate-codesign-cert.sh --import" >&2
+    echo "  Or import existing: ./scripts/import-codesign-p12.sh --p12 ... --password-file ..." >&2
+    echo "  Throwaway only: CODE_SIGN_IDENTITY=- $0 ..." >&2
+    exit 1
+  fi
+fi
+
 cd "$ROOT"
 ./scripts/generate_project.sh
 
@@ -108,6 +125,9 @@ rm -f "$ZIP" "$TAR_GZ" "$DMG"
 mkdir -p "$DERIVED" "$SOURCE_PACKAGES" "$APP_DIR" "$DIST"
 
 echo "==> Building StrokeMouse Release ($ARCH)"
+echo "    code sign identity: $IDENTITY"
+# Build with ad-hoc first so Xcode does not require the release identity at compile
+# time (CI builds may sign only the final bundle). Final re-sign applies IDENTITY.
 xcodebuild \
   -project "$ROOT/StrokeMouse.xcodeproj" \
   -scheme StrokeMouse \
@@ -133,15 +153,28 @@ ditto "$BUILT_APP" "$APP"
 
 # Xcode's local ad-hoc signature injects get-task-allow. Re-sign the final
 # bundle from its production entitlement source after every bundle mutation.
+# Prefer a stable certificate identity so TCC pins to cert leaf, not cdhash.
 codesign \
   --force \
   --deep \
   --options runtime \
   --entitlements "$ENTITLEMENTS" \
-  --sign - \
+  --sign "$IDENTITY" \
   "$APP"
 codesign --verify --deep --strict --verbose=4 "$APP"
 codesign -dvv "$APP" 2>&1 | grep -Eq 'flags=.*\(.*runtime.*\)'
+
+if [[ "$IDENTITY" != "-" ]]; then
+  # DR should reference the certificate, not a one-off ad-hoc cdhash-only seal.
+  DR="$(codesign -d -r- "$APP" 2>&1 || true)"
+  echo "$DR" | grep -Eqi 'certificate|anchor' || {
+    echo "Expected designated requirement to reference a certificate identity." >&2
+    echo "$DR" >&2
+    exit 1
+  }
+  # Surface Authority for logs / release debugging.
+  codesign -dvv "$APP" 2>&1 | grep -E '^(Authority|TeamIdentifier|Identifier)=' || true
+fi
 
 EXECUTABLE="$APP/Contents/MacOS/StrokeMouse"
 ACTUAL_ARCHS="$(lipo -archs "$EXECUTABLE")"

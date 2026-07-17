@@ -30,7 +30,8 @@ The engine intercepts mouse sequences for **configured triggers**. If `AXIsProce
 
 ### Common cases
 
-- **Upgrade / re-sign / new path**: re-authorize
+- **In-app updates of official builds** (stable `StrokeMouse Release` self-signed identity): Accessibility usually **does not** need re-granting
+- **Migrating from old ad-hoc builds, rotating the signing cert, or a new install path**: re-authorize **once**
 - **Toggle on but dead**: off/on, or remove and re-add, then relaunch
 - **Multiple copies**: authorize the binary you actually launch
 

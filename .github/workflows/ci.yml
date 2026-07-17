@@ -58,6 +58,23 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install XcodeGen
         run: brew install xcodegen
+      - name: Import release code signing identity
+        env:
+          CODE_SIGN_P12_BASE64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
+          CODE_SIGN_P12_PASSWORD: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
+        run: |
+          if [[ -n "${CODE_SIGN_P12_BASE64:-}" && -n "${CODE_SIGN_P12_PASSWORD:-}" ]]; then
+            KC="$RUNNER_TEMP/strokemouse-codesign.keychain-db"
+            KC_PASS="$(openssl rand -base64 24)"
+            ./scripts/import-codesign-p12.sh --from-env \
+              --keychain "$KC" \
+              --keychain-password "$KC_PASS" \
+              --create-keychain
+            echo "CODE_SIGN_IDENTITY=StrokeMouse Release" >>"$GITHUB_ENV"
+          else
+            echo "No CODE_SIGN_P12_* secrets; packaging with ad-hoc (CI smoke only)."
+            echo "CODE_SIGN_IDENTITY=-" >>"$GITHUB_ENV"
+          fi
       - name: Package ${{ matrix.arch }}
         env:
           EXPECTED_MACOS_SDK_MAJOR: "26"

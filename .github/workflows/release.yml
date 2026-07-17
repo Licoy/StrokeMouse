@@ -66,17 +66,33 @@ jobs:
       - uses: actions/checkout@v7
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Check Sparkle signing secrets
+      - name: Check Sparkle + code signing secrets
         env:
           SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          CODE_SIGN_P12_BASE64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
+          CODE_SIGN_P12_PASSWORD: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
         run: |
           test -n "$SPARKLE_PUBLIC_KEY" || { echo "Missing SPARKLE_PUBLIC_KEY secret"; exit 1; }
           test -n "$SPARKLE_PRIVATE_KEY" || { echo "Missing SPARKLE_PRIVATE_KEY secret"; exit 1; }
+          test -n "$CODE_SIGN_P12_BASE64" || { echo "Missing CODE_SIGN_P12_BASE64 secret"; exit 1; }
+          test -n "$CODE_SIGN_P12_PASSWORD" || { echo "Missing CODE_SIGN_P12_PASSWORD secret"; exit 1; }
+      - name: Import release code signing identity
+        env:
+          CODE_SIGN_P12_BASE64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
+          CODE_SIGN_P12_PASSWORD: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/strokemouse-codesign.keychain-db"
+          KC_PASS="$(openssl rand -base64 24)"
+          ./scripts/import-codesign-p12.sh --from-env \
+            --keychain "$KC" \
+            --keychain-password "$KC_PASS" \
+            --create-keychain
       - name: Package ${{ matrix.arch }}
         env:
           EXPECTED_MACOS_SDK_MAJOR: "26"
           SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
+          CODE_SIGN_IDENTITY: StrokeMouse Release
         run: |
           host="$(uname -m)"
           test "$host" = "${{ matrix.arch }}" || {
@@ -143,9 +159,9 @@ jobs:
           fi
           cat >> release-notes.md <<'EOF'
 
-          These builds are ad-hoc signed and not notarized. Prefer the .dmg for manual installation. If macOS blocks the app, right-click Open or use Privacy & Security > Open Anyway.
+          These builds use a stable self-signed code signing identity (not Apple Developer ID) and are not notarized. Prefer the .dmg for manual installation. If macOS blocks the app, right-click Open or use Privacy & Security > Open Anyway. Accessibility grants should survive in-app updates signed with the same identity.
 
-          当前构建使用 ad-hoc 签名且未经 Apple 公证。建议手动安装 .dmg；若 macOS 阻止启动，请右键选择“打开”，或前往“隐私与安全性”选择“仍要打开”。
+          当前构建使用固定自签代码签名（非 Apple Developer ID）且未经 Apple 公证。建议手动安装 .dmg；若 macOS 阻止启动，请右键选择“打开”，或前往“隐私与安全性”选择“仍要打开”。同一签名身份下的应用内更新通常无需重新授予辅助功能。
           EOF
       - uses: actions/upload-artifact@v7
         with:

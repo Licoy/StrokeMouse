@@ -54,14 +54,15 @@ Scheme **StrokeMouse** → Run.
 | Item | Value |
 |------|--------|
 | Bundle ID | Release: `com.strokemouse.app`; Debug: `com.strokemouse.app.dev` (display name StrokeMouse Dev) |
-| Dev identity | **`StrokeMouse Dev`** in your keychain (self-signed; trust for code signing) |
-| Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` |
-| GitHub Release | ad-hoc + Hardened Runtime; currently not Apple-notarized |
+| Dev identity | **`StrokeMouse Dev`** in your keychain (self-signed; local builds) |
+| Release identity | **`StrokeMouse Release`** self-signed + Hardened Runtime (stable identity; **users never install the cert**) |
+| Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` or package (smoke only; **Accessibility will not survive updates**) |
+| Notarization | Not Apple-notarized / no Developer ID currently |
 
 ::: warning
-Changing signing identity or app path often makes macOS treat it as a **new** app — re-check Accessibility.
-
 If Gatekeeper blocks a GitHub Release on first launch, right-click the app and choose Open, or use System Settings → Privacy & Security → Open Anyway.
+
+**Accessibility**: official packages use a stable self-signed identity, so **in-app updates signed with the same cert usually keep the grant**. Migrating from old ad-hoc builds or rotating the cert still requires **one** re-authorization. End users do **not** install the publisher certificate.
 :::
 
 ## Release artifacts
