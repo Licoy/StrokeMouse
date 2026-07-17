@@ -59,11 +59,21 @@ final class GestureEngine {
         )
     }
 
-    func applyPreferences(minDistance: CGFloat, enabled: Bool) {
+    /// - Parameter startIfEnabled: When false, only stores preference flags (used during
+    ///   early launch so the event tap is not created before the run loop is ready).
+    func applyPreferences(minDistance: CGFloat, enabled: Bool, startIfEnabled: Bool = true) {
         minStrokeDistance = minDistance
         hudEnabled = DrawingStyle.showHUD
         refreshWatchedButtons()
-        setEnabled(enabled)
+        if startIfEnabled {
+            setEnabled(enabled)
+        } else {
+            isEnabled = enabled
+            if !enabled {
+                stop()
+                statusMessageKey = "engine.paused"
+            }
+        }
     }
 
     /// Rebuild the set of mouse buttons that arm gesture capture from enabled profiles.

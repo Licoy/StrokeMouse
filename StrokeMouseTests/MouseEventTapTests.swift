@@ -9,6 +9,23 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertEqual(MouseEventTap.tapOptions, .defaultTap)
     }
 
+    func testEventsOfInterestExcludesFreeMouseMovedAndLeftButton() {
+        let mask = MouseEventTap.eventsOfInterestMask
+
+        XCTAssertFalse(maskContains(mask, .mouseMoved),
+                       "Filtering mouseMoved freezes the system cursor on some macOS versions")
+        XCTAssertFalse(maskContains(mask, .leftMouseDown))
+        XCTAssertFalse(maskContains(mask, .leftMouseUp))
+        XCTAssertFalse(maskContains(mask, .leftMouseDragged))
+
+        XCTAssertTrue(maskContains(mask, .rightMouseDown))
+        XCTAssertTrue(maskContains(mask, .rightMouseUp))
+        XCTAssertTrue(maskContains(mask, .rightMouseDragged))
+        XCTAssertTrue(maskContains(mask, .otherMouseDown))
+        XCTAssertTrue(maskContains(mask, .otherMouseUp))
+        XCTAssertTrue(maskContains(mask, .otherMouseDragged))
+    }
+
     func testWatchedRightButtonKeepsCursorMovingWhileDownAndUpAreConsumed() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
@@ -34,11 +51,16 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertEqual(observedKinds, ["down", "drag", "up"])
     }
 
-    func testLeftButtonDragPassesThrough() throws {
+    func testLeftButtonEventsPassThroughIfHandled() throws {
+        // Left is outside the live mask; handle must still never swallow it.
         let tap = MouseEventTap()
+        let down = try makeMouseEvent(type: .leftMouseDown, button: .left)
         let drag = try makeMouseEvent(type: .leftMouseDragged, button: .left)
+        let up = try makeMouseEvent(type: .leftMouseUp, button: .left)
 
+        XCTAssertNotNil(tap.handle(type: .leftMouseDown, event: down))
         XCTAssertNotNil(tap.handle(type: .leftMouseDragged, event: drag))
+        XCTAssertNotNil(tap.handle(type: .leftMouseUp, event: up))
     }
 
     func testUnwatchedRightButtonEventsPassThrough() throws {
@@ -87,6 +109,10 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertNotNil(tap.handle(type: .rightMouseDown, event: events.down))
         XCTAssertNotNil(tap.handle(type: .rightMouseUp, event: events.up))
         XCTAssertEqual(observedEventCount, 0)
+    }
+
+    private func maskContains(_ mask: CGEventMask, _ type: CGEventType) -> Bool {
+        mask & CGEventMask(1 << type.rawValue) != 0
     }
 
     private func makeMouseEvent(type: CGEventType, button: CGMouseButton) throws -> CGEvent {

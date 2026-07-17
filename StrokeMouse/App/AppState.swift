@@ -59,9 +59,16 @@ final class AppState {
         }
 
         applyLaunchPreferences()
-        gestureEngine.startIfPossible()
-        refreshMenuBarIconStatus()
         installSettingsWindowCloseObserver()
+
+        // Defer the event tap until the main run loop is spinning. Creating a
+        // filtering CGEventTap during @State construction (esp. on macOS 14)
+        // can leave cursor delivery gated on a not-yet-ready process.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.gestureEngine.startIfPossible()
+            self.refreshMenuBarIconStatus()
+        }
     }
 
     func refreshMenuBarIconStatus() {
@@ -139,9 +146,12 @@ final class AppState {
         let enabled = defaults.bool(forKey: PreferenceKey.gesturesEnabled)
         let minDistance = CGFloat(defaults.double(forKey: PreferenceKey.minStrokeDistance))
 
+        // Do not start the event tap here — AppState.init schedules startIfPossible
+        // after the main run loop is spinning (see init).
         gestureEngine.applyPreferences(
             minDistance: minDistance > 0 ? minDistance : Constants.defaultMinStrokeDistance,
-            enabled: enabled
+            enabled: enabled,
+            startIfEnabled: false
         )
         refreshMenuBarIconStatus()
 
