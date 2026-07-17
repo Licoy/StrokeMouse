@@ -98,7 +98,8 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 # CI：PR 触达 App 路径才跑 test；push main 默认不跑 test/package。
-# website：仅 website/** 变更触发 .github/workflows/website.yml。
+# website：PR 触达 website/** 跑 .github/workflows/website.yml（仅 build）；
+# main 上 website/** 变更 / Release / 手动 → deploy-website.yml 部署 GitHub Pages。
 # package 手动：Actions → CI → Run workflow，勾选 package。
 # Release package：arm64 → macos-26；x86_64 → macos-26-intel（原生 Intel runner）
 
