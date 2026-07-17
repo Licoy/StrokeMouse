@@ -132,12 +132,60 @@ rm -rf "$OUTPUT_APP"
 # ditto preserves resource forks / code signature better than cp -R
 ditto "$BUILT_APP" "$OUTPUT_APP"
 
-# Re-sign the installed bundle so the stable path has a consistent signature
-# (helps keep Accessibility grants tied to this fixed location).
+# Re-sign for the stable output path (keeps Accessibility TCC pinned).
+# IMPORTANT: do NOT use `codesign --deep` with the host entitlements file.
+# That stamps Sparkle XPC helpers / resource bundles with app entitlements and
+# can make Apple System Policy SIGKILL the main binary on launch (exit 137,
+# kernel log: "ASP: Security policy would not allow process").
+# Sign inside-out: nested code first (no host entitlements), then the app.
+sign_nested_code() {
+  local app="$1"
+  local identity="$2"
+  local sign_opts=(--force --timestamp=none)
+  if [[ "$identity" != "-" ]]; then
+    sign_opts+=(--options runtime)
+  fi
+
+  # SPM resource bundles (e.g. PermissionFlow_*.bundle)
+  local bundle
+  while IFS= read -r bundle; do
+    [[ -n "$bundle" ]] || continue
+    codesign "${sign_opts[@]}" --sign "$identity" "$bundle"
+  done < <(find "$app/Contents" -name '*.bundle' -type d 2>/dev/null)
+
+  # Sparkle nested code (if present)
+  local sparkle="$app/Contents/Frameworks/Sparkle.framework"
+  if [[ -d "$sparkle" ]]; then
+    local xpc
+    while IFS= read -r xpc; do
+      [[ -n "$xpc" ]] || continue
+      codesign "${sign_opts[@]}" --sign "$identity" "$xpc"
+    done < <(find "$sparkle" -name '*.xpc' -type d 2>/dev/null)
+
+    if [[ -d "$sparkle/Versions/B/Updater.app" ]]; then
+      codesign "${sign_opts[@]}" --sign "$identity" "$sparkle/Versions/B/Updater.app"
+    elif [[ -d "$sparkle/Versions/Current/Updater.app" ]]; then
+      codesign "${sign_opts[@]}" --sign "$identity" "$sparkle/Versions/Current/Updater.app"
+    fi
+
+    if [[ -f "$sparkle/Versions/B/Autoupdate" ]]; then
+      codesign "${sign_opts[@]}" --sign "$identity" "$sparkle/Versions/B/Autoupdate"
+    elif [[ -f "$sparkle/Versions/Current/Autoupdate" ]]; then
+      codesign "${sign_opts[@]}" --sign "$identity" "$sparkle/Versions/Current/Autoupdate"
+    fi
+
+    codesign "${sign_opts[@]}" --sign "$identity" "$sparkle"
+  fi
+}
+
+echo "==> codesign (inside-out, no --deep entitlements)"
 if [[ "$IDENTITY" == "-" ]]; then
-  codesign --force --deep --sign - "$OUTPUT_APP"
+  sign_nested_code "$OUTPUT_APP" "-"
+  codesign --force --timestamp=none --sign - "$OUTPUT_APP"
 else
-  codesign --force --deep --options runtime --sign "$IDENTITY" \
+  sign_nested_code "$OUTPUT_APP" "$IDENTITY"
+  codesign --force --options runtime --timestamp=none \
+    --sign "$IDENTITY" \
     --entitlements "$ROOT/StrokeMouse/Supporting/StrokeMouse.entitlements" \
     "$OUTPUT_APP"
 fi
@@ -146,10 +194,21 @@ echo "==> codesign verify"
 codesign --verify --deep --strict --verbose=2 "$OUTPUT_APP" 2>&1 | tail -5
 echo
 echo "Built: $OUTPUT_APP"
-echo "  open -a \"$OUTPUT_APP\""
+echo "  open \"$OUTPUT_APP\""
 echo "  or: ./scripts/build.sh --open"
 
 if [[ "$OPEN_AFTER" -eq 1 ]]; then
   echo "==> Opening $OUTPUT_APP"
+  # Path form (not `open -a`, which expects an app name).
   open "$OUTPUT_APP"
+  # Confirm LaunchServices actually kept the process alive (ASP kills show as instant quit).
+  sleep 0.8
+  if pgrep -x StrokeMouse >/dev/null 2>&1; then
+    echo "    StrokeMouse is running."
+  else
+    echo "WARNING: StrokeMouse did not stay running after open." >&2
+    echo "  Check Console for: ASP: Security policy would not allow process" >&2
+    echo "  Binary: $OUTPUT_APP/Contents/MacOS/StrokeMouse" >&2
+    exit 1
+  fi
 fi

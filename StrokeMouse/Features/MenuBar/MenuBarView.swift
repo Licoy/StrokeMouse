@@ -32,8 +32,7 @@ struct MenuBarView: View {
 
         if !appState.permissionManager.isAccessibilityTrusted {
             Button(L10n.string("menu.grantAccessibility")) {
-                appState.permissionManager.requestAccessibility()
-                appState.permissionManager.openAccessibilitySettings()
+                appState.permissionManager.authorizeAccessibility()
             }
         }
 

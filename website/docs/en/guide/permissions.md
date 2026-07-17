@@ -23,10 +23,13 @@ The engine intercepts mouse sequences for **configured triggers**. If `AXIsProce
 
 ### How to enable
 
-1. StrokeMouse **Settings → Permissions**
-2. Jump to **Privacy & Security → Accessibility**
-3. Enable StrokeMouse
-4. If missing, run the app once or add it from the UI prompt
+Prefer the in-app **Guide Me** flow (first-run onboarding and **Settings → Permissions**):
+
+1. Click **Guide Me** — opens **Privacy & Security → Accessibility** and a floating panel that follows the System Settings window
+2. Drag **StrokeMouse** (Debug builds appear as **StrokeMouse Dev**) from the panel into the list
+3. Turn the toggle on; the app detects trust within a few seconds and starts the gesture engine
+
+You can also complete the same steps manually in System Settings.
 
 ### Common cases
 

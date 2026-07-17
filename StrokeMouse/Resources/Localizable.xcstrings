@@ -2113,7 +2113,7 @@
         }
       }
     },
-    "onboarding.title": {
+    "onboarding.welcome.title": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2129,66 +2129,386 @@
         }
       }
     },
-    "onboarding.subtitle": {
+    "onboarding.welcome.subtitle": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Draw mouse gestures while holding a side/middle button to trigger actions."
+            "value": "Hold a mouse button, draw a stroke, release — your custom action fires."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住侧键或中键绘制轨迹，即可触发自定义动作。"
+            "value": "按住鼠标按键，画出轨迹，松开即可触发自定义动作。"
           }
         }
       }
     },
-    "onboarding.step1": {
+    "onboarding.permission.title": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grant Accessibility so StrokeMouse can listen to mouse events."
+            "value": "Enable Accessibility"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "授予「辅助功能」权限，以便监听鼠标事件。"
+            "value": "开启辅助功能权限"
           }
         }
       }
     },
-    "onboarding.step2": {
+    "onboarding.permission.body": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Settings to review default gestures or create your own."
+            "value": "StrokeMouse needs Accessibility to listen for mouse buttons and run gestures. We’ll open System Settings and show a helper so you can drag the app into the list."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打开设置，查看默认手势或创建自己的配置。"
+            "value": "StrokeMouse 需要「辅助功能」权限才能监听鼠标按键并执行手势。我们会打开系统设置，并显示悬浮辅助面板，方便你把应用拖入列表。"
           }
         }
       }
     },
-    "onboarding.step3": {
+    "onboarding.permission.granted": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hold a gesture’s trigger button (default: right click), draw a stroke, release to fire the action."
+            "value": "Accessibility is granted. Gesture listening can start."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住该手势的触发键（默认右键）→ 画出轨迹 → 松开执行动作。"
+            "value": "辅助功能已授权，可以开始手势监听。"
+          }
+        }
+      }
+    },
+    "onboarding.permission.statusWaiting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for permission…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待授权…"
+          }
+        }
+      }
+    },
+    "onboarding.permission.statusGranted": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Granted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已授权"
+          }
+        }
+      }
+    },
+    "onboarding.permission.tip1": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click “Guide Me” to open Privacy → Accessibility."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击「引导授权」打开「隐私与安全性 → 辅助功能」。"
+          }
+        }
+      }
+    },
+    "onboarding.permission.tip2": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag StrokeMouse from the floating panel into the list."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从悬浮面板把 StrokeMouse 拖入授权列表。"
+          }
+        }
+      }
+    },
+    "onboarding.permission.tip3": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn the toggle on — this screen updates automatically."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开开关 — 本页会自动更新状态。"
+          }
+        }
+      }
+    },
+    "onboarding.permission.authorize": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide Me"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引导授权"
+          }
+        }
+      }
+    },
+    "onboarding.permission.skip": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip for now"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稍后再说"
+          }
+        }
+      }
+    },
+    "onboarding.demo.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How a gesture works"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手势怎么用"
+          }
+        }
+      }
+    },
+    "onboarding.demo.subtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each gesture has its own trigger button (default: right click). Hold, draw the path, then release."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个手势有自己的触发键（默认右键）。按住 → 画出轨迹 → 松开执行。"
+          }
+        }
+      }
+    },
+    "onboarding.demo.hold": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住"
+          }
+        }
+      }
+    },
+    "onboarding.demo.draw": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Draw"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "绘制"
+          }
+        }
+      }
+    },
+    "onboarding.demo.release": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Release"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松开"
+          }
+        }
+      }
+    },
+    "onboarding.done.titleReady": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You’re all set"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一切就绪"
+          }
+        }
+      }
+    },
+    "onboarding.done.titlePartial": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almost there"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还差一步"
+          }
+        }
+      }
+    },
+    "onboarding.done.bodyReady": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings anytime to tweak gestures. Happy stroking!"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随时可在设置中调整手势。开始绘制吧！"
+          }
+        }
+      }
+    },
+    "onboarding.done.bodyPartial": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestures won’t run until Accessibility is granted. Use the menu bar item or Permissions tab to finish setup."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未授予辅助功能前手势无法运行。可从菜单栏或「权限」页完成授权。"
+          }
+        }
+      }
+    },
+    "onboarding.done.listening": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening for gestures"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在监听手势"
+          }
+        }
+      }
+    },
+    "onboarding.next": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
+          }
+        }
+      }
+    },
+    "onboarding.back": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回"
+          }
+        }
+      }
+    },
+    "onboarding.skip": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过"
           }
         }
       }
@@ -2205,6 +2525,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "开始使用"
+          }
+        }
+      }
+    },
+    "permissions.authorizeWithGuide": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guide Me"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引导授权"
           }
         }
       }

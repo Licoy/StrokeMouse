@@ -107,7 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // MenuBarView listens to settingsOpenToken; we also try after a short delay.
         if !UserDefaults.standard.bool(forKey: PreferenceKey.hasCompletedOnboarding) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                NotificationCenter.default.post(name: .strokeMouseOpenSettings, object: SettingsTab.gestures)
+                NotificationCenter.default.post(name: .strokeMouseOpenSettings, object: SettingsTab.permissions)
             }
         }
     }

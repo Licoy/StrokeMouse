@@ -237,8 +237,11 @@ final class AppState {
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: PreferenceKey.hasCompletedOnboarding)
         showOnboarding = false
-        permissionManager.requestAccessibility()
-        gestureEngine.restart()
+        permissionManager.refresh()
+        if permissionManager.isAccessibilityTrusted {
+            gestureEngine.restart()
+        }
+        // If still untrusted, leave engine idle — menu bar / permissions tab guide the user.
     }
 
     func openSettings(tab: SettingsTab = .gestures) {

@@ -15,6 +15,7 @@
 		0C12F324F567CA73C88F835F /* GestureToastController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70FB66BC8ACE0CE6A7E15BD /* GestureToastController.swift */; };
 		0F29CE617C237EAF8B1A089A /* THIRD_PARTY_NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = EB9D52E0619148579DAE5E89 /* THIRD_PARTY_NOTICES.txt */; };
 		0F627F01C53DA063261069F3 /* TemplateMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32664140059A4330B3CFED9E /* TemplateMatcher.swift */; };
+		12680E68B1E2318621780099 /* OnboardingDoneStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F31C8BDB8D6D17BAF30FEDF /* OnboardingDoneStep.swift */; };
 		178341CBA6AF4BBE91B73070 /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1775A9C2F88E77D337F0C1A7 /* PermissionManager.swift */; };
 		18068E8079C8896761FF1AB3 /* ShortcutRecorderTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 976B5067438C4C8D0CCEE8EB /* ShortcutRecorderTap.swift */; };
 		26BFB54CA1E4A951518FFA34 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED223F66901603FAB98F3B1 /* AppDelegate.swift */; };
@@ -50,6 +51,8 @@
 		777958F78D9BB56F2A98506D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54AFAC82E770FEAB174F83A2 /* OnboardingView.swift */; };
 		7ABD9D3AADB055C7B11AE8ED /* ScriptTextArea.swift in Sources */ = {isa = PBXBuildFile; fileRef = E79923BB946697A53725B3AE /* ScriptTextArea.swift */; };
 		8158A8B851DFF34D24F12D31 /* PathTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32908A96E6C69947C2B8BF1F /* PathTemplates.swift */; };
+		85138224BFA71E7A11E6E6D9 /* OnboardingWelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C656874384F388B3007071C /* OnboardingWelcomeStep.swift */; };
+		8C211C4028CCB749587D9475 /* OnboardingPermissionStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C788D1B156AB40831445309 /* OnboardingPermissionStep.swift */; };
 		8D995A28C1B846AA0A41FFDA /* GestureRecognitionEvaluationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA52355745A5A6D9B973A2 /* GestureRecognitionEvaluationTests.swift */; };
 		901EA362FE7E25FD626D9770 /* StrokeSegmentReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BDFE2AA7E93AFADC6260E8 /* StrokeSegmentReducer.swift */; };
 		90EE2B11459536694E1CEB31 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 94753CFBD2B86AEC2877E1F1 /* Localizable.xcstrings */; };
@@ -58,6 +61,7 @@
 		9F37854DA1AF762096CCF218 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C8E981A8BD544C4280EBF2 /* ActionExecutor.swift */; };
 		ACAA0DB056E55B4DBB8CC47F /* SettingsWindowOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF19BCD2BA6BE1264B4D7754 /* SettingsWindowOpener.swift */; };
 		ACC22C5934BAC6C3D508658C /* RecordedPeakGestureFixture.json in Resources */ = {isa = PBXBuildFile; fileRef = E7D00A1B0CD2EDA8D001D417 /* RecordedPeakGestureFixture.json */; };
+		AE5269ADCB61E07080114265 /* OnboardingGestureDemoStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9516A610B12F2564617DFB02 /* OnboardingGestureDemoStep.swift */; };
 		AE5A014CA2DE40FF80FCF82F /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C6FCA0A4196CE5CF54B1FE /* GeneralSettingsView.swift */; };
 		AFC1F6D12E7756E0E69FC246 /* AppleScriptPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336195192821619700D648E6 /* AppleScriptPresetTests.swift */; };
 		B80BE40DA1B47024F88B922E /* GestureEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E274C0BB3CD32706BC07696A /* GestureEditorView.swift */; };
@@ -74,10 +78,12 @@
 		DE7A59AA3616B16DEA93E492 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = D3668B03DF4D1270ACA75381 /* LaunchAtLogin */; };
 		DFA03D461BDA431C62C0B3EA /* UpdateStatusWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BF1333F568461C3FF2CD75 /* UpdateStatusWindowController.swift */; };
 		E01BA93602F40149667956C3 /* RecordedGestureRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14FABE7557D75F04454A18D3 /* RecordedGestureRegressionTests.swift */; };
+		E8BB3613ABE70AA08389DEEA /* OnboardingStrokeAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E61EA321196174E22E38064 /* OnboardingStrokeAnimationView.swift */; };
 		EBDB9210663352EE32C1E7CB /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9500B04425951E23385935C9 /* Constants.swift */; };
 		EC03135677C5A98ABA78DF9E /* StrokeMouseSparkleUserDriverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD25A226A057CAD42F39F24C /* StrokeMouseSparkleUserDriverTests.swift */; };
 		EC7D34046A74A119BD91BFA8 /* GestureRecognitionEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B101ADD963229A5D3E3850 /* GestureRecognitionEvaluator.swift */; };
 		EE5CA71222B820C08651A4A6 /* StrokeMouseSparkleUserDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAFC6883AC3A379A84216BC0 /* StrokeMouseSparkleUserDriver.swift */; };
+		EED9D9B852A15E4A733609C2 /* PermissionFlow in Frameworks */ = {isa = PBXBuildFile; productRef = 656B488EA8DCC724598DA1B5 /* PermissionFlow */; };
 		F70094A2F3CD92A4EF03B019 /* GestureTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D8050E5F97418EEFD5A9705 /* GestureTestView.swift */; };
 		F902B57607C37D3667C9BCEC /* L10nTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F15CF81789BF49CEF3BBB408 /* L10nTests.swift */; };
 		FB5C12928D32725D70F0B23B /* DefaultGestures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D250D67E81EBC89CAFE75D /* DefaultGestures.swift */; };
@@ -103,6 +109,7 @@
 		147B4215AD8AB06B41161F4A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		14FABE7557D75F04454A18D3 /* RecordedGestureRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordedGestureRegressionTests.swift; sourceTree = "<group>"; };
 		1775A9C2F88E77D337F0C1A7 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		1C788D1B156AB40831445309 /* OnboardingPermissionStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingPermissionStep.swift; sourceTree = "<group>"; };
 		1D1B469595C655F3BB2885F2 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		1D8050E5F97418EEFD5A9705 /* GestureTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureTestView.swift; sourceTree = "<group>"; };
 		20716A72CE50AAAF14BE0080 /* MouseEventTapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseEventTapTests.swift; sourceTree = "<group>"; };
@@ -140,16 +147,20 @@
 		6C6DD3645A4D5B33AF8C3B83 /* DrawingStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingStyle.swift; sourceTree = "<group>"; };
 		6D98C4518A7B068EAB4F3900 /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		6DFE7ABED11FF3DE10C7A885 /* GestureMatchAcceptanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureMatchAcceptanceTests.swift; sourceTree = "<group>"; };
+		6F31C8BDB8D6D17BAF30FEDF /* OnboardingDoneStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingDoneStep.swift; sourceTree = "<group>"; };
 		7A9936C0BB33B4D8EC8AB38B /* StrokeMouse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StrokeMouse.entitlements; sourceTree = "<group>"; };
+		7C656874384F388B3007071C /* OnboardingWelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWelcomeStep.swift; sourceTree = "<group>"; };
 		7CA6D366778AFF733AE72056 /* StrokeStructureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeStructureExtractor.swift; sourceTree = "<group>"; };
 		822A88F82CA58D4ED1CE45FF /* InstalledAppPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAppPickerSheet.swift; sourceTree = "<group>"; };
 		84952723214A84B48A39B49C /* MouseEventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseEventTap.swift; sourceTree = "<group>"; };
 		91945376E1575B55EC3AD3A4 /* PathSimplifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathSimplifier.swift; sourceTree = "<group>"; };
 		94753CFBD2B86AEC2877E1F1 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		9500B04425951E23385935C9 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		9516A610B12F2564617DFB02 /* OnboardingGestureDemoStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingGestureDemoStep.swift; sourceTree = "<group>"; };
 		976B5067438C4C8D0CCEE8EB /* ShortcutRecorderTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutRecorderTap.swift; sourceTree = "<group>"; };
 		98D9162552C06A30E1C09BE2 /* ConfigStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStoreTests.swift; sourceTree = "<group>"; };
 		991FFA5ABA6C89FF866E3750 /* ScriptActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptActions.swift; sourceTree = "<group>"; };
+		9E61EA321196174E22E38064 /* OnboardingStrokeAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStrokeAnimationView.swift; sourceTree = "<group>"; };
 		BD25A226A057CAD42F39F24C /* StrokeMouseSparkleUserDriverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeMouseSparkleUserDriverTests.swift; sourceTree = "<group>"; };
 		BEB280AB78F9B700C568E58B /* GestureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureEngine.swift; sourceTree = "<group>"; };
 		C5C8E981A8BD544C4280EBF2 /* ActionExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionExecutor.swift; sourceTree = "<group>"; };
@@ -166,6 +177,7 @@
 		E7D00A1B0CD2EDA8D001D417 /* RecordedPeakGestureFixture.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = RecordedPeakGestureFixture.json; sourceTree = "<group>"; };
 		EB9D52E0619148579DAE5E89 /* THIRD_PARTY_NOTICES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = THIRD_PARTY_NOTICES.txt; sourceTree = "<group>"; };
 		ED0EFAFC9FCCFA90E3875CE0 /* AppScopeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScopeEditorView.swift; sourceTree = "<group>"; };
+		EE591A553B1A68F053129464 /* PermissionFlow */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PermissionFlow; path = Vendor/PermissionFlow; sourceTree = SOURCE_ROOT; };
 		F15CF81789BF49CEF3BBB408 /* L10nTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10nTests.swift; sourceTree = "<group>"; };
 		F2ED089878497180E5171D33 /* PathSimplifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathSimplifierTests.swift; sourceTree = "<group>"; };
 		F5BF1D107974DDF46B0DCC31 /* SettingsRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsRootView.swift; sourceTree = "<group>"; };
@@ -183,6 +195,7 @@
 			files = (
 				DE7A59AA3616B16DEA93E492 /* LaunchAtLogin in Frameworks */,
 				FE4A45BAB6AD2D2A640C4551 /* Sparkle in Frameworks */,
+				EED9D9B852A15E4A733609C2 /* PermissionFlow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,7 +276,12 @@
 		349752852ED842AB0D0DB600 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				6F31C8BDB8D6D17BAF30FEDF /* OnboardingDoneStep.swift */,
+				9516A610B12F2564617DFB02 /* OnboardingGestureDemoStep.swift */,
+				1C788D1B156AB40831445309 /* OnboardingPermissionStep.swift */,
+				9E61EA321196174E22E38064 /* OnboardingStrokeAnimationView.swift */,
 				54AFAC82E770FEAB174F83A2 /* OnboardingView.swift */,
+				7C656874384F388B3007071C /* OnboardingWelcomeStep.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -302,6 +320,14 @@
 				1EFB4857B841467CC0E05457 /* Supporting */,
 			);
 			path = StrokeMouse;
+			sourceTree = "<group>";
+		};
+		5E61ADD96E3C925F8F271953 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				EE591A553B1A68F053129464 /* PermissionFlow */,
+			);
+			name = Packages;
 			sourceTree = "<group>";
 		};
 		60A2AA7C3A13A12FE9D86C5E /* Core */ = {
@@ -399,6 +425,7 @@
 		EAE0F4FE34DC0661252601F1 = {
 			isa = PBXGroup;
 			children = (
+				5E61ADD96E3C925F8F271953 /* Packages */,
 				5E0FFB164A1A272E1E26F531 /* StrokeMouse */,
 				A1DBBCFE9094C720CFD1E045 /* StrokeMouseTests */,
 				EE280533CA9180C480978E06 /* Products */,
@@ -463,6 +490,7 @@
 			packageProductDependencies = (
 				D3668B03DF4D1270ACA75381 /* LaunchAtLogin */,
 				5201D415586DA02B7DCC027D /* Sparkle */,
+				656B488EA8DCC724598DA1B5 /* PermissionFlow */,
 			);
 			productName = StrokeMouse;
 			productReference = 20B18ED6AE19AA44F9CBB4DD /* StrokeMouse.app */;
@@ -500,6 +528,7 @@
 			packageReferences = (
 				357ECDA99D0D53543505C0EC /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 				9265C7BB3947BCE82CC4E3F5 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				BEB9FE9C8026A09B84403476 /* XCLocalSwiftPackageReference "Vendor/PermissionFlow" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = EE280533CA9180C480978E06 /* Products */;
@@ -593,7 +622,12 @@
 				B8EAD7909208F1B62AE87E28 /* MediaActions.swift in Sources */,
 				04118FC939E403409A55685F /* MenuBarView.swift in Sources */,
 				029413DE3A4F3A5782EED830 /* MouseEventTap.swift in Sources */,
+				12680E68B1E2318621780099 /* OnboardingDoneStep.swift in Sources */,
+				AE5269ADCB61E07080114265 /* OnboardingGestureDemoStep.swift in Sources */,
+				8C211C4028CCB749587D9475 /* OnboardingPermissionStep.swift in Sources */,
+				E8BB3613ABE70AA08389DEEA /* OnboardingStrokeAnimationView.swift in Sources */,
 				777958F78D9BB56F2A98506D /* OnboardingView.swift in Sources */,
+				85138224BFA71E7A11E6E6D9 /* OnboardingWelcomeStep.swift in Sources */,
 				467E49C1EFFB66751B22F31F /* PathSimplifier.swift in Sources */,
 				8158A8B851DFF34D24F12D31 /* PathTemplates.swift in Sources */,
 				178341CBA6AF4BBE91B73070 /* PermissionManager.swift in Sources */,
@@ -884,6 +918,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		BEB9FE9C8026A09B84403476 /* XCLocalSwiftPackageReference "Vendor/PermissionFlow" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Vendor/PermissionFlow;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		357ECDA99D0D53543505C0EC /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -908,6 +949,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9265C7BB3947BCE82CC4E3F5 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		656B488EA8DCC724598DA1B5 /* PermissionFlow */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PermissionFlow;
 		};
 		D3668B03DF4D1270ACA75381 /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;

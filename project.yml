@@ -25,6 +25,10 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.6.0"
+  # Local vendor of PermissionFlow with smoother panel launch animation.
+  # Upstream: https://github.com/jaywcjlove/PermissionFlow (MIT)
+  PermissionFlow:
+    path: Vendor/PermissionFlow
 targets:
   StrokeMouse:
     type: application
@@ -69,6 +73,8 @@ targets:
         product: LaunchAtLogin
       - package: Sparkle
         product: Sparkle
+      - package: PermissionFlow
+        product: PermissionFlow
     scheme:
       testTargets:
         - StrokeMouseTests

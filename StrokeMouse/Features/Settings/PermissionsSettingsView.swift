@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct PermissionsSettingsView: View {
@@ -6,10 +7,14 @@ struct PermissionsSettingsView: View {
     var body: some View {
         Form {
             Section {
-                HStack {
+                HStack(alignment: .center) {
                     Image(systemName: appState.permissionManager.isAccessibilityTrusted ? "checkmark.seal.fill" : "xmark.seal")
                         .foregroundStyle(appState.permissionManager.isAccessibilityTrusted ? .green : .orange)
                         .font(.title2)
+                        .symbolEffect(
+                            .bounce,
+                            value: appState.permissionManager.isAccessibilityTrusted
+                        )
                     VStack(alignment: .leading, spacing: 4) {
                         Text(L10n.string("permissions.accessibilityTitle"))
                             .font(.headline)
@@ -21,13 +26,22 @@ struct PermissionsSettingsView: View {
                     }
                     Spacer()
                     if !appState.permissionManager.isAccessibilityTrusted {
+                        Button(L10n.string("permissions.authorizeWithGuide")) {
+                            appState.permissionManager.authorizeAccessibility(
+                                sourceFrameInScreen: clickSourceFrame()
+                            )
+                        }
+                        .buttonStyle(.borderedProminent)
+
                         Button(L10n.string("permissions.grant")) {
                             appState.permissionManager.requestAccessibility()
                         }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    Button(L10n.string("permissions.openSettings")) {
-                        appState.permissionManager.openAccessibilitySettings()
+                    } else {
+                        Button(L10n.string("permissions.openSettings")) {
+                            appState.permissionManager.authorizeAccessibility(
+                                sourceFrameInScreen: clickSourceFrame()
+                            )
+                        }
                     }
                 }
             } header: {
@@ -76,5 +90,10 @@ struct PermissionsSettingsView: View {
         .onAppear {
             appState.permissionManager.refresh()
         }
+    }
+
+    private func clickSourceFrame() -> CGRect {
+        let mouse = NSEvent.mouseLocation
+        return CGRect(x: mouse.x - 16, y: mouse.y - 16, width: 32, height: 32)
     }
 }
