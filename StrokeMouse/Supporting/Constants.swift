@@ -53,6 +53,9 @@ enum PreferenceKey {
     static let menuBarIconStyle = "menuBarIconStyle"
     static let language = "languageOverride"
     static let hideDockIcon = "hideDockIcon"
+    static let hideMenuBarIcon = "hideMenuBarIcon"
+    /// Bundle IDs pinned in the gestures sidebar (may have zero gestures yet).
+    static let pinnedGestureAppBundleIds = "pinnedGestureAppBundleIds"
     static let hasCompletedOnboarding = "hasCompletedOnboarding"
     static let showGestureHUD = "showGestureHUD"
     static let hudLineColor = "hudLineColor"

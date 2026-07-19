@@ -11,6 +11,7 @@ struct GeneralSettingsView: View {
     @AppStorage(PreferenceKey.menuBarIconStyle) private var menuBarIconStyle = MenuBarIconStyle.default
     @AppStorage(PreferenceKey.language) private var languageRaw = LanguageOverride.system.rawValue
     @AppStorage(PreferenceKey.hideDockIcon) private var hideDockIcon = false
+    @AppStorage(PreferenceKey.hideMenuBarIcon) private var hideMenuBarIcon = false
     @AppStorage(PreferenceKey.showGestureHUD) private var showGestureHUD = true
     @AppStorage(PreferenceKey.hudLineColor) private var lineColorHex = Constants.defaultHUDLineColorHex
     @AppStorage(PreferenceKey.hudLineWidth) private var lineWidth = Double(Constants.defaultHUDLineWidth)
@@ -19,9 +20,26 @@ struct GeneralSettingsView: View {
     @AppStorage(PreferenceKey.automaticallyChecksForUpdates) private var automaticallyChecksForUpdates = true
 
     @State private var lineColor: Color = DrawingStyle.lineSwiftUIColor
+    @State private var isConfirmingDoubleHide = false
+    @State private var pendingDoubleHide: DoubleHideKind?
+    /// Reference-type gate so confirm applies are visible to `onChange` (SwiftUI `@State` bool is unreliable here).
+    @State private var dualHideGate = DualHideGate()
+
+    private enum DoubleHideKind {
+        case hideMenuBar
+        case hideDock
+    }
+
+    private final class DualHideGate {
+        var isApplyingConfirmed = false
+    }
 
     /// Touch language epoch so this form re-resolves L10n strings.
     private var langEpoch: UInt { appState.languageEpoch }
+
+    private var runtimeStatusText: String {
+        L10n.string(appState.gestureEngine.statusMessageKey)
+    }
 
     var body: some View {
         let epoch = langEpoch
@@ -32,6 +50,12 @@ struct GeneralSettingsView: View {
                     .onChange(of: gesturesEnabled) { _, newValue in
                         appState.setGesturesEnabled(newValue)
                     }
+
+                LabeledContent(L10n.string("general.runtimeStatus")) {
+                    Text(runtimeStatusText)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
 
                 sliderRow(
                     title: L10n.string("general.minDistance"),
@@ -102,14 +126,51 @@ struct GeneralSettingsView: View {
                 Text(L10n.string("general.startPointFixedRed"))
             }
 
-            Section(L10n.string("general.startup")) {
+            Section {
                 LaunchAtLogin.Toggle {
                     Text(L10n.string("general.launchAtLogin"))
                 }
                 Toggle(L10n.string("general.hideDockIcon"), isOn: $hideDockIcon)
-                    .onChange(of: hideDockIcon) { _, _ in
+                    .onChange(of: hideDockIcon) { _, newValue in
+                        if dualHideGate.isApplyingConfirmed {
+                            appState.applyDockVisibility()
+                            return
+                        }
+                        if newValue, hideMenuBarIcon {
+                            // Revert until user confirms dual-hide.
+                            hideDockIcon = false
+                            pendingDoubleHide = .hideDock
+                            isConfirmingDoubleHide = true
+                            return
+                        }
                         appState.applyDockVisibility()
                     }
+                Toggle(L10n.string("general.hideMenuBarIcon"), isOn: $hideMenuBarIcon)
+                    .onChange(of: hideMenuBarIcon) { _, newValue in
+                        if dualHideGate.isApplyingConfirmed {
+                            appState.setHideMenuBarIcon(newValue)
+                            return
+                        }
+                        if newValue, hideDockIcon {
+                            hideMenuBarIcon = false
+                            pendingDoubleHide = .hideMenuBar
+                            isConfirmingDoubleHide = true
+                            return
+                        }
+                        appState.setHideMenuBarIcon(newValue)
+                    }
+            } header: {
+                Text(L10n.string("general.startup"))
+            } footer: {
+                Text(L10n.string("general.hideChromeFooter"))
+            }
+
+            Section {
+                Button(L10n.string("general.quitApp"), role: .destructive) {
+                    NSApplication.shared.terminate(nil)
+                }
+            } footer: {
+                Text(L10n.string("general.quitAppFooter"))
             }
 
             Section {
@@ -198,6 +259,43 @@ struct GeneralSettingsView: View {
         .onAppear {
             lineColor = DrawingStyle.lineSwiftUIColor
             automaticallyChecksForUpdates = appState.updaterService.automaticallyChecksForUpdates
+            hideMenuBarIcon = appState.prefersHideMenuBarIcon
+        }
+        .confirmationDialog(
+            L10n.string("general.doubleHideTitle"),
+            isPresented: $isConfirmingDoubleHide,
+            titleVisibility: .visible
+        ) {
+            Button(L10n.string("general.doubleHideConfirm"), role: .destructive) {
+                confirmDoubleHide()
+            }
+            Button(L10n.string("common.cancel"), role: .cancel) {
+                pendingDoubleHide = nil
+            }
+        } message: {
+            Text(L10n.string("general.doubleHideMessage"))
+        }
+    }
+
+    private func confirmDoubleHide() {
+        let kind = pendingDoubleHide
+        pendingDoubleHide = nil
+        // Class-backed flag is readable immediately inside Toggle onChange.
+        dualHideGate.isApplyingConfirmed = true
+        switch kind {
+        case .hideMenuBar:
+            // Apply engine preference first, then sync the Toggle.
+            appState.setHideMenuBarIcon(true)
+            hideMenuBarIcon = true
+        case .hideDock:
+            hideDockIcon = true
+            appState.applyDockVisibility()
+        case nil:
+            break
+        }
+        // Clear after onChange has run (same turn + next runloop for safety).
+        DispatchQueue.main.async {
+            dualHideGate.isApplyingConfirmed = false
         }
     }
 

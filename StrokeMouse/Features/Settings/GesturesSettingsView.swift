@@ -20,19 +20,41 @@ private enum GestureEnabledFilter: String, CaseIterable, Identifiable {
 
 struct GesturesSettingsView: View {
     @Environment(AppState.self) private var appState
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var selection = Set<GestureProfile.ID>()
     @State private var editorProfile: GestureProfile?
     @State private var isShowingGestureTest = false
+    @State private var isShowingAddApp = false
     @State private var searchText = ""
     @State private var enabledFilter: GestureEnabledFilter = .all
     @State private var sortOrder = [KeyPathComparator(\GestureProfile.name)]
     @State private var alertMessage: AlertMessage?
     @State private var pendingDeleteIDs = Set<GestureProfile.ID>()
     @State private var isConfirmingDelete = false
+    @State private var pendingRemoveAppBundleId: String?
+    @State private var isConfirmingRemoveApp = false
+    @State private var sidebarSelection: GestureSidebarItem = .global
+    @State private var pinnedAppBundleIds: [String] = GesturesSettingsView.loadPinnedApps()
+    @State private var isAddAppHovered = false
+
+    private var sidebarAppIds: [String] {
+        let ids = GestureSidebarCatalog.sidebarAppBundleIds(
+            gestures: appState.configStore.gestures,
+            pinnedBundleIds: pinnedAppBundleIds
+        )
+        return ids.sorted {
+            let left = AppInfoLookup.info(forBundleId: $0).name
+            let right = AppInfoLookup.info(forBundleId: $1).name
+            return left.localizedCaseInsensitiveCompare(right) == .orderedAscending
+        }
+    }
 
     private var displayedGestures: [GestureProfile] {
-        var items = appState.configStore.gestures
+        var items = GestureSidebarCatalog.gestures(
+            in: sidebarSelection,
+            from: appState.configStore.gestures
+        )
 
         switch enabledFilter {
         case .all: break
@@ -59,34 +81,38 @@ struct GesturesSettingsView: View {
         return !ids.isEmpty && ids.isSubset(of: selection)
     }
 
+    private func gestureCount(for sidebar: GestureSidebarItem) -> Int {
+        GestureSidebarCatalog.gestures(in: sidebar, from: appState.configStore.gestures).count
+    }
+
+    /// Shared bottom chrome height so left/right horizontal dividers align exactly.
+    private let bottomChromeHeight: CGFloat = 52
+    private let sidebarWidth: CGFloat = 200
+
     var body: some View {
         let _ = appState.languageEpoch
 
         VStack(spacing: 0) {
-            toolbar
-            Divider()
-
-            Group {
-                if appState.configStore.gestures.isEmpty {
-                    ContentUnavailableView(
-                        L10n.string("gestures.emptyTitle"),
-                        systemImage: "hand.draw",
-                        description: Text(L10n.string("gestures.emptySubtitle"))
-                    )
-                } else if displayedGestures.isEmpty {
-                    ContentUnavailableView(
-                        L10n.string("gestures.filterEmptyTitle"),
-                        systemImage: "line.3.horizontal.decrease.circle",
-                        description: Text(L10n.string("gestures.filterEmptySubtitle"))
-                    )
-                } else {
-                    gestureTable
-                }
+            HStack(spacing: 0) {
+                sidebarBody
+                    .frame(width: sidebarWidth)
+                Divider()
+                detailBody
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
+            // One full-width divider — cannot misalign between columns.
             Divider()
-            footerBar
+
+            HStack(spacing: 0) {
+                addAppFooter
+                    .frame(width: sidebarWidth)
+                Divider()
+                footerBar
+                    .frame(maxWidth: .infinity)
+            }
+            .frame(height: bottomChromeHeight)
+            .background(chromeSurfaceColor)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(item: $editorProfile) { profile in
@@ -96,6 +122,8 @@ struct GesturesSettingsView: View {
                 } else {
                     appState.configStore.add(updated)
                 }
+                // Follow the gesture into its scope group after save.
+                selectSidebar(for: updated.scope)
                 editorProfile = nil
             } onCancel: {
                 editorProfile = nil
@@ -106,6 +134,21 @@ struct GesturesSettingsView: View {
             GestureTestView()
                 .environment(appState)
                 .environment(\.locale, appState.resolvedLocale)
+        }
+        .sheet(isPresented: $isShowingAddApp) {
+            InstalledAppPickerSheet(
+                mode: .single(currentBundleId: nil),
+                onConfirm: { apps in
+                    if let app = apps.first {
+                        pinApp(app.bundleId)
+                        sidebarSelection = .app(app.bundleId)
+                    }
+                    isShowingAddApp = false
+                },
+                onCancel: {
+                    isShowingAddApp = false
+                }
+            )
         }
         .alert(item: $alertMessage) { message in
             Alert(
@@ -129,6 +172,28 @@ struct GesturesSettingsView: View {
         } message: {
             Text(deleteConfirmMessage)
         }
+        .confirmationDialog(
+            L10n.string("gestures.sidebarRemoveAppConfirmTitle"),
+            isPresented: $isConfirmingRemoveApp,
+            titleVisibility: .visible
+        ) {
+            Button(L10n.string("gestures.sidebarRemoveAppConfirmButton"), role: .destructive) {
+                if let bundleId = pendingRemoveAppBundleId {
+                    confirmRemoveAppAndGestures(bundleId)
+                }
+                pendingRemoveAppBundleId = nil
+            }
+            Button(L10n.string("common.cancel"), role: .cancel) {
+                pendingRemoveAppBundleId = nil
+            }
+        } message: {
+            Text(removeAppConfirmMessage)
+        }
+        .onChange(of: appState.configStore.gestures) { _, _ in
+            // Drop selection entries that no longer exist.
+            let valid = Set(appState.configStore.gestures.map(\.id))
+            selection = selection.intersection(valid)
+        }
     }
 
     private var deleteConfirmMessage: String {
@@ -139,13 +204,186 @@ struct GesturesSettingsView: View {
         )
     }
 
+    private var removeAppConfirmMessage: String {
+        let bundleId = pendingRemoveAppBundleId ?? ""
+        let plan = GestureSidebarCatalog.planRemoveApp(
+            bundleId,
+            from: appState.configStore.gestures
+        )
+        let name = AppInfoLookup.info(forBundleId: bundleId).name
+        return String(
+            format: L10n.string("gestures.sidebarRemoveAppConfirmMessage"),
+            locale: L10n.locale,
+            name,
+            plan.idsToDelete.count,
+            plan.profilesToUpdate.count
+        )
+    }
+
+    /// Match detail pane surface: pure white in light, control background in dark.
+    private var chromeSurfaceColor: Color {
+        colorScheme == .light ? Color.white : Color(nsColor: .controlBackgroundColor)
+    }
+
+    // MARK: - Sidebar (list only; bottom chrome is shared with detail)
+
+    private var sidebarBody: some View {
+        VStack(spacing: 0) {
+            Text(L10n.string("gestures.sidebarTitle"))
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
+                .padding(.bottom, 8)
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    GestureSidebarRow(
+                        title: L10n.string("scope.global"),
+                        count: gestureCount(for: .global),
+                        isSelected: sidebarSelection == .global,
+                        icon: { Image(systemName: "globe") }
+                    ) {
+                        sidebarSelection = .global
+                    }
+
+                    if !sidebarAppIds.isEmpty {
+                        Text(L10n.string("gestures.sidebarApps"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 10)
+                            .padding(.bottom, 2)
+                            .padding(.horizontal, 10)
+
+                        ForEach(sidebarAppIds, id: \.self) { bundleId in
+                            let info = AppInfoLookup.info(forBundleId: bundleId)
+                            let item = GestureSidebarItem.app(bundleId)
+                            GestureSidebarRow(
+                                title: info.name,
+                                count: gestureCount(for: item),
+                                isSelected: sidebarSelection == item,
+                                icon: {
+                                    Image(nsImage: AppInfoLookup.icon(for: info.path))
+                                        .resizable()
+                                        .interpolation(.high)
+                                        .frame(width: 16, height: 16)
+                                        .cornerRadius(3)
+                                }
+                            ) {
+                                sidebarSelection = item
+                            }
+                            .contextMenu {
+                                Button(L10n.string("gestures.sidebarRemoveApp"), role: .destructive) {
+                                    requestRemoveApp(bundleId)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(chromeSurfaceColor)
+    }
+
+    private var addAppFooter: some View {
+        Button {
+            isShowingAddApp = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus")
+                Text(L10n.string("gestures.sidebarAddApp"))
+            }
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(isAddAppHovered ? Color.primary.opacity(0.06) : chromeSurfaceColor)
+        .onHover { isAddAppHovered = $0 }
+        .help(L10n.string("gestures.sidebarAddApp"))
+    }
+
+    // MARK: - Detail (table only; bottom chrome is shared with sidebar)
+
+    private var detailBody: some View {
+        VStack(spacing: 0) {
+            toolbar
+            Divider()
+
+            Group {
+                if appState.configStore.gestures.isEmpty, pinnedAppBundleIds.isEmpty, case .global = sidebarSelection {
+                    ContentUnavailableView(
+                        L10n.string("gestures.emptyTitle"),
+                        systemImage: "hand.draw",
+                        description: Text(L10n.string("gestures.emptySubtitle"))
+                    )
+                } else if displayedGestures.isEmpty {
+                    ContentUnavailableView(
+                        emptyTitle,
+                        systemImage: emptySystemImage,
+                        description: Text(emptySubtitle)
+                    )
+                } else {
+                    gestureTable
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(chromeSurfaceColor)
+        }
+        .background(chromeSurfaceColor)
+    }
+
+    private var emptyTitle: String {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || enabledFilter != .all
+        {
+            return L10n.string("gestures.filterEmptyTitle")
+        }
+        switch sidebarSelection {
+        case .global:
+            return L10n.string("gestures.emptyGlobalTitle")
+        case .app:
+            return L10n.string("gestures.emptyAppTitle")
+        }
+    }
+
+    private var emptySubtitle: String {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || enabledFilter != .all
+        {
+            return L10n.string("gestures.filterEmptySubtitle")
+        }
+        switch sidebarSelection {
+        case .global:
+            return L10n.string("gestures.emptyGlobalSubtitle")
+        case .app:
+            return L10n.string("gestures.emptyAppSubtitle")
+        }
+    }
+
+    private var emptySystemImage: String {
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || enabledFilter != .all
+        {
+            return "line.3.horizontal.decrease.circle"
+        }
+        return "hand.draw"
+    }
+
     // MARK: - Toolbar
 
     private var toolbar: some View {
         VStack(spacing: 10) {
             HStack(spacing: 12) {
-                Text(L10n.string("gestures.title"))
+                Text(detailTitle)
                     .font(.title2.weight(.semibold))
+                    .lineLimit(1)
                 Spacer()
                 Button {
                     importGestures()
@@ -153,10 +391,7 @@ struct GesturesSettingsView: View {
                     Label(L10n.string("gestures.import"), systemImage: "square.and.arrow.down")
                 }
                 Button {
-                    editorProfile = GestureProfile(
-                        name: L10n.string("gestures.newName"),
-                        pattern: .freePath([])
-                    )
+                    editorProfile = makeNewProfile()
                 } label: {
                     Label(L10n.string("gestures.add"), systemImage: "plus")
                 }
@@ -194,11 +429,19 @@ struct GesturesSettingsView: View {
         .padding()
     }
 
+    private var detailTitle: String {
+        switch sidebarSelection {
+        case .global:
+            return L10n.string("scope.global")
+        case .app(let bundleId):
+            return AppInfoLookup.info(forBundleId: bundleId).name
+        }
+    }
+
     // MARK: - Table
 
     private var gestureTable: some View {
         Table(displayedGestures, selection: $selection, sortOrder: $sortOrder) {
-            // Content-only columns (struct rows cannot use value: + custom content together).
             TableColumn(L10n.string("gestures.col.enabled")) { gesture in
                 Toggle("", isOn: Binding(
                     get: { gesture.isEnabled },
@@ -232,6 +475,7 @@ struct GesturesSettingsView: View {
             }
             .width(min: 120, ideal: 180)
 
+            // Scope column: useful for multi-app gestures that appear under one app.
             TableColumn(L10n.string("gestures.col.scope")) { gesture in
                 GestureScopeCell(scope: gesture.scope)
             }
@@ -319,9 +563,93 @@ struct GesturesSettingsView: View {
             Button(L10n.string("gestures.resetDefaults")) {
                 selection.removeAll()
                 appState.configStore.resetToDefaults()
+                sidebarSelection = .global
             }
         }
-        .padding()
+        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(chromeSurfaceColor)
+    }
+
+    // MARK: - Sidebar helpers
+
+    private func makeNewProfile() -> GestureProfile {
+        GestureProfile(
+            name: L10n.string("gestures.newName"),
+            pattern: .freePath([]),
+            scope: GestureSidebarCatalog.defaultScope(for: sidebarSelection)
+        )
+    }
+
+    private func selectSidebar(for scope: AppScope) {
+        let item = GestureSidebarCatalog.preferredSidebarItem(for: scope)
+        if case .app(let bundleId) = item {
+            pinApp(bundleId)
+        }
+        sidebarSelection = item
+    }
+
+    private func pinApp(_ bundleId: String) {
+        let trimmed = bundleId.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if !pinnedAppBundleIds.contains(trimmed) {
+            pinnedAppBundleIds.append(trimmed)
+            Self.savePinnedApps(pinnedAppBundleIds)
+        }
+    }
+
+    /// Remove an app from the sidebar.
+    /// Empty pin: drop immediately. Otherwise confirm — single-app gestures are deleted;
+    /// multi-app gestures only drop this bundle id from their scope.
+    private func requestRemoveApp(_ bundleId: String) {
+        let plan = GestureSidebarCatalog.planRemoveApp(
+            bundleId,
+            from: appState.configStore.gestures
+        )
+        if plan.isEmpty {
+            removePinnedApp(bundleId)
+            return
+        }
+        pendingRemoveAppBundleId = bundleId
+        isConfirmingRemoveApp = true
+    }
+
+    private func confirmRemoveAppAndGestures(_ bundleId: String) {
+        let plan = GestureSidebarCatalog.planRemoveApp(
+            bundleId,
+            from: appState.configStore.gestures
+        )
+        for profile in plan.profilesToUpdate {
+            appState.configStore.update(profile)
+        }
+        if !plan.idsToDelete.isEmpty {
+            appState.configStore.delete(ids: plan.idsToDelete)
+            selection.subtract(plan.idsToDelete)
+        }
+        removePinnedApp(bundleId)
+    }
+
+    private func removePinnedApp(_ bundleId: String) {
+        pinnedAppBundleIds.removeAll { $0 == bundleId }
+        Self.savePinnedApps(pinnedAppBundleIds)
+        // App drops out of the sidebar once unpinned and no remaining gestures reference it.
+        if case .app(let selected) = sidebarSelection, selected == bundleId {
+            let stillPresent = GestureSidebarCatalog.sidebarAppBundleIds(
+                gestures: appState.configStore.gestures,
+                pinnedBundleIds: pinnedAppBundleIds
+            ).contains(bundleId)
+            if !stillPresent {
+                sidebarSelection = .global
+            }
+        }
+    }
+
+    private static func loadPinnedApps() -> [String] {
+        UserDefaults.standard.stringArray(forKey: PreferenceKey.pinnedGestureAppBundleIds) ?? []
+    }
+
+    private static func savePinnedApps(_ ids: [String]) {
+        UserDefaults.standard.set(ids, forKey: PreferenceKey.pinnedGestureAppBundleIds)
     }
 
     // MARK: - Actions
@@ -402,6 +730,9 @@ struct GesturesSettingsView: View {
 
             let newIDs = try appState.configStore.importProfiles(profilesToImport)
             selection = Set(newIDs)
+            if let first = appState.configStore.gestures.first(where: { newIDs.contains($0.id) }) {
+                selectSidebar(for: first.scope)
+            }
         } catch {
             alertMessage = AlertMessage(
                 title: L10n.string("gestures.importFailedTitle"),
@@ -521,6 +852,55 @@ private struct AlertMessage: Identifiable {
     let id = UUID()
     let title: String
     let detail: String
+}
+
+// MARK: - Sidebar row (explicit light/dark selection + hover)
+
+private struct GestureSidebarRow<Icon: View>: View {
+    let title: String
+    let count: Int
+    let isSelected: Bool
+    @ViewBuilder var icon: () -> Icon
+    var action: () -> Void
+
+    @State private var isHovered = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                icon()
+                    .frame(width: 18, height: 18)
+                Text(title)
+                    .font(.body)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Text("\(count)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .background(rowBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+    }
+
+    private var rowBackground: Color {
+        if isSelected {
+            // Accent tint readable in both schemes (avoids white-on-white from system sidebar style).
+            return Color.accentColor.opacity(colorScheme == .dark ? 0.28 : 0.16)
+        }
+        if isHovered {
+            return Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.06)
+        }
+        return .clear
+    }
 }
 
 // MARK: - Scope cell (global label or app icons)

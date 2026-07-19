@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Always-mounted helper (inside MenuBarExtra label) so `openWindow` works
-/// even when the menu is closed.
+/// Always-mounted helper so `openWindow` works from menu bar, settings, or the
+/// temporary menu-bar bridge used when the status item is hidden.
 struct SettingsWindowOpener: View {
     @Environment(AppState.self) private var appState
     @Environment(\.openWindow) private var openWindow
@@ -14,11 +14,11 @@ struct SettingsWindowOpener: View {
             .onChange(of: appState.settingsOpenToken) { _, _ in
                 present()
             }
-            .onReceive(NotificationCenter.default.publisher(for: .strokeMouseOpenSettings)) { note in
-                if let tab = note.object as? SettingsTab {
-                    appState.settingsTab = tab
+            .onAppear {
+                // Bridge remounted MenuBarExtra after hide — open if still pending.
+                if appState.forceMenuBarExtraForSettingsBridge {
+                    present()
                 }
-                present()
             }
     }
 
@@ -32,6 +32,8 @@ struct SettingsWindowOpener: View {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             AppState.bringSettingsWindowToFront()
+            // After openWindow, drop temporary menu bar insertion if user prefers hide.
+            appState.clearMenuBarSettingsBridgeIfNeeded()
         }
     }
 }

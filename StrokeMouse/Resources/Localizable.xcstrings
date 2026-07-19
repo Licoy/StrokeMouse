@@ -5056,6 +5056,310 @@
           }
         }
       }
+    },
+    "general.hideMenuBarIcon": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Menu Bar Icon"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏菜单栏图标"
+          }
+        }
+      }
+    },
+    "general.hideChromeFooter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the menu bar icon is hidden, open StrokeMouse again from the Dock, Launchpad, or Spotlight to show Settings. If both the Dock and menu bar icons are hidden, use Spotlight or Launchpad."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏菜单栏图标后，可通过 Dock、启动台或聚焦搜索再次打开 StrokeMouse 进入设置。若同时隐藏 Dock 图标，请使用聚焦搜索或启动台打开。"
+          }
+        }
+      }
+    },
+    "general.runtimeStatus": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行状态"
+          }
+        }
+      }
+    },
+    "general.quitApp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit StrokeMouse"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 StrokeMouse"
+          }
+        }
+      }
+    },
+    "general.quitAppFooter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Useful when the menu bar icon is hidden and you need to fully quit the app."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在隐藏菜单栏图标时，可从这里完全退出应用。"
+          }
+        }
+      }
+    },
+    "general.doubleHideTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Dock and Menu Bar?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同时隐藏 Dock 与菜单栏？"
+          }
+        }
+      }
+    },
+    "general.doubleHideMessage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StrokeMouse will keep running in the background with no Dock or menu bar icon. Open it again from Spotlight or Launchpad to reach Settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StrokeMouse 将在后台继续运行，且没有 Dock 与菜单栏图标。请通过聚焦搜索或启动台再次打开以进入设置。"
+          }
+        }
+      }
+    },
+    "general.doubleHideConfirm": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide Both"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同时隐藏"
+          }
+        }
+      }
+    },
+    "gestures.sidebarTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scopes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作用域"
+          }
+        }
+      }
+    },
+    "gestures.sidebarApps": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applications"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用程序"
+          }
+        }
+      }
+    },
+    "gestures.sidebarAddApp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Application"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加应用"
+          }
+        }
+      }
+    },
+    "gestures.sidebarRemoveApp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from Sidebar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从侧边栏移除"
+          }
+        }
+      }
+    },
+    "gestures.emptyGlobalTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Global Gestures"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无全局手势"
+          }
+        }
+      }
+    },
+    "gestures.emptyGlobalSubtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a gesture that works in every app, or pick an application on the left."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加在所有应用中生效的手势，或在左侧选择某个应用。"
+          }
+        }
+      }
+    },
+    "gestures.emptyAppTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Gestures for This App"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该应用暂无手势"
+          }
+        }
+      }
+    },
+    "gestures.emptyAppSubtitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a gesture for this app. New gestures here use this application as the scope by default."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为此应用添加手势。在此新建的手势会默认绑定该应用。"
+          }
+        }
+      }
+    },
+    "gestures.sidebarRemoveAppConfirmTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove Application?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除应用？"
+          }
+        }
+      }
+    },
+    "gestures.sidebarRemoveAppConfirmMessage": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove “%@” from the sidebar?\n• %d gesture(s) only for this app will be deleted.\n• %d multi-app gesture(s) will keep their other apps."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确定从侧边栏移除“%@”吗？\n• 仅作用于该应用的 %d 条手势将被删除。\n• %d 条同时作用于多个应用的手势只会取消本应用，不影响其他应用。"
+          }
+        }
+      }
+    },
+    "gestures.sidebarRemoveAppConfirmButton": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

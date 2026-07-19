@@ -37,7 +37,10 @@ struct SettingsRootView: View {
         .id("settings-tabs-\(epoch)")
         .environment(\.locale, appState.resolvedLocale)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 8)
+        // No extra top padding — TabView already sits under the title-bar tabs;
+        // padding here left an empty strip above the gestures sidebar title.
+        // Second host for openWindow when menu bar is hidden but this window is open.
+        .background(SettingsWindowOpener().environment(appState))
         .sheet(isPresented: $appState.showOnboarding) {
             OnboardingView()
                 .environment(appState)

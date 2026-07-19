@@ -7,7 +7,7 @@ struct StrokeMouseApp: App {
     @State private var appState = AppState()
 
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra(isInserted: menuBarInsertedBinding) {
             MenuBarView()
                 .environment(appState)
                 .environment(\.locale, appState.resolvedLocale)
@@ -27,6 +27,14 @@ struct StrokeMouseApp: App {
         .defaultSize(width: 900, height: 560)
         .windowResizability(.contentSize)
         .commandsRemoved()
+    }
+
+    /// Two-way binding for MenuBarExtra; writes hide preference when user removes the item.
+    private var menuBarInsertedBinding: Binding<Bool> {
+        Binding(
+            get: { appState.menuBarExtraInserted },
+            set: { appState.handleMenuBarExtraInsertedChange($0) }
+        )
     }
 }
 

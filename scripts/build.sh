@@ -9,6 +9,13 @@
 #   ./scripts/build.sh --release --open
 #   ./scripts/build.sh --no-generate
 #   CONFIGURATION=Release ./scripts/build.sh
+#
+# Requires bash features (arrays, process substitution). On macOS, `sh script`
+# often runs bash *in POSIX mode* where BASH_VERSION is still set but
+# process substitution is disabled — detect capability, not just $BASH_VERSION.
+if ! eval ': <(:)' 2>/dev/null; then
+  exec /usr/bin/env bash "$0" "$@"
+fi
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

@@ -63,4 +63,31 @@ final class L10nTests: XCTestCase {
         XCTAssertFalse(chinese.contains(where: \.isEmpty))
         XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
     }
+
+    func testIssue2StringsAreLocalized() {
+        let keys = [
+            "general.hideMenuBarIcon",
+            "general.hideChromeFooter",
+            "general.runtimeStatus",
+            "general.quitApp",
+            "general.doubleHideTitle",
+            "gestures.sidebarTitle",
+            "gestures.sidebarAddApp",
+            "gestures.emptyAppSubtitle",
+        ]
+        L10n.apply(.english)
+        let english = keys.map(L10n.string)
+        L10n.apply(.simplifiedChinese)
+        let chinese = keys.map(L10n.string)
+
+        for (key, value) in zip(keys, english) {
+            XCTAssertFalse(value.isEmpty, "Missing EN for \(key)")
+            XCTAssertNotEqual(value, key, "Unresolved EN key \(key)")
+        }
+        for (key, value) in zip(keys, chinese) {
+            XCTAssertFalse(value.isEmpty, "Missing ZH for \(key)")
+            XCTAssertNotEqual(value, key, "Unresolved ZH key \(key)")
+        }
+        XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
+    }
 }

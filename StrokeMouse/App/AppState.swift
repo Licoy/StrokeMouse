@@ -22,8 +22,16 @@ final class AppState {
     var languageEpoch: UInt = 0
     /// Stored so MenuBarExtra label observes AppState directly (nested Observation is unreliable there).
     private(set) var menuBarIconStatus: MenuBarIconStatus = .normal
+    /// Whether `MenuBarExtra` is inserted. May be temporarily true while bridging `openWindow`.
+    var menuBarExtraInserted: Bool = true
+    /// Forces menu bar insertion so `SettingsWindowOpener` can mount when the icon is hidden.
+    private(set) var forceMenuBarExtraForSettingsBridge: Bool = false
 
     var resolvedLocale: Locale { L10n.locale }
+
+    var prefersHideMenuBarIcon: Bool {
+        UserDefaults.standard.bool(forKey: PreferenceKey.hideMenuBarIcon)
+    }
 
     init() {
         Self.preconfigureLocalization()
@@ -59,7 +67,9 @@ final class AppState {
         }
 
         applyLaunchPreferences()
+        syncMenuBarExtraInserted()
         installSettingsWindowCloseObserver()
+        installOpenSettingsNotificationObserver()
 
         // Defer the event tap until the main run loop is spinning. Creating a
         // filtering CGEventTap during @State construction (esp. on macOS 14)
@@ -69,6 +79,48 @@ final class AppState {
             self.gestureEngine.startIfPossible()
             self.refreshMenuBarIconStatus()
         }
+    }
+
+    /// AppDelegate / external code posts this; route through `openSettings` for menu-bar bridge.
+    private func installOpenSettingsNotificationObserver() {
+        NotificationCenter.default.addObserver(
+            forName: .strokeMouseOpenSettings,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            Task { @MainActor in
+                let tab = note.object as? SettingsTab ?? .gestures
+                self?.openSettings(tab: tab)
+            }
+        }
+    }
+
+    /// Recompute menu bar insertion from user preference and temporary bridge force.
+    func syncMenuBarExtraInserted() {
+        menuBarExtraInserted = forceMenuBarExtraForSettingsBridge || !prefersHideMenuBarIcon
+    }
+
+    /// Persist hide-menu-bar preference and refresh insertion (unless bridge is forcing show).
+    func setHideMenuBarIcon(_ hide: Bool) {
+        UserDefaults.standard.set(hide, forKey: PreferenceKey.hideMenuBarIcon)
+        syncMenuBarExtraInserted()
+    }
+
+    /// Called when SwiftUI's `MenuBarExtra(isInserted:)` binding changes (e.g. user removes item).
+    func handleMenuBarExtraInsertedChange(_ inserted: Bool) {
+        if forceMenuBarExtraForSettingsBridge {
+            // Ignore system churn while we temporarily remount for openWindow.
+            menuBarExtraInserted = true
+            return
+        }
+        setHideMenuBarIcon(!inserted)
+    }
+
+    /// Drop temporary menu bar insertion after settings was opened via bridge.
+    func clearMenuBarSettingsBridgeIfNeeded() {
+        guard forceMenuBarExtraForSettingsBridge else { return }
+        forceMenuBarExtraForSettingsBridge = false
+        syncMenuBarExtraInserted()
     }
 
     func refreshMenuBarIconStatus() {
@@ -249,9 +301,25 @@ final class AppState {
         // May temporarily show Dock icon so the window can appear; restored on close.
         elevateForSettingsWindowIfNeeded()
         NSApp.activate(ignoringOtherApps: true)
+
+        // When the menu bar icon is hidden, MenuBarExtra (and its SettingsWindowOpener)
+        // is unmounted. Temporarily re-insert so openWindow can run, then hide again.
+        if prefersHideMenuBarIcon, !Self.isSettingsWindowVisible() {
+            forceMenuBarExtraForSettingsBridge = true
+            menuBarExtraInserted = true
+        }
+
         settingsOpenToken &+= 1
         DispatchQueue.main.async {
             Self.bringSettingsWindowToFront()
+        }
+        // Fallback: if a settings window already exists, opener may be on SettingsRootView.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            Self.bringSettingsWindowToFront()
+            // If still bridging and window is up, drop temporary menu bar item.
+            if Self.isSettingsWindowVisible() {
+                self?.clearMenuBarSettingsBridgeIfNeeded()
+            }
         }
     }
 
