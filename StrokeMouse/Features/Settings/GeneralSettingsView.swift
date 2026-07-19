@@ -131,12 +131,14 @@ struct GeneralSettingsView: View {
                     Text(L10n.string("general.launchAtLogin"))
                 }
                 Toggle(L10n.string("general.hideDockIcon"), isOn: $hideDockIcon)
-                    .onChange(of: hideDockIcon) { _, newValue in
+                    .onChange(of: hideDockIcon) { oldValue, newValue in
                         if dualHideGate.isApplyingConfirmed {
                             appState.applyDockVisibility()
                             return
                         }
-                        if newValue, hideMenuBarIcon {
+                        // Rising edge only — avoid re-prompt / revert when reopening settings
+                        // with dual-hide already saved (AppStorage / onAppear sync).
+                        if newValue, !oldValue, hideMenuBarIcon {
                             // Revert until user confirms dual-hide.
                             hideDockIcon = false
                             pendingDoubleHide = .hideDock
@@ -146,12 +148,13 @@ struct GeneralSettingsView: View {
                         appState.applyDockVisibility()
                     }
                 Toggle(L10n.string("general.hideMenuBarIcon"), isOn: $hideMenuBarIcon)
-                    .onChange(of: hideMenuBarIcon) { _, newValue in
+                    .onChange(of: hideMenuBarIcon) { oldValue, newValue in
                         if dualHideGate.isApplyingConfirmed {
                             appState.setHideMenuBarIcon(newValue)
                             return
                         }
-                        if newValue, hideDockIcon {
+                        // Rising edge only — same dual-hide reopen guard as Dock toggle.
+                        if newValue, !oldValue, hideDockIcon {
                             hideMenuBarIcon = false
                             pendingDoubleHide = .hideMenuBar
                             isConfirmingDoubleHide = true

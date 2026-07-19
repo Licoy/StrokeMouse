@@ -3,19 +3,27 @@ import XCTest
 
 @MainActor
 final class MenuBarVisibilityTests: XCTestCase {
-    private var previousHide: Bool?
+    private var previousHideMenuBar: Bool?
+    private var previousHideDock: Bool?
 
     override func setUp() {
         super.setUp()
-        previousHide = UserDefaults.standard.object(forKey: PreferenceKey.hideMenuBarIcon) as? Bool
+        previousHideMenuBar = UserDefaults.standard.object(forKey: PreferenceKey.hideMenuBarIcon) as? Bool
+        previousHideDock = UserDefaults.standard.object(forKey: PreferenceKey.hideDockIcon) as? Bool
         UserDefaults.standard.removeObject(forKey: PreferenceKey.hideMenuBarIcon)
+        UserDefaults.standard.removeObject(forKey: PreferenceKey.hideDockIcon)
     }
 
     override func tearDown() {
-        if let previousHide {
-            UserDefaults.standard.set(previousHide, forKey: PreferenceKey.hideMenuBarIcon)
+        if let previousHideMenuBar {
+            UserDefaults.standard.set(previousHideMenuBar, forKey: PreferenceKey.hideMenuBarIcon)
         } else {
             UserDefaults.standard.removeObject(forKey: PreferenceKey.hideMenuBarIcon)
+        }
+        if let previousHideDock {
+            UserDefaults.standard.set(previousHideDock, forKey: PreferenceKey.hideDockIcon)
+        } else {
+            UserDefaults.standard.removeObject(forKey: PreferenceKey.hideDockIcon)
         }
         super.tearDown()
     }
@@ -59,10 +67,30 @@ final class MenuBarVisibilityTests: XCTestCase {
         state.setHideMenuBarIcon(true)
         XCTAssertFalse(state.menuBarExtraInserted)
 
-        // Opening settings uses AppKit SettingsWindowController — menu bar stays hidden.
+        // Stub presentation: mounting real Settings UI writes AppStorage and can race dual-hide
+        // confirmations in the shared test-host defaults (CI flakiness).
+        var presented: SettingsTab?
+        state.presentSettingsWindowHandler = { presented = $0 }
+
         state.openSettings(tab: .general)
 
+        XCTAssertEqual(presented, .general)
         XCTAssertTrue(state.prefersHideMenuBarIcon)
         XCTAssertFalse(state.menuBarExtraInserted)
+    }
+
+    func testOpenSettingsStillPresentsWhenMenuBarVisible() {
+        let state = AppState()
+        XCTAssertFalse(state.prefersHideMenuBarIcon)
+        XCTAssertTrue(state.menuBarExtraInserted)
+
+        var presented: SettingsTab?
+        state.presentSettingsWindowHandler = { presented = $0 }
+
+        state.openSettings(tab: .permissions)
+
+        XCTAssertEqual(presented, .permissions)
+        XCTAssertFalse(state.prefersHideMenuBarIcon)
+        XCTAssertTrue(state.menuBarExtraInserted)
     }
 }

@@ -24,6 +24,9 @@ final class AppState {
     var menuBarExtraInserted: Bool = true
     /// AppKit settings window — independent of MenuBarExtra so hide-icon mode never flash-remounts.
     private var settingsWindowController: SettingsWindowController?
+    /// Test seam: when set, `openSettings` calls this instead of creating a real window
+    /// (avoids AppStorage dual-hide side effects in the unit-test host).
+    var presentSettingsWindowHandler: ((SettingsTab) -> Void)?
 
     var resolvedLocale: Locale { L10n.locale }
 
@@ -288,6 +291,11 @@ final class AppState {
         // May temporarily show Dock icon so the window can appear; restored on close.
         elevateForSettingsWindowIfNeeded()
         NSApp.activate(ignoringOtherApps: true)
+
+        if let presentSettingsWindowHandler {
+            presentSettingsWindowHandler(tab)
+            return
+        }
 
         let controller = settingsWindowController ?? SettingsWindowController(appState: self)
         settingsWindowController = controller
