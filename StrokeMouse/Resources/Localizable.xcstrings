@@ -5105,38 +5105,6 @@
         }
       }
     },
-    "general.quitApp": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quit StrokeMouse"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "退出 StrokeMouse"
-          }
-        }
-      }
-    },
-    "general.quitAppFooter": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Useful when the menu bar icon is hidden and you need to fully quit the app."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在隐藏菜单栏图标时，可从这里完全退出应用。"
-          }
-        }
-      }
-    },
     "general.doubleHideTitle": {
       "localizations": {
         "en": {

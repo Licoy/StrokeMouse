@@ -166,14 +166,6 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                Button(L10n.string("general.quitApp"), role: .destructive) {
-                    NSApplication.shared.terminate(nil)
-                }
-            } footer: {
-                Text(L10n.string("general.quitAppFooter"))
-            }
-
-            Section {
                 Picker(L10n.string("general.appearanceMode"), selection: $appearanceRaw) {
                     ForEach(AppearanceMode.allCases) { mode in
                         Text(L10n.string(mode.displayKey))

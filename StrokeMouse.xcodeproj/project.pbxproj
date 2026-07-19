@@ -73,6 +73,7 @@
 		C5705C1D05286672AC505423 /* PermissionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F650D208EF74E02DBE3D6370 /* PermissionsSettingsView.swift */; };
 		C73B963959ECDF8C29C7511E /* DrawingStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6DD3645A4D5B33AF8C3B83 /* DrawingStyle.swift */; };
 		D291D46AD32BE5FA4DDAC557 /* GestureHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFEF2226F3465CF928289C0 /* GestureHUDController.swift */; };
+		D56C1EDF0A7A9A819C69673E /* ThinScroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D2CE5C0DBA0FAF5EFACD93 /* ThinScroller.swift */; };
 		D85CCB3101AB81ED2D8B2509 /* AppInfoLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BA8FAE67C204CC720FCDDC3 /* AppInfoLookup.swift */; };
 		D9B76A9D12CB36947ADC7CF0 /* GesturePreviewGeometryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9B2AA436B8CCF6AA8B824D /* GesturePreviewGeometryTests.swift */; };
 		DD586AF3FCC817BF66A40AE4 /* ScriptSyntaxHighlighterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B129D1D7D12193759616495 /* ScriptSyntaxHighlighterTests.swift */; };
@@ -169,6 +170,7 @@
 		BD25A226A057CAD42F39F24C /* StrokeMouseSparkleUserDriverTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeMouseSparkleUserDriverTests.swift; sourceTree = "<group>"; };
 		BEB280AB78F9B700C568E58B /* GestureEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureEngine.swift; sourceTree = "<group>"; };
 		C5C8E981A8BD544C4280EBF2 /* ActionExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionExecutor.swift; sourceTree = "<group>"; };
+		C5D2CE5C0DBA0FAF5EFACD93 /* ThinScroller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThinScroller.swift; sourceTree = "<group>"; };
 		C66EF571A7AE4CA0986B0816 /* StrokeMouseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeMouseApp.swift; sourceTree = "<group>"; };
 		C8418C26B221EF3DCC716BB6 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
 		CAFC6883AC3A379A84216BC0 /* StrokeMouseSparkleUserDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeMouseSparkleUserDriver.swift; sourceTree = "<group>"; };
@@ -259,6 +261,7 @@
 				9500B04425951E23385935C9 /* Constants.swift */,
 				1D1B469595C655F3BB2885F2 /* L10n.swift */,
 				7A9936C0BB33B4D8EC8AB38B /* StrokeMouse.entitlements */,
+				C5D2CE5C0DBA0FAF5EFACD93 /* ThinScroller.swift */,
 			);
 			path = Supporting;
 			sourceTree = "<group>";
@@ -656,6 +659,7 @@
 				3DD63F18311CA1615B377DB1 /* StrokeStructureExtractor.swift in Sources */,
 				B9960543D46B76C5E9815B62 /* StrokeStructureMatcher.swift in Sources */,
 				0F627F01C53DA063261069F3 /* TemplateMatcher.swift in Sources */,
+				D56C1EDF0A7A9A819C69673E /* ThinScroller.swift in Sources */,
 				35542074433ECC3F753FC46A /* UnistrokeGeometry.swift in Sources */,
 				482945D696FD548863BECAB8 /* UpdateInstallEnvironment.swift in Sources */,
 				DFA03D461BDA431C62C0B3EA /* UpdateStatusWindowController.swift in Sources */,

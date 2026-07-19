@@ -69,7 +69,6 @@ final class L10nTests: XCTestCase {
             "general.hideMenuBarIcon",
             "general.hideChromeFooter",
             "general.runtimeStatus",
-            "general.quitApp",
             "general.doubleHideTitle",
             "gestures.sidebarTitle",
             "gestures.sidebarAddApp",

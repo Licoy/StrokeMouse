@@ -96,6 +96,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.applyApplicationIcon(to: NSApp)
 
+        // Thin global scrollbars (Table / ScrollView / Form / AppKit).
+        ScrollAppearance.install()
+
         // Default to regular so the settings window can appear; user can hide Dock in General.
         if UserDefaults.standard.bool(forKey: PreferenceKey.hideDockIcon) {
             NSApp.setActivationPolicy(.accessory)

@@ -212,6 +212,7 @@ private struct ScriptCodeTextView: NSViewRepresentable {
         scroll.autohidesScrollers = true
         scroll.borderType = .noBorder
         scroll.drawsBackground = false
+        ScrollAppearance.apply(to: scroll)
 
         let textView = ScriptNSTextView()
         textView.delegate = context.coordinator
