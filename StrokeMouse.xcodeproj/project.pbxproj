@@ -58,9 +58,9 @@
 		901EA362FE7E25FD626D9770 /* StrokeSegmentReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BDFE2AA7E93AFADC6260E8 /* StrokeSegmentReducer.swift */; };
 		90EE2B11459536694E1CEB31 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 94753CFBD2B86AEC2877E1F1 /* Localizable.xcstrings */; };
 		970E7CBEB1F6778DD8421788 /* GestureTestLogStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4826523C9F27887D54038C3F /* GestureTestLogStoreTests.swift */; };
+		9AABF720271214D69DCECB5A /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49DAC66DC39F7BA1A4A25F47 /* SettingsWindowController.swift */; };
 		9CBF622F25393865A8BB8953 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30BE8EFED858C370814810DF /* AppState.swift */; };
 		9F37854DA1AF762096CCF218 /* ActionExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5C8E981A8BD544C4280EBF2 /* ActionExecutor.swift */; };
-		ACAA0DB056E55B4DBB8CC47F /* SettingsWindowOpener.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF19BCD2BA6BE1264B4D7754 /* SettingsWindowOpener.swift */; };
 		ACC22C5934BAC6C3D508658C /* RecordedPeakGestureFixture.json in Resources */ = {isa = PBXBuildFile; fileRef = E7D00A1B0CD2EDA8D001D417 /* RecordedPeakGestureFixture.json */; };
 		AE5269ADCB61E07080114265 /* OnboardingGestureDemoStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9516A610B12F2564617DFB02 /* OnboardingGestureDemoStep.swift */; };
 		AE5A014CA2DE40FF80FCF82F /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C6FCA0A4196CE5CF54B1FE /* GeneralSettingsView.swift */; };
@@ -134,6 +134,7 @@
 		47B101ADD963229A5D3E3850 /* GestureRecognitionEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureRecognitionEvaluator.swift; sourceTree = "<group>"; };
 		4826523C9F27887D54038C3F /* GestureTestLogStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureTestLogStoreTests.swift; sourceTree = "<group>"; };
 		49154A7D7A13DAC7BB56C19E /* UpdateInstallEnvironmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallEnvironmentTests.swift; sourceTree = "<group>"; };
+		49DAC66DC39F7BA1A4A25F47 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		4BA8FAE67C204CC720FCDDC3 /* AppInfoLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoLookup.swift; sourceTree = "<group>"; };
 		529A15D1DC718AD44CEB4E80 /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
 		54AFAC82E770FEAB174F83A2 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -178,7 +179,6 @@
 		D19421880A471A2AFFF0DBED /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D477FDD0F83420A0E10E7437 /* StrokeMouseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = StrokeMouseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D79557E37E9938D8280DEF14 /* GestureRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureRecorderView.swift; sourceTree = "<group>"; };
-		DF19BCD2BA6BE1264B4D7754 /* SettingsWindowOpener.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowOpener.swift; sourceTree = "<group>"; };
 		E274C0BB3CD32706BC07696A /* GestureEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureEditorView.swift; sourceTree = "<group>"; };
 		E79923BB946697A53725B3AE /* ScriptTextArea.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptTextArea.swift; sourceTree = "<group>"; };
 		E7D00A1B0CD2EDA8D001D417 /* RecordedPeakGestureFixture.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = RecordedPeakGestureFixture.json; sourceTree = "<group>"; };
@@ -315,7 +315,7 @@
 				57F3BBBB6E0585911BD547E7 /* GesturesSettingsView.swift */,
 				F650D208EF74E02DBE3D6370 /* PermissionsSettingsView.swift */,
 				F5BF1D107974DDF46B0DCC31 /* SettingsRootView.swift */,
-				DF19BCD2BA6BE1264B4D7754 /* SettingsWindowOpener.swift */,
+				49DAC66DC39F7BA1A4A25F47 /* SettingsWindowController.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -650,7 +650,7 @@
 				2DC0E01E80CF648666507BED /* ScriptActions.swift in Sources */,
 				7ABD9D3AADB055C7B11AE8ED /* ScriptTextArea.swift in Sources */,
 				5481CC5F8E2F2A01D0CF2EEF /* SettingsRootView.swift in Sources */,
-				ACAA0DB056E55B4DBB8CC47F /* SettingsWindowOpener.swift in Sources */,
+				9AABF720271214D69DCECB5A /* SettingsWindowController.swift in Sources */,
 				C17AD4EA4BE6FA1A7CAC2DD2 /* ShortcutAction.swift in Sources */,
 				18068E8079C8896761FF1AB3 /* ShortcutRecorderTap.swift in Sources */,
 				49C72BF25B83BD3162DCB1E2 /* StrokeMouseApp.swift in Sources */,

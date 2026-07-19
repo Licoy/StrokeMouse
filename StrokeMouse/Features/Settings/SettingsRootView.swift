@@ -5,7 +5,7 @@ struct SettingsRootView: View {
 
     var body: some View {
         @Bindable var appState = appState
-        // Observe language without remounting the NSWindow scene.
+        // Observe language without remounting the NSWindow.
         let epoch = appState.languageEpoch
 
         TabView(selection: $appState.settingsTab) {
@@ -37,10 +37,6 @@ struct SettingsRootView: View {
         .id("settings-tabs-\(epoch)")
         .environment(\.locale, appState.resolvedLocale)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // No extra top padding — TabView already sits under the title-bar tabs;
-        // padding here left an empty strip above the gestures sidebar title.
-        // Second host for openWindow when menu bar is hidden but this window is open.
-        .background(SettingsWindowOpener().environment(appState))
         // Restyle scrollers immediately when tab / locale content remounts.
         .background(ScrollAppearanceInstaller().id(appState.settingsTab))
         .sheet(isPresented: $appState.showOnboarding) {

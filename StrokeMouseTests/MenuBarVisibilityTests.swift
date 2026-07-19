@@ -48,25 +48,21 @@ final class MenuBarVisibilityTests: XCTestCase {
     func testSyncMenuBarExtraInsertedRespectsHidePreference() {
         let state = AppState()
         state.setHideMenuBarIcon(true)
-        state.menuBarExtraInserted = true // simulate temporary remount
+        state.menuBarExtraInserted = true // simulate stale insertion
         state.syncMenuBarExtraInserted()
-        // Without force bridge, hide preference wins.
         XCTAssertFalse(state.menuBarExtraInserted)
         XCTAssertTrue(state.prefersHideMenuBarIcon)
     }
 
-    func testClearMenuBarSettingsBridgeRestoresHiddenIcon() {
+    func testOpenSettingsDoesNotRemountMenuBarWhenHidden() {
         let state = AppState()
         state.setHideMenuBarIcon(true)
+        XCTAssertFalse(state.menuBarExtraInserted)
 
-        // openSettings may or may not force-insert depending on test-host windows.
-        // Always end with clear + sync: preference stay hide, item not inserted.
+        // Opening settings uses AppKit SettingsWindowController — menu bar stays hidden.
         state.openSettings(tab: .general)
-        state.clearMenuBarSettingsBridgeIfNeeded()
-        state.syncMenuBarExtraInserted()
 
         XCTAssertTrue(state.prefersHideMenuBarIcon)
-        XCTAssertFalse(state.forceMenuBarExtraForSettingsBridge)
         XCTAssertFalse(state.menuBarExtraInserted)
     }
 }

@@ -70,6 +70,8 @@ final class L10nTests: XCTestCase {
             "general.hideChromeFooter",
             "general.runtimeStatus",
             "general.doubleHideTitle",
+            "general.quitApp",
+            "general.quitAppFooter",
             "gestures.sidebarTitle",
             "gestures.sidebarAddApp",
             "gestures.emptyAppSubtitle",

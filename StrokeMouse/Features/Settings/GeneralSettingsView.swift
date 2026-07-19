@@ -243,6 +243,14 @@ struct GeneralSettingsView: View {
                         .font(.caption)
                 }
             }
+
+            Section {
+                Button(L10n.string("general.quitApp"), role: .destructive) {
+                    NSApplication.shared.terminate(nil)
+                }
+            } footer: {
+                Text(L10n.string("general.quitAppFooter"))
+            }
         }
         .formStyle(.grouped)
         .padding()

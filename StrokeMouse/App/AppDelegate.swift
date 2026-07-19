@@ -106,8 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.setActivationPolicy(.regular)
         }
 
-        // First launch: ask AppState (once wired) to open settings for onboarding.
-        // MenuBarView listens to settingsOpenToken; we also try after a short delay.
+        // First launch: open settings for onboarding after AppState is wired.
         if !UserDefaults.standard.bool(forKey: PreferenceKey.hasCompletedOnboarding) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                 NotificationCenter.default.post(name: .strokeMouseOpenSettings, object: SettingsTab.permissions)

@@ -3,7 +3,6 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(AppState.self) private var appState
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         let _ = appState.languageEpoch

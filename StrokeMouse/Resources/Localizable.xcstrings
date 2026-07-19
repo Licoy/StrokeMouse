@@ -5078,13 +5078,45 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When the menu bar icon is hidden, open StrokeMouse again from the Dock, Launchpad, or Spotlight to show Settings. If both the Dock and menu bar icons are hidden, use Spotlight or Launchpad."
+            "value": "When the menu bar icon is hidden, open StrokeMouse again from the Dock, Launchpad, or Spotlight to show Settings. If both icons are hidden, use Spotlight or Launchpad. Quit from General settings or press ⌘Q while Settings is frontmost."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "隐藏菜单栏图标后，可通过 Dock、启动台或聚焦搜索再次打开 StrokeMouse 进入设置。若同时隐藏 Dock 图标，请使用聚焦搜索或启动台打开。"
+            "value": "隐藏菜单栏图标后，可通过 Dock、启动台或聚焦搜索再次打开 StrokeMouse 进入设置。若同时隐藏 Dock 图标，请使用聚焦搜索或启动台打开。退出请到「通用」设置，或在设置窗口前台时按 ⌘Q。"
+          }
+        }
+      }
+    },
+    "general.quitApp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit StrokeMouse"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 StrokeMouse"
+          }
+        }
+      }
+    },
+    "general.quitAppFooter": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needed when the menu bar icon is hidden. You can also press ⌘Q while this window is frontmost."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏菜单栏图标时请从这里完全退出应用；设置窗口在前台时也可按 ⌘Q。"
           }
         }
       }
@@ -5126,13 +5158,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "StrokeMouse will keep running in the background with no Dock or menu bar icon. Open it again from Spotlight or Launchpad to reach Settings."
+            "value": "StrokeMouse will keep running in the background with no Dock or menu bar icon. Open it again from Spotlight or Launchpad to reach Settings, and quit from General settings (or ⌘Q while Settings is open)."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "StrokeMouse 将在后台继续运行，且没有 Dock 与菜单栏图标。请通过聚焦搜索或启动台再次打开以进入设置。"
+            "value": "StrokeMouse 将在后台继续运行，且没有 Dock 与菜单栏图标。请通过聚焦搜索或启动台再次打开以进入设置；退出请到「通用」设置（或在设置打开时按 ⌘Q）。"
           }
         }
       }

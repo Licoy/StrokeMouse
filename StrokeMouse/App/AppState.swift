@@ -16,16 +16,14 @@ final class AppState {
 
     var showOnboarding: Bool
     var settingsTab: SettingsTab = .gestures
-    /// Bumped to request opening the settings window from non-View code.
-    var settingsOpenToken: UInt = 0
     /// Bumped when language changes so SwiftUI rebuilds string-based UI.
     var languageEpoch: UInt = 0
     /// Stored so MenuBarExtra label observes AppState directly (nested Observation is unreliable there).
     private(set) var menuBarIconStatus: MenuBarIconStatus = .normal
-    /// Whether `MenuBarExtra` is inserted. May be temporarily true while bridging `openWindow`.
+    /// Whether `MenuBarExtra` is inserted (user preference to show the menu bar icon).
     var menuBarExtraInserted: Bool = true
-    /// Forces menu bar insertion so `SettingsWindowOpener` can mount when the icon is hidden.
-    private(set) var forceMenuBarExtraForSettingsBridge: Bool = false
+    /// AppKit settings window — independent of MenuBarExtra so hide-icon mode never flash-remounts.
+    private var settingsWindowController: SettingsWindowController?
 
     var resolvedLocale: Locale { L10n.locale }
 
@@ -81,7 +79,7 @@ final class AppState {
         }
     }
 
-    /// AppDelegate / external code posts this; route through `openSettings` for menu-bar bridge.
+    /// AppDelegate / external code posts this; route through `openSettings`.
     private func installOpenSettingsNotificationObserver() {
         NotificationCenter.default.addObserver(
             forName: .strokeMouseOpenSettings,
@@ -95,12 +93,12 @@ final class AppState {
         }
     }
 
-    /// Recompute menu bar insertion from user preference and temporary bridge force.
+    /// Recompute menu bar insertion from the user hide preference.
     func syncMenuBarExtraInserted() {
-        menuBarExtraInserted = forceMenuBarExtraForSettingsBridge || !prefersHideMenuBarIcon
+        menuBarExtraInserted = !prefersHideMenuBarIcon
     }
 
-    /// Persist hide-menu-bar preference and refresh insertion (unless bridge is forcing show).
+    /// Persist hide-menu-bar preference and refresh insertion.
     func setHideMenuBarIcon(_ hide: Bool) {
         UserDefaults.standard.set(hide, forKey: PreferenceKey.hideMenuBarIcon)
         syncMenuBarExtraInserted()
@@ -108,19 +106,7 @@ final class AppState {
 
     /// Called when SwiftUI's `MenuBarExtra(isInserted:)` binding changes (e.g. user removes item).
     func handleMenuBarExtraInsertedChange(_ inserted: Bool) {
-        if forceMenuBarExtraForSettingsBridge {
-            // Ignore system churn while we temporarily remount for openWindow.
-            menuBarExtraInserted = true
-            return
-        }
         setHideMenuBarIcon(!inserted)
-    }
-
-    /// Drop temporary menu bar insertion after settings was opened via bridge.
-    func clearMenuBarSettingsBridgeIfNeeded() {
-        guard forceMenuBarExtraForSettingsBridge else { return }
-        forceMenuBarExtraForSettingsBridge = false
-        syncMenuBarExtraInserted()
     }
 
     func refreshMenuBarIconStatus() {
@@ -218,12 +204,13 @@ final class AppState {
         let override = LanguageOverride(rawValue: raw) ?? .system
         L10n.apply(override)
         languageEpoch &+= 1
+        settingsWindowController?.updateTitleForLocale()
         guard keepSettingsVisible else { return }
-        // Keep settings window open and on top after locale change (do not remount Window).
+        // Keep settings window open and on top after locale change (do not remount).
         elevateForSettingsWindowIfNeeded()
         NSApp.activate(ignoringOtherApps: true)
-        DispatchQueue.main.async {
-            Self.bringSettingsWindowToFront()
+        DispatchQueue.main.async { [weak self] in
+            self?.settingsWindowController?.bringToFront()
         }
     }
 
@@ -302,28 +289,12 @@ final class AppState {
         elevateForSettingsWindowIfNeeded()
         NSApp.activate(ignoringOtherApps: true)
 
-        // When the menu bar icon is hidden, MenuBarExtra (and its SettingsWindowOpener)
-        // is unmounted. Temporarily re-insert so openWindow can run, then hide again.
-        if prefersHideMenuBarIcon, !Self.isSettingsWindowVisible() {
-            forceMenuBarExtraForSettingsBridge = true
-            menuBarExtraInserted = true
-        }
-
-        settingsOpenToken &+= 1
-        DispatchQueue.main.async {
-            Self.bringSettingsWindowToFront()
-        }
-        // Fallback: if a settings window already exists, opener may be on SettingsRootView.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-            Self.bringSettingsWindowToFront()
-            // If still bridging and window is up, drop temporary menu bar item.
-            if Self.isSettingsWindowVisible() {
-                self?.clearMenuBarSettingsBridgeIfNeeded()
-            }
-        }
+        let controller = settingsWindowController ?? SettingsWindowController(appState: self)
+        settingsWindowController = controller
+        controller.show(tab: tab)
     }
 
-    /// Show an existing settings window if SwiftUI already created it.
+    /// Show an existing settings window if one was already created.
     static func bringSettingsWindowToFront() {
         NSApp.activate(ignoringOtherApps: true)
         let candidates = NSApp.windows.filter { isSettingsWindow($0) }
