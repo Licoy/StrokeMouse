@@ -8,6 +8,7 @@ struct ActionPickerView: View {
     @State private var shortcutDisplay = ""
     @State private var keyCode: UInt16 = 0
     @State private var modifiers: UInt = 0
+    @State private var orderedChord: ShortcutChord?
     @State private var appBundleId = ""
     @State private var appName = ""
     @State private var urlString = "https://"
@@ -21,6 +22,7 @@ struct ActionPickerView: View {
     @State private var isRecordingShortcut = false
     @State private var didHydrate = false
     @State private var recorderFailed = false
+    @State private var unsupportedShortcutModifier = false
     @State private var showOpenAppPicker = false
 
     private var openAppInfo: AppInfoLookup.Info? {
@@ -132,6 +134,12 @@ struct ActionPickerView: View {
 
                 if recorderFailed {
                     Text(L10n.string("action.shortcutRecorderNeedPermission"))
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                if unsupportedShortcutModifier {
+                    Text(L10n.string("action.shortcutUnsupportedModifier"))
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
@@ -249,23 +257,29 @@ struct ActionPickerView: View {
 
     private func startRecording() {
         recorderFailed = false
+        unsupportedShortcutModifier = false
         let tap = ShortcutRecorderTap.shared
-        tap.onCapture = { code, flags, display in
-            keyCode = code
-            modifiers = flags
+        tap.onCapture = { chord, display in
+            keyCode = chord.legacyKeyCode
+            modifiers = chord.legacyModifiers
+            orderedChord = chord
             shortcutDisplay = display
-            action = .shortcut(keyCode: code, modifiers: flags, display: display)
+            action = .shortcut(chord: chord)
             stopRecording()
         }
         tap.onCancel = {
+            stopRecording()
+        }
+        tap.onUnsupportedModifier = {
+            unsupportedShortcutModifier = true
             stopRecording()
         }
         let ok = tap.start()
         if ok {
             isRecordingShortcut = true
         } else {
+            stopRecording()
             recorderFailed = true
-            isRecordingShortcut = false
         }
     }
 
@@ -273,6 +287,7 @@ struct ActionPickerView: View {
         ShortcutRecorderTap.shared.stop()
         ShortcutRecorderTap.shared.onCapture = nil
         ShortcutRecorderTap.shared.onCancel = nil
+        ShortcutRecorderTap.shared.onUnsupportedModifier = nil
         isRecordingShortcut = false
     }
 
@@ -280,15 +295,26 @@ struct ActionPickerView: View {
         switch action {
         case .none:
             break
-        case .shortcut(let code, let mods, let display):
-            keyCode = code
-            modifiers = mods
-            // Re-resolve display so old "Key12" configs upgrade to proper names.
-            let flags = NSEvent.ModifierFlags(rawValue: mods)
-            let resolved = KeyCodeNames.shortcutDisplay(keyCode: code, modifiers: flags)
-            shortcutDisplay = display.hasPrefix("Key") ? resolved : (display.isEmpty ? resolved : display)
-            if display.hasPrefix("Key") {
-                self.action = .shortcut(keyCode: code, modifiers: mods, display: resolved)
+        case .shortcut(let code, let mods, let display, let chord):
+            orderedChord = chord
+            if let chord {
+                let resolved = KeyCodeNames.shortcutDisplay(chord: chord)
+                keyCode = chord.legacyKeyCode
+                modifiers = chord.legacyModifiers
+                shortcutDisplay = resolved
+                if code != keyCode || mods != modifiers || display != resolved {
+                    self.action = .shortcut(chord: chord)
+                }
+            } else {
+                keyCode = code
+                modifiers = mods
+                // Re-resolve display so old "Key12" configs upgrade to proper names.
+                let flags = NSEvent.ModifierFlags(rawValue: mods)
+                let resolved = KeyCodeNames.shortcutDisplay(keyCode: code, modifiers: flags)
+                shortcutDisplay = display.hasPrefix("Key") ? resolved : (display.isEmpty ? resolved : display)
+                if display.hasPrefix("Key") {
+                    self.action = .shortcut(keyCode: code, modifiers: mods, display: resolved)
+                }
             }
         case .openApp(let bundleId, let name):
             appBundleId = bundleId
@@ -317,10 +343,21 @@ struct ActionPickerView: View {
         case .none:
             action = .none
         case .shortcut:
-            let display = shortcutDisplay.isEmpty
-                ? KeyCodeNames.shortcutDisplay(keyCode: keyCode, modifiers: NSEvent.ModifierFlags(rawValue: modifiers))
-                : shortcutDisplay
-            action = .shortcut(keyCode: keyCode, modifiers: modifiers, display: display.isEmpty ? "—" : display)
+            if let orderedChord {
+                action = .shortcut(chord: orderedChord)
+            } else {
+                let display = shortcutDisplay.isEmpty
+                    ? KeyCodeNames.shortcutDisplay(
+                        keyCode: keyCode,
+                        modifiers: NSEvent.ModifierFlags(rawValue: modifiers)
+                    )
+                    : shortcutDisplay
+                action = .shortcut(
+                    keyCode: keyCode,
+                    modifiers: modifiers,
+                    display: display.isEmpty ? "—" : display
+                )
+            }
         case .openApp:
             action = .openApp(bundleId: appBundleId, name: appName)
         case .openURL:

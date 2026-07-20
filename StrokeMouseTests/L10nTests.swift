@@ -129,4 +129,19 @@ final class L10nTests: XCTestCase {
         }
         XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
     }
+
+    func testShortcutRecorderGuidanceIsLocalized() {
+        let keys = [
+            "action.shortcutRecordingHint",
+            "action.shortcutUnsupportedModifier",
+        ]
+        L10n.apply(.english)
+        let english = keys.map(L10n.string)
+        L10n.apply(.simplifiedChinese)
+        let chinese = keys.map(L10n.string)
+
+        XCTAssertFalse(english.contains(where: \.isEmpty))
+        XCTAssertFalse(chinese.contains(where: \.isEmpty))
+        XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
+    }
 }

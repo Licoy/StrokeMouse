@@ -9,9 +9,15 @@ final class ActionExecutorTests: XCTestCase {
         let executor = ActionExecutor(targetPlatform: platform)
         let context = makeTargetContext()
         let target = GestureTargetResolution.resolved(context)
+        let chord = ShortcutChord(modifiers: [.command, .option], keyCode: 42)
 
         try await executor.execute(
-            .shortcut(keyCode: 42, modifiers: 7, display: "Shortcut"),
+            .shortcut(
+                keyCode: 42,
+                modifiers: 7,
+                display: "Shortcut",
+                orderedChord: chord
+            ),
             target: target
         )
         try await executor.execute(.window(.close), target: target)
@@ -19,6 +25,7 @@ final class ActionExecutorTests: XCTestCase {
         XCTAssertEqual(platform.shortcuts.count, 1)
         XCTAssertEqual(platform.shortcuts[0].keyCode, 42)
         XCTAssertEqual(platform.shortcuts[0].modifiers, 7)
+        XCTAssertEqual(platform.shortcuts[0].orderedChord, chord)
         XCTAssertTrue(platform.shortcuts[0].target.window === context.window)
         XCTAssertEqual(platform.windows.count, 1)
         XCTAssertEqual(platform.windows[0].command, .close)
@@ -98,6 +105,7 @@ private final class RecordingGestureTargetActionPlatform: GestureTargetActionPla
     struct ShortcutCall {
         let keyCode: UInt16
         let modifiers: UInt
+        let orderedChord: ShortcutChord?
         let target: GestureTargetContext
     }
 
@@ -113,9 +121,15 @@ private final class RecordingGestureTargetActionPlatform: GestureTargetActionPla
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
+        orderedChord: ShortcutChord?,
         target: GestureTargetContext
     ) async throws {
-        shortcuts.append(ShortcutCall(keyCode: keyCode, modifiers: modifiers, target: target))
+        shortcuts.append(ShortcutCall(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            orderedChord: orderedChord,
+            target: target
+        ))
         if let error { throw error }
     }
 

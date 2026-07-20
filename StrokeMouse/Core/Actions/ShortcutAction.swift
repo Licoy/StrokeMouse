@@ -3,6 +3,64 @@ import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
 
+extension ShortcutModifier {
+    var appKitFlag: NSEvent.ModifierFlags {
+        switch self {
+        case .command: return .command
+        case .option: return .option
+        case .control: return .control
+        case .shift: return .shift
+        }
+    }
+
+    var quartzFlag: CGEventFlags {
+        switch self {
+        case .command: return .maskCommand
+        case .option: return .maskAlternate
+        case .control: return .maskControl
+        case .shift: return .maskShift
+        }
+    }
+
+    var standardKeyCode: UInt16 {
+        switch self {
+        case .command: return UInt16(kVK_Command)
+        case .option: return UInt16(kVK_Option)
+        case .control: return UInt16(kVK_Control)
+        case .shift: return UInt16(kVK_Shift)
+        }
+    }
+}
+
+extension ShortcutChord {
+    var legacyKeyCode: UInt16 {
+        if let keyCode { return keyCode }
+        guard let finalModifier = modifiers.last else {
+            preconditionFailure("A shortcut chord must contain a key")
+        }
+        return finalModifier.standardKeyCode
+    }
+
+    var legacyModifiers: UInt {
+        let projectedModifiers = keyCode == nil ? modifiers.dropLast() : modifiers[...]
+        let flags = projectedModifiers.reduce(into: NSEvent.ModifierFlags()) { result, modifier in
+            result.insert(modifier.appKitFlag)
+        }
+        return UInt(flags.rawValue)
+    }
+}
+
+extension GestureAction {
+    static func shortcut(chord: ShortcutChord) -> GestureAction {
+        .shortcut(
+            keyCode: chord.legacyKeyCode,
+            modifiers: chord.legacyModifiers,
+            display: KeyCodeNames.shortcutDisplay(chord: chord),
+            orderedChord: chord
+        )
+    }
+}
+
 struct ShortcutEventDescriptor: Equatable {
     let keyCode: UInt16
     let isKeyDown: Bool
@@ -23,37 +81,36 @@ enum ShortcutAction {
         let appKitFlag: NSEvent.ModifierFlags
         let quartzFlag: CGEventFlags
         let keyCode: UInt16
+
+        init(_ modifier: ShortcutModifier) {
+            appKitFlag = modifier.appKitFlag
+            quartzFlag = modifier.quartzFlag
+            keyCode = modifier.standardKeyCode
+        }
     }
 
     private static let modifierKeys = [
-        ModifierKey(
-            appKitFlag: .control,
-            quartzFlag: .maskControl,
-            keyCode: UInt16(kVK_Control)
-        ),
-        ModifierKey(
-            appKitFlag: .option,
-            quartzFlag: .maskAlternate,
-            keyCode: UInt16(kVK_Option)
-        ),
-        ModifierKey(
-            appKitFlag: .shift,
-            quartzFlag: .maskShift,
-            keyCode: UInt16(kVK_Shift)
-        ),
-        ModifierKey(
-            appKitFlag: .command,
-            quartzFlag: .maskCommand,
-            keyCode: UInt16(kVK_Command)
-        ),
+        ModifierKey(.control),
+        ModifierKey(.option),
+        ModifierKey(.shift),
+        ModifierKey(.command),
     ]
 
-    static func post(keyCode: UInt16, modifiers: UInt) throws {
+    static func post(
+        keyCode: UInt16,
+        modifiers: UInt,
+        orderedChord: ShortcutChord? = nil
+    ) throws {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             throw ShortcutActionError.eventSourceUnavailable
         }
 
-        let events = try makeEventPlan(keyCode: keyCode, modifiers: modifiers).map { descriptor in
+        let plan = makeEventPlan(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            orderedChord: orderedChord
+        )
+        let events = try plan.map { descriptor in
             guard let event = CGEvent(
                 keyboardEventSource: source,
                 virtualKey: descriptor.keyCode,
@@ -70,7 +127,15 @@ enum ShortcutAction {
         }
     }
 
-    static func makeEventPlan(keyCode: UInt16, modifiers rawModifiers: UInt) -> [ShortcutEventDescriptor] {
+    static func makeEventPlan(
+        keyCode: UInt16,
+        modifiers rawModifiers: UInt,
+        orderedChord: ShortcutChord? = nil
+    ) -> [ShortcutEventDescriptor] {
+        if let orderedChord {
+            return makeOrderedEventPlan(orderedChord)
+        }
+
         let modifiers = NSEvent.ModifierFlags(rawValue: rawModifiers)
         var activeFlags: CGEventFlags = []
         var plan: [ShortcutEventDescriptor] = []
@@ -89,6 +154,40 @@ enum ShortcutAction {
         plan.append(ShortcutEventDescriptor(keyCode: keyCode, isKeyDown: false, flags: targetFlags))
 
         for modifier in modifierKeys.reversed() where modifiers.contains(modifier.appKitFlag) {
+            activeFlags.remove(modifier.quartzFlag)
+            plan.append(ShortcutEventDescriptor(
+                keyCode: modifier.keyCode,
+                isKeyDown: false,
+                flags: activeFlags
+            ))
+        }
+
+        return plan
+    }
+
+    private static func makeOrderedEventPlan(
+        _ chord: ShortcutChord
+    ) -> [ShortcutEventDescriptor] {
+        let modifierKeys = chord.modifiers.map(ModifierKey.init)
+        var activeFlags: CGEventFlags = []
+        var plan: [ShortcutEventDescriptor] = []
+
+        for modifier in modifierKeys {
+            activeFlags.insert(modifier.quartzFlag)
+            plan.append(ShortcutEventDescriptor(
+                keyCode: modifier.keyCode,
+                isKeyDown: true,
+                flags: activeFlags
+            ))
+        }
+
+        if let keyCode = chord.keyCode {
+            let targetFlags = activeFlags.union(intrinsicFlags(for: keyCode))
+            plan.append(ShortcutEventDescriptor(keyCode: keyCode, isKeyDown: true, flags: targetFlags))
+            plan.append(ShortcutEventDescriptor(keyCode: keyCode, isKeyDown: false, flags: targetFlags))
+        }
+
+        for modifier in modifierKeys.reversed() {
             activeFlags.remove(modifier.quartzFlag)
             plan.append(ShortcutEventDescriptor(
                 keyCode: modifier.keyCode,

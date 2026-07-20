@@ -23,7 +23,9 @@ On a successful match, `ActionExecutor` dispatches the configured action.
 
 ## Shortcut
 
-Record or enter key code + modifiers. Display string (e.g. `⌃↑`) helps in lists.
+Shortcuts are configured by recording only; the display field is read-only. Click **Record**, press the keys in the intended order, then release all keys to finish. Press Esc by itself to cancel.
+
+Both shortcuts with a regular key (for example, `⌘⌥Q`) and modifier-only shortcuts (for example, `⌘⌥`) are supported. The result is displayed in the order the keys were pressed. Supported modifier keys are Command, Option, Control, and Shift.
 
 ## Open app
 

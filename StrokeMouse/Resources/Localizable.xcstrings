@@ -4838,13 +4838,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Press the shortcut now. Keys are blocked so system hotkeys will not fire. Esc to cancel."
+            "value": "Press the shortcut and release all keys to finish. Press Esc by itself to cancel."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请按下快捷键。录制期间会拦截按键，避免触发系统快捷键。按 Esc 取消。"
+            "value": "按下快捷键并松开全部按键后完成；单独按 Esc 取消。"
           }
         }
       }
@@ -4861,6 +4861,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法启动键盘捕获。请授予辅助功能权限后重试。"
+          }
+        }
+      }
+    },
+    "action.shortcutUnsupportedModifier": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only Command, Option, Control, and Shift are supported as modifier keys."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅支持 Command、Option、Control 和 Shift 作为修饰键。"
           }
         }
       }

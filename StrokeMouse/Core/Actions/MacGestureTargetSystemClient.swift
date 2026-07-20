@@ -165,9 +165,14 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     func postShortcut(
         keyCode: UInt16,
         modifiers: UInt,
+        orderedChord: ShortcutChord?,
         target _: GestureTargetContext
     ) throws {
-        try ShortcutAction.post(keyCode: keyCode, modifiers: modifiers)
+        try ShortcutAction.post(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            orderedChord: orderedChord
+        )
     }
 
     private func validateApplication(

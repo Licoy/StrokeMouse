@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import CoreGraphics
 import Foundation
 
@@ -117,6 +118,60 @@ struct CodablePoint: Codable, Equatable, Sendable {
 
 // MARK: - Actions
 
+enum ShortcutModifier: String, Codable, Equatable, Hashable, Sendable {
+    case command
+    case option
+    case control
+    case shift
+}
+
+struct ShortcutChord: Codable, Equatable, Sendable {
+    var modifiers: [ShortcutModifier]
+    var keyCode: UInt16?
+
+    init(modifiers: [ShortcutModifier], keyCode: UInt16?) {
+        precondition(Self.isValid(modifiers: modifiers, keyCode: keyCode))
+        self.modifiers = modifiers
+        self.keyCode = keyCode
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let modifiers = try container.decode([ShortcutModifier].self, forKey: .modifiers)
+        let keyCode = try container.decodeIfPresent(UInt16.self, forKey: .keyCode)
+        guard Self.isValid(modifiers: modifiers, keyCode: keyCode) else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Invalid ordered shortcut chord"
+            ))
+        }
+        self.modifiers = modifiers
+        self.keyCode = keyCode
+    }
+
+    private static func isValid(
+        modifiers: [ShortcutModifier],
+        keyCode: UInt16?
+    ) -> Bool {
+        guard !modifiers.isEmpty || keyCode != nil,
+              Set(modifiers).count == modifiers.count
+        else {
+            return false
+        }
+        guard let keyCode else { return true }
+        switch Int(keyCode) {
+        case kVK_Command, kVK_RightCommand,
+             kVK_Option, kVK_RightOption,
+             kVK_Control, kVK_RightControl,
+             kVK_Shift, kVK_RightShift,
+             kVK_Function, kVK_CapsLock:
+            return false
+        default:
+            return true
+        }
+    }
+}
+
 enum MediaCommand: String, Codable, CaseIterable, Identifiable, Sendable {
     case playPause
     case nextTrack
@@ -226,7 +281,12 @@ enum AppleScriptPreset: String, CaseIterable, Identifiable, Sendable {
 
 enum GestureAction: Codable, Equatable, Sendable {
     case none
-    case shortcut(keyCode: UInt16, modifiers: UInt, display: String)
+    case shortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        display: String,
+        orderedChord: ShortcutChord? = nil
+    )
     case openApp(bundleId: String, name: String)
     case openURL(String)
     case shell(String)
@@ -251,7 +311,7 @@ enum GestureAction: Codable, Equatable, Sendable {
         switch self {
         case .none:
             return "—"
-        case .shortcut(_, _, let display):
+        case .shortcut(_, _, let display, _):
             return display
         case .openApp(_, let name):
             return name

@@ -18,6 +18,7 @@ protocol GestureTargetSystemClient: AnyObject {
     func postShortcut(
         keyCode: UInt16,
         modifiers: UInt,
+        orderedChord: ShortcutChord?,
         target: GestureTargetContext
     ) throws
 }
@@ -64,6 +65,7 @@ struct WindowActions: GestureTargetActionPlatform {
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
+        orderedChord: ShortcutChord? = nil,
         target: GestureTargetContext
     ) async throws {
         try system.validateWindow(target)
@@ -77,6 +79,7 @@ struct WindowActions: GestureTargetActionPlatform {
         try system.postShortcut(
             keyCode: keyCode,
             modifiers: modifiers,
+            orderedChord: orderedChord,
             target: target
         )
     }

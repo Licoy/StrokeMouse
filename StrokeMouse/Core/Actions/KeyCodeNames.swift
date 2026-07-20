@@ -35,6 +35,14 @@ enum KeyCodeNames {
         return parts.joined()
     }
 
+    static func shortcutDisplay(chord: ShortcutChord) -> String {
+        var parts = chord.modifiers.map(\.displaySymbol)
+        if let keyCode = chord.keyCode {
+            parts.append(displayName(keyCode: keyCode))
+        }
+        return parts.joined()
+    }
+
     static func isModifierKeyCode(_ keyCode: UInt16) -> Bool {
         switch Int(keyCode) {
         case kVK_Shift, kVK_RightShift,
@@ -163,6 +171,17 @@ enum KeyCodeNames {
         case kVK_ANSI_Period: return "."
         case kVK_ANSI_Grave: return "`"
         default: return nil
+        }
+    }
+}
+
+private extension ShortcutModifier {
+    var displaySymbol: String {
+        switch self {
+        case .command: return "⌘"
+        case .option: return "⌥"
+        case .control: return "⌃"
+        case .shift: return "⇧"
         }
     }
 }

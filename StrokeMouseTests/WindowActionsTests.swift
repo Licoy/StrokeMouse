@@ -13,10 +13,12 @@ final class WindowActionsTests: XCTestCase {
             activationTimeout: .seconds(1),
             pollInterval: .milliseconds(1)
         )
+        let chord = ShortcutChord(modifiers: [.command, .option], keyCode: 42)
 
         try await actions.performShortcut(
             keyCode: 42,
             modifiers: 7,
+            orderedChord: chord,
             target: makeTargetContext()
         )
 
@@ -28,7 +30,7 @@ final class WindowActionsTests: XCTestCase {
             .isApplicationActive,
             .isApplicationActive,
             .verifyFocusedWindow,
-            .postShortcut(keyCode: 42, modifiers: 7),
+            .postShortcut(keyCode: 42, modifiers: 7, orderedChord: chord),
         ])
     }
 
@@ -225,7 +227,11 @@ private enum TargetSystemOperation: Equatable {
     case activateApplication
     case isApplicationActive
     case verifyFocusedWindow
-    case postShortcut(keyCode: UInt16, modifiers: UInt)
+    case postShortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        orderedChord: ShortcutChord? = nil
+    )
 }
 
 @MainActor
@@ -286,9 +292,14 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     func postShortcut(
         keyCode: UInt16,
         modifiers: UInt,
+        orderedChord: ShortcutChord?,
         target: GestureTargetContext
     ) throws {
-        record(.postShortcut(keyCode: keyCode, modifiers: modifiers), target: target)
+        record(.postShortcut(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            orderedChord: orderedChord
+        ), target: target)
     }
 
     private func record(

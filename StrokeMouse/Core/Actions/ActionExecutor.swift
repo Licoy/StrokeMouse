@@ -27,6 +27,7 @@ protocol GestureTargetActionPlatform {
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
+        orderedChord: ShortcutChord?,
         target: GestureTargetContext
     ) async throws
 
@@ -82,10 +83,11 @@ final class ActionExecutor {
         switch action {
         case .none:
             return
-        case .shortcut(let keyCode, let modifiers, _):
+        case .shortcut(let keyCode, let modifiers, _, let orderedChord):
             try await targetPlatform.performShortcut(
                 keyCode: keyCode,
                 modifiers: modifiers,
+                orderedChord: orderedChord,
                 target: try target.requireContext()
             )
         case .openApp(let bundleIdentifier, _):
