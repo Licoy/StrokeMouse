@@ -8,8 +8,12 @@ final class GestureTargetSessionTests: XCTestCase {
             element: AXUIElementCreateApplication(101)
         )
         let frozen = GestureTargetContext(
-            processIdentifier: 101,
-            bundleIdentifier: "com.apple.Safari",
+            policy: .frontmostWindow,
+            identity: GestureTargetIdentity(
+                processIdentifier: 101,
+                bundleIdentifier: "com.apple.Safari"
+            ),
+            application: nil,
             window: capturedWindow
         )
         let expected = GestureTargetSnapshot(

@@ -114,8 +114,11 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
     ) -> GestureTargetContext {
         GestureTargetContext(
             policy: policy,
-            processIdentifier: processIdentifier,
-            bundleIdentifier: bundleIdentifier,
+            identity: GestureTargetIdentity(
+                processIdentifier: processIdentifier,
+                bundleIdentifier: bundleIdentifier
+            ),
+            application: nil,
             window: GestureWindowTarget(
                 element: AXUIElementCreateApplication(processIdentifier)
             )

@@ -38,6 +38,8 @@ final class GestureEngine {
 
     var onMatch: ((GestureMatchResult) -> Void)?
 
+    /// The capture dependency is separate from the three runtime services so button-down target
+    /// freezing can be tested without invoking the system Accessibility API.
     init(
         configStore: ConfigStore,
         actionExecutor: ActionExecutor,

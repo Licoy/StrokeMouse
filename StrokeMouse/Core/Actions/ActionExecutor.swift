@@ -23,7 +23,7 @@ enum ActionExecutionError: LocalizedError {
 }
 
 @MainActor
-protocol GestureTargetActionPlatform: AnyObject {
+protocol GestureTargetActionPlatform {
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
@@ -45,7 +45,7 @@ final class ActionExecutor {
     private let targetPlatform: any GestureTargetActionPlatform
 
     init(targetPlatform: (any GestureTargetActionPlatform)? = nil) {
-        self.targetPlatform = targetPlatform ?? MacGestureTargetActionPlatform()
+        self.targetPlatform = targetPlatform ?? WindowActions()
     }
 
     func execute(

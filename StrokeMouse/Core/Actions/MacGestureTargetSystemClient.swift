@@ -21,10 +21,12 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
                 actual: actualPID
             )
         }
-        let role = try copyString(
+        let role = try GestureTargetAXAccessor.copyString(
             from: window,
-            attribute: kAXRoleAttribute as CFString,
-            operation: .validateWindow
+            attribute: GestureTargetAXAttribute(
+                name: kAXRoleAttribute as CFString,
+                operation: .validateWindow
+            )
         )
         guard role == kAXWindowRole as String else {
             throw GestureTargetError.windowRoleMismatch
@@ -38,10 +40,12 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         let attribute = try controlAttribute(for: command)
         let control: AXUIElement
         do {
-            control = try copyElement(
+            control = try GestureTargetAXAccessor.copyElement(
                 from: target.window.element,
-                attribute: attribute,
-                operation: .copyWindowControl
+                attribute: GestureTargetAXAttribute(
+                    name: attribute,
+                    operation: .copyWindowControl
+                )
             )
         } catch GestureTargetError.axOperationFailed(_, let code)
             where code == .noValue || code == .attributeUnsupported
@@ -68,36 +72,39 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     }
 
     func centerWindow(_ target: GestureTargetContext) throws {
-        let origin = try copyPoint(
+        let origin = try GestureTargetAXAccessor.copyPoint(
             from: target.window.element,
-            attribute: kAXPositionAttribute as CFString,
-            operation: .copyPosition
+            attribute: GestureTargetAXAttribute(
+                name: kAXPositionAttribute as CFString,
+                operation: .copyPosition
+            )
         )
-        let size = try copySize(
+        let size = try GestureTargetAXAccessor.copySize(
             from: target.window.element,
-            attribute: kAXSizeAttribute as CFString,
-            operation: .copySize
+            attribute: GestureTargetAXAttribute(
+                name: kAXSizeAttribute as CFString,
+                operation: .copySize
+            )
         )
         let screens = NSScreen.screens
         guard let zeroScreen = screens.first else {
             throw GestureTargetError.noScreens
         }
-        let zeroTop = zeroScreen.frame.maxY
-        let appKitFrame = CGRect(
-            x: origin.x,
-            y: zeroTop - origin.y - size.height,
-            width: size.width,
-            height: size.height
+        let appKitFrame = GestureTargetScreenGeometry.appKitWindowFrame(
+            axOrigin: origin,
+            windowSize: size,
+            zeroScreenFrame: zeroScreen.frame
         )
-        let screen = targetScreen(for: appKitFrame, screens: screens)
-        let visible = screen.visibleFrame
-        let newAppKitOrigin = CGPoint(
-            x: visible.midX - size.width / 2,
-            y: visible.midY - size.height / 2
-        )
-        var newAXOrigin = CGPoint(
-            x: newAppKitOrigin.x,
-            y: zeroTop - newAppKitOrigin.y - size.height
+        guard let screenIndex = GestureTargetScreenGeometry.targetScreenIndex(
+            for: appKitFrame,
+            screenFrames: screens.map(\.frame)
+        ) else {
+            throw GestureTargetError.noScreens
+        }
+        var newAXOrigin = GestureTargetScreenGeometry.centeredAXOrigin(
+            windowSize: size,
+            visibleFrame: screens[screenIndex].visibleFrame,
+            zeroScreenFrame: zeroScreen.frame
         )
         guard let value = AXValueCreate(.cgPoint, &newAXOrigin) else {
             throw GestureTargetError.unexpectedAXValue(operation: .setPosition)
@@ -143,10 +150,12 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
 
     func verifyFocusedWindow(_ target: GestureTargetContext) throws {
         let appElement = AXUIElementCreateApplication(target.processIdentifier)
-        let focused = try copyElement(
+        let focused = try GestureTargetAXAccessor.copyElement(
             from: appElement,
-            attribute: kAXFocusedWindowAttribute as CFString,
-            operation: .copyFocusedWindowForVerification
+            attribute: GestureTargetAXAttribute(
+                name: kAXFocusedWindowAttribute as CFString,
+                operation: .copyFocusedWindowForVerification
+            )
         )
         guard CFEqual(focused, target.window.element) else {
             throw GestureTargetError.focusedWindowMismatch(target.processIdentifier)
@@ -192,122 +201,5 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         case .hide, .center:
             throw GestureTargetError.windowControlUnavailable(command)
         }
-    }
-
-    private func copyElement(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> AXUIElement {
-        let value = try copyValue(from: element, attribute: attribute, operation: operation)
-        guard CFGetTypeID(value) == AXUIElementGetTypeID() else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return value as! AXUIElement
-    }
-
-    private func copyString(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> String {
-        let value = try copyValue(from: element, attribute: attribute, operation: operation)
-        guard CFGetTypeID(value) == CFStringGetTypeID() else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return value as! String
-    }
-
-    private func copyPoint(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> CGPoint {
-        let axValue = try copyAXValue(
-            from: element,
-            attribute: attribute,
-            expectedType: .cgPoint,
-            operation: operation
-        )
-        var point = CGPoint.zero
-        guard AXValueGetValue(axValue, .cgPoint, &point) else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return point
-    }
-
-    private func copySize(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> CGSize {
-        let axValue = try copyAXValue(
-            from: element,
-            attribute: attribute,
-            expectedType: .cgSize,
-            operation: operation
-        )
-        var size = CGSize.zero
-        guard AXValueGetValue(axValue, .cgSize, &size) else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return size
-    }
-
-    private func copyAXValue(
-        from element: AXUIElement,
-        attribute: CFString,
-        expectedType: AXValueType,
-        operation: GestureTargetAXOperation
-    ) throws -> AXValue {
-        let value = try copyValue(from: element, attribute: attribute, operation: operation)
-        guard CFGetTypeID(value) == AXValueGetTypeID() else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        let axValue = value as! AXValue
-        guard AXValueGetType(axValue) == expectedType else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return axValue
-    }
-
-    private func copyValue(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> CFTypeRef {
-        var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, attribute, &value)
-        guard result == .success else {
-            throw GestureTargetError.axOperationFailed(operation: operation, code: result)
-        }
-        guard let value else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return value
-    }
-
-    private func targetScreen(
-        for windowFrame: CGRect,
-        screens: [NSScreen]
-    ) -> NSScreen {
-        let byArea = screens.map { screen in
-            let intersection = windowFrame.intersection(screen.frame)
-            let area = intersection.isNull ? 0 : intersection.width * intersection.height
-            return (screen, area)
-        }
-        if let overlapping = byArea.max(by: { $0.1 < $1.1 }), overlapping.1 > 0 {
-            return overlapping.0
-        }
-        let center = CGPoint(x: windowFrame.midX, y: windowFrame.midY)
-        return screens.min { lhs, rhs in
-            squaredDistance(center, to: lhs.frame) < squaredDistance(center, to: rhs.frame)
-        } ?? screens[0]
-    }
-
-    private func squaredDistance(_ point: CGPoint, to frame: CGRect) -> CGFloat {
-        let dx = point.x - frame.midX
-        let dy = point.y - frame.midY
-        return dx * dx + dy * dy
     }
 }

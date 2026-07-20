@@ -23,35 +23,7 @@ protocol GestureTargetSystemClient: AnyObject {
 }
 
 @MainActor
-final class MacGestureTargetActionPlatform: GestureTargetActionPlatform {
-    private let windowActions: WindowActions
-
-    init(windowActions: WindowActions? = nil) {
-        self.windowActions = windowActions ?? WindowActions()
-    }
-
-    func performShortcut(
-        keyCode: UInt16,
-        modifiers: UInt,
-        target: GestureTargetContext
-    ) async throws {
-        try await windowActions.performShortcut(
-            keyCode: keyCode,
-            modifiers: modifiers,
-            target: target
-        )
-    }
-
-    func performWindow(
-        _ command: WindowCommand,
-        target: GestureTargetContext
-    ) async throws {
-        try await windowActions.perform(command, target: target)
-    }
-}
-
-@MainActor
-struct WindowActions {
+struct WindowActions: GestureTargetActionPlatform {
     private let system: any GestureTargetSystemClient
     private let activationTimeout: Duration
     private let pollInterval: Duration
@@ -66,7 +38,7 @@ struct WindowActions {
         self.pollInterval = pollInterval
     }
 
-    func perform(
+    func performWindow(
         _ command: WindowCommand,
         target: GestureTargetContext
     ) async throws {
@@ -122,11 +94,16 @@ struct WindowActions {
     private func waitUntilActive(_ target: GestureTargetContext) async throws {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: activationTimeout)
-        while try !system.isApplicationActive(target) {
+        while true {
+            if try system.isApplicationActive(target) { return }
+            let now = clock.now
+            guard now < deadline else {
+                throw GestureTargetError.activationTimedOut(target.processIdentifier)
+            }
+            try await Task.sleep(for: min(pollInterval, now.duration(to: deadline)))
             guard clock.now < deadline else {
                 throw GestureTargetError.activationTimedOut(target.processIdentifier)
             }
-            try await Task.sleep(for: pollInterval)
         }
     }
 }

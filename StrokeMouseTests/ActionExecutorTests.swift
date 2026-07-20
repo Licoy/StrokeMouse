@@ -82,8 +82,12 @@ final class ActionExecutorTests: XCTestCase {
 
     private func makeTargetContext() -> GestureTargetContext {
         GestureTargetContext(
-            processIdentifier: 101,
-            bundleIdentifier: "com.apple.Safari",
+            policy: .frontmostWindow,
+            identity: GestureTargetIdentity(
+                processIdentifier: 101,
+                bundleIdentifier: "com.apple.Safari"
+            ),
+            application: nil,
             window: GestureWindowTarget(element: AXUIElementCreateApplication(101))
         )
     }

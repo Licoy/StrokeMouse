@@ -84,6 +84,38 @@ final class WindowActionsTests: XCTestCase {
         })
     }
 
+    func testActivationAfterDeadlineNeverPostsShortcut() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeStates = [false, true]
+        let actions = WindowActions(
+            system: system,
+            activationTimeout: .milliseconds(10),
+            pollInterval: .seconds(1)
+        )
+
+        do {
+            try await actions.performShortcut(
+                keyCode: 42,
+                modifiers: 7,
+                target: makeTargetContext()
+            )
+            XCTFail("Expected hard activation deadline")
+        } catch GestureTargetError.activationTimedOut(let pid) {
+            XCTAssertEqual(pid, 101)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(
+            system.operations.filter { $0 == .isApplicationActive }.count,
+            1
+        )
+        XCTAssertFalse(system.operations.contains { operation in
+            if case .postShortcut = operation { return true }
+            return false
+        })
+    }
+
     func testFullscreenFallbackUsesSameTargetedShortcutPath() async throws {
         let system = RecordingGestureTargetSystemClient()
         system.windowControlAvailable = false
@@ -91,7 +123,7 @@ final class WindowActionsTests: XCTestCase {
         let actions = WindowActions(system: system)
         let target = makeTargetContext()
 
-        try await actions.perform(.fullscreen, target: target)
+        try await actions.performWindow(.fullscreen, target: target)
 
         XCTAssertEqual(system.operations, [
             .validateWindow,
@@ -118,9 +150,9 @@ final class WindowActionsTests: XCTestCase {
         let actions = WindowActions(system: system)
         let target = makeTargetContext()
 
-        try await actions.perform(.close, target: target)
-        try await actions.perform(.center, target: target)
-        try await actions.perform(.hide, target: target)
+        try await actions.performWindow(.close, target: target)
+        try await actions.performWindow(.center, target: target)
+        try await actions.performWindow(.hide, target: target)
 
         XCTAssertEqual(system.operations, [
             .validateWindow,
@@ -132,10 +164,52 @@ final class WindowActionsTests: XCTestCase {
         XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
     }
 
+    func testInvalidFrozenWindowFailsWithoutTryingAnotherTarget() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.validateError = GestureTargetError.axOperationFailed(
+            operation: .validateWindow,
+            code: .cannotComplete
+        )
+        let actions = WindowActions(system: system)
+
+        do {
+            try await actions.performWindow(.close, target: makeTargetContext())
+            XCTFail("Expected invalid frozen target to fail")
+        } catch GestureTargetError.axOperationFailed(let operation, let code) {
+            XCTAssertEqual(operation, .validateWindow)
+            XCTAssertEqual(code, .cannotComplete)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(system.operations, [.validateWindow])
+    }
+
+    func testTerminatedFrozenApplicationFailsHideWithoutFallback() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.hideError = GestureTargetError.applicationTerminated(101)
+        let actions = WindowActions(system: system)
+
+        do {
+            try await actions.performWindow(.hide, target: makeTargetContext())
+            XCTFail("Expected terminated target application to fail")
+        } catch GestureTargetError.applicationTerminated(let pid) {
+            XCTAssertEqual(pid, 101)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(system.operations, [.hideApplication])
+    }
+
     private func makeTargetContext() -> GestureTargetContext {
         GestureTargetContext(
-            processIdentifier: 101,
-            bundleIdentifier: "com.apple.Safari",
+            policy: .frontmostWindow,
+            identity: GestureTargetIdentity(
+                processIdentifier: 101,
+                bundleIdentifier: "com.apple.Safari"
+            ),
+            application: nil,
             window: GestureWindowTarget(element: AXUIElementCreateApplication(101))
         )
     }
@@ -159,11 +233,14 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     var activationAccepted = true
     var activeStates = [true]
     var windowControlAvailable = true
+    var validateError: Error?
+    var hideError: Error?
     private(set) var operations: [TargetSystemOperation] = []
     private(set) var targets: [GestureTargetContext] = []
 
     func validateWindow(_ target: GestureTargetContext) throws {
         record(.validateWindow, target: target)
+        if let validateError { throw validateError }
     }
 
     func pressWindowControl(
@@ -176,6 +253,7 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
 
     func hideApplication(_ target: GestureTargetContext) throws {
         record(.hideApplication, target: target)
+        if let hideError { throw hideError }
     }
 
     func centerWindow(_ target: GestureTargetContext) throws {

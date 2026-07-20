@@ -4,6 +4,12 @@ import Foundation
 
 @MainActor
 final class MacGestureTargetCapturer: GestureTargetCapturing {
+    private let system: any GestureTargetCaptureSystemClient
+
+    init(system: (any GestureTargetCaptureSystemClient)? = nil) {
+        self.system = system ?? MacGestureTargetCaptureSystemClient()
+    }
+
     func capture(
         policies: Set<GestureTargetPolicy>,
         at quartzLocation: CGPoint
@@ -45,16 +51,19 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
     }
 
     private func captureFrontmostWindow() throws -> GestureTargetContext {
-        guard let application = NSWorkspace.shared.frontmostApplication else {
+        guard let application = system.frontmostApplication else {
             throw GestureTargetError.noFrontmostApplication
         }
         let appElement = AXUIElementCreateApplication(application.processIdentifier)
-        let window = try copyElement(
+        let window = try system.copyElement(
             from: appElement,
-            attribute: kAXFocusedWindowAttribute as CFString,
-            operation: .copyFocusedWindow
+            attribute: GestureTargetAXAttribute(
+                name: kAXFocusedWindowAttribute as CFString,
+                operation: .copyFocusedWindow
+            )
         )
         try validatePID(of: window, expected: application.processIdentifier)
+        try validateWindowRole(window)
         return makeContext(
             policy: .frontmostWindow,
             application: application,
@@ -63,21 +72,13 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
     }
 
     private func captureWindowUnderPointer(at location: CGPoint) throws -> GestureTargetContext {
-        var hit: AXUIElement?
-        let result = AXUIElementCopyElementAtPosition(
-            AXUIElementCreateSystemWide(),
-            Float(location.x),
-            Float(location.y),
-            &hit
-        )
-        guard result == .success else {
-            throw GestureTargetError.axOperationFailed(operation: .hitTest, code: result)
-        }
-        guard let hit else { throw GestureTargetError.noElementAtPointer }
-
+        let hit = try system.element(at: location)
         let window = try containingWindow(of: hit)
-        let processIdentifier = try pid(of: window, operation: .getProcessIdentifier)
-        guard let application = NSRunningApplication(processIdentifier: processIdentifier) else {
+        let processIdentifier = try system.processIdentifier(
+            of: window,
+            operation: .getProcessIdentifier
+        )
+        guard let application = system.runningApplication(processIdentifier: processIdentifier) else {
             throw GestureTargetError.applicationUnavailable(processIdentifier)
         }
         return makeContext(
@@ -94,8 +95,10 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
     ) -> GestureTargetContext {
         GestureTargetContext(
             policy: policy,
-            processIdentifier: application.processIdentifier,
-            bundleIdentifier: application.bundleIdentifier,
+            identity: GestureTargetIdentity(
+                processIdentifier: application.processIdentifier,
+                bundleIdentifier: application.bundleIdentifier
+            ),
             application: application,
             window: GestureWindowTarget(element: window)
         )
@@ -103,74 +106,48 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
 
     private func containingWindow(of hit: AXUIElement) throws -> AXUIElement {
         do {
-            return try copyElement(
+            let window = try system.copyElement(
                 from: hit,
-                attribute: kAXWindowAttribute as CFString,
-                operation: .copyContainingWindow
+                attribute: GestureTargetAXAttribute(
+                    name: kAXWindowAttribute as CFString,
+                    operation: .copyContainingWindow
+                )
             )
-        } catch GestureTargetError.axOperationFailed(_, let code)
-            where code == .noValue || code == .attributeUnsupported
+            try validateWindowRole(window)
+            return window
+        } catch GestureTargetError.axOperationFailed(let operation, let code)
+            where operation == .copyContainingWindow
+                && (code == .noValue || code == .attributeUnsupported)
         {
-            let role = try copyString(
-                from: hit,
-                attribute: kAXRoleAttribute as CFString,
-                operation: .copyRole
-            )
-            guard role == kAXWindowRole as String else {
+            do {
+                try validateWindowRole(hit)
+            } catch GestureTargetError.windowRoleMismatch {
                 throw GestureTargetError.windowUnavailable
             }
             return hit
         }
     }
 
-    private func copyElement(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> AXUIElement {
-        var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, attribute, &value)
-        guard result == .success else {
-            throw GestureTargetError.axOperationFailed(operation: operation, code: result)
+    private func validateWindowRole(_ window: AXUIElement) throws {
+        let role = try system.copyString(
+            from: window,
+            attribute: GestureTargetAXAttribute(
+                name: kAXRoleAttribute as CFString,
+                operation: .copyRole
+            )
+        )
+        guard role == kAXWindowRole as String else {
+            throw GestureTargetError.windowRoleMismatch
         }
-        guard let value, CFGetTypeID(value) == AXUIElementGetTypeID() else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return value as! AXUIElement
-    }
-
-    private func copyString(
-        from element: AXUIElement,
-        attribute: CFString,
-        operation: GestureTargetAXOperation
-    ) throws -> String {
-        var value: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(element, attribute, &value)
-        guard result == .success else {
-            throw GestureTargetError.axOperationFailed(operation: operation, code: result)
-        }
-        guard let value, CFGetTypeID(value) == CFStringGetTypeID() else {
-            throw GestureTargetError.unexpectedAXValue(operation: operation)
-        }
-        return value as! String
     }
 
     private func validatePID(of window: AXUIElement, expected: pid_t) throws {
-        let actual = try pid(of: window, operation: .getProcessIdentifier)
+        let actual = try system.processIdentifier(
+            of: window,
+            operation: .getProcessIdentifier
+        )
         guard actual == expected else {
             throw GestureTargetError.processMismatch(expected: expected, actual: actual)
         }
-    }
-
-    private func pid(
-        of element: AXUIElement,
-        operation: GestureTargetAXOperation
-    ) throws -> pid_t {
-        var processIdentifier: pid_t = 0
-        let result = AXUIElementGetPid(element, &processIdentifier)
-        guard result == .success else {
-            throw GestureTargetError.axOperationFailed(operation: operation, code: result)
-        }
-        return processIdentifier
     }
 }

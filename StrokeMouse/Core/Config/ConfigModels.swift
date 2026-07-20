@@ -310,6 +310,8 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
     var targetPolicy: GestureTargetPolicy
     var notes: String
 
+    /// The flat initializer mirrors persisted profile fields so editors, defaults, and import
+    /// tests can construct complete values directly; defaults preserve existing call sites.
     init(
         id: UUID = UUID(),
         name: String,

@@ -59,6 +59,12 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(decoded, profile)
     }
 
+    func testExistingDefaultGesturesKeepFrontmostTargetPolicy() {
+        XCTAssertTrue(
+            DefaultGestures.make().allSatisfy { $0.targetPolicy == .frontmostWindow }
+        )
+    }
+
     func testEnabledGesturesOnlyFiltersEnabledStateAndTrigger() {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
@@ -144,6 +150,39 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(package.version, Constants.configVersion)
         XCTAssertEqual(package.gestures.map(\.name), ["A", "C"])
         XCTAssertEqual(package.gestures.map(\.id), [a.id, c.id])
+    }
+
+    func testWindowUnderPointerPolicySurvivesExportAnalysisAndImport() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let source = ConfigStore(configURL: dir.appendingPathComponent("source.json"))
+        let profile = GestureProfile(
+            name: "Pointer Target",
+            pattern: .freePath(PathTemplates.downRight),
+            scope: .apps(["com.apple.Safari"]),
+            targetPolicy: .windowUnderPointer
+        )
+        source.replaceAll([profile])
+        let package = try source.exportPackage(ids: [profile.id])
+
+        let destinationURL = dir.appendingPathComponent("destination.json")
+        let destination = ConfigStore(configURL: destinationURL)
+        destination.replaceAll([])
+        let analysis = try destination.analyzeImportPackage(from: package)
+        XCTAssertEqual(analysis.unique.map(\.targetPolicy), [.windowUnderPointer])
+
+        let importedIDs = try destination.importPackage(from: package)
+        let imported = try XCTUnwrap(
+            destination.gestures.first { importedIDs.contains($0.id) }
+        )
+        XCTAssertEqual(imported.targetPolicy, .windowUnderPointer)
+        XCTAssertEqual(imported.scope, .apps(["com.apple.Safari"]))
+
+        let reloaded = ConfigStore(configURL: destinationURL)
+        XCTAssertEqual(reloaded.gestures.first?.targetPolicy, .windowUnderPointer)
     }
 
     func testExportPackageRejectsEmptySelection() {

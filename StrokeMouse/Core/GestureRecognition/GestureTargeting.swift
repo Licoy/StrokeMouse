@@ -24,25 +24,9 @@ struct GestureTargetContext {
 
     var processIdentifier: pid_t { identity.processIdentifier }
     var bundleIdentifier: String? { identity.bundleIdentifier }
-
-    init(
-        policy: GestureTargetPolicy = .frontmostWindow,
-        processIdentifier: pid_t,
-        bundleIdentifier: String?,
-        application: NSRunningApplication? = nil,
-        window: GestureWindowTarget
-    ) {
-        self.policy = policy
-        identity = GestureTargetIdentity(
-            processIdentifier: processIdentifier,
-            bundleIdentifier: bundleIdentifier
-        )
-        self.application = application
-        self.window = window
-    }
 }
 
-enum GestureTargetAXOperation: String {
+enum GestureTargetAXOperation: String, Equatable, Sendable {
     case hitTest
     case copyContainingWindow
     case copyFocusedWindow
