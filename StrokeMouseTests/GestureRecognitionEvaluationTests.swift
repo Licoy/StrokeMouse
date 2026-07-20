@@ -107,6 +107,39 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
         XCTAssertNil(targeted.first?.target.processIdentifier)
     }
 
+    func testCandidateSelectorUsesApplicationOnlyTargetForAppScope() throws {
+        let context = GestureTargetContext(
+            policy: .frontmostWindow,
+            identity: GestureTargetIdentity(
+                processIdentifier: 303,
+                bundleIdentifier: "com.apple.finder"
+            ),
+            application: nil,
+            window: nil
+        )
+        let profile = GestureProfile(
+            name: "Finder Desktop",
+            pattern: .freePath(PathTemplates.up),
+            scope: .apps(["com.apple.finder"]),
+            targetPolicy: .frontmostWindow
+        )
+        let snapshot = GestureTargetSnapshot(
+            frontmostWindow: .resolved(context),
+            windowUnderPointer: .unavailable(.targetNotCaptured(.windowUnderPointer))
+        )
+
+        let targeted = GestureCandidateSelector.prepare(
+            profiles: [profile],
+            snapshot: snapshot
+        )
+
+        let selected = try XCTUnwrap(targeted.first)
+        XCTAssertEqual(targeted.count, 1)
+        XCTAssertEqual(selected.profile.id, profile.id)
+        XCTAssertEqual(selected.target.processIdentifier, 303)
+        XCTAssertNil(try selected.target.requireContext().window)
+    }
+
     private func targetContext(
         policy: GestureTargetPolicy,
         processIdentifier: pid_t,

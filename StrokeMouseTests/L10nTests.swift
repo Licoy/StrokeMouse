@@ -109,6 +109,7 @@ final class L10nTests: XCTestCase {
             "action.targetActivationTimedOut",
             "action.targetFocusChanged",
             "action.targetWindowControlUnavailable",
+            "action.targetHasNoOperableWindow",
             "action.targetOperationFailed",
             "action.appNotFound",
             "action.invalidURL",

@@ -30,7 +30,7 @@ Custom mouse gestures for macOS. Hold a **per-gesture trigger** (right button by
 - **Menu bar app**: enable/disable gestures, open settings, quit; icon tints by status (normal / paused / needs permission); optional **hide menu bar icon** (confirm if Dock is also hidden; reopen via Dock or relaunch to open settings)
 - **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
 - **Per-gesture triggers**: right button by default; middle / side buttons optional; only enabled triggers are monitored
-- **Per-gesture target**: choose the active window or the window under the pointer at trigger-down; app-scope checks and target-aware actions always reuse that frozen target
+- **Per-gesture target**: choose the frontmost app or the app under the pointer at trigger-down; when a regular window exists, its exact window is frozen too, and app-scope checks and target-aware actions always reuse that target
 - **Free-path recognition**: arc-length resampling + 1D/2D normalization + limited rotation; significant-turn structure gates; live stroke HUD while holding the trigger
 - **App scope**: global, or pick apps by icon from installed applications (search / browse `.app`)
 - **Actions**: shortcuts, open app (icon picker), URL, media keys, window actions, Shell / AppleScript (syntax-highlighted editor; AppleScript presets such as sleep, lock screen, empty trash, plus custom)
@@ -110,7 +110,7 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 
 > **Short click vs gesture**: trigger down/up is temporarily captured by the engine. If you release before the minimum stroke distance, a normal click is replayed so the context menu still works. Once drawing starts, drag still moves the system cursor and stroke HUD, but the frontmost app does not receive a paired down/up—so no context menu appears or is selected. Left click and buttons not configured as triggers are always passed through.
 
-> With **Window Under Pointer**, shortcuts first bring the frozen window and app to the front, which may switch focus or Spaces; a short click never activates the target.
+> Shortcuts activate the frozen app first and also bring its exact window forward when one was captured, which may switch focus or Spaces. Locations without a regular window, such as the Finder desktop, can still run shortcuts and **Hide App**; Close, Minimize, Zoom, Full Screen, and Center still require an exact window. A short click never activates the target.
 
 Default gesture examples (right button by default; each gesture can use a different button):
 

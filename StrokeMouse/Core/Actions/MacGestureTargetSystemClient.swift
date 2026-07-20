@@ -6,7 +6,7 @@ import Foundation
 final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     func validateWindow(_ target: GestureTargetContext) throws {
         _ = try validateApplication(target)
-        let window = target.window.element
+        let window = try target.requireWindow().element
         var actualPID: pid_t = 0
         let pidResult = AXUIElementGetPid(window, &actualPID)
         guard pidResult == .success else {
@@ -38,10 +38,11 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         target: GestureTargetContext
     ) throws -> Bool {
         let attribute = try controlAttribute(for: command)
+        let window = try target.requireWindow().element
         let control: AXUIElement
         do {
             control = try GestureTargetAXAccessor.copyElement(
-                from: target.window.element,
+                from: window,
                 attribute: GestureTargetAXAttribute(
                     name: attribute,
                     operation: .copyWindowControl
@@ -72,15 +73,16 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     }
 
     func centerWindow(_ target: GestureTargetContext) throws {
+        let window = try target.requireWindow().element
         let origin = try GestureTargetAXAccessor.copyPoint(
-            from: target.window.element,
+            from: window,
             attribute: GestureTargetAXAttribute(
                 name: kAXPositionAttribute as CFString,
                 operation: .copyPosition
             )
         )
         let size = try GestureTargetAXAccessor.copySize(
-            from: target.window.element,
+            from: window,
             attribute: GestureTargetAXAttribute(
                 name: kAXSizeAttribute as CFString,
                 operation: .copySize
@@ -110,7 +112,7 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
             throw GestureTargetError.unexpectedAXValue(operation: .setPosition)
         }
         let result = AXUIElementSetAttributeValue(
-            target.window.element,
+            window,
             kAXPositionAttribute as CFString,
             value
         )
@@ -120,8 +122,9 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     }
 
     func setMainWindow(_ target: GestureTargetContext) throws {
+        let window = try target.requireWindow().element
         let result = AXUIElementSetAttributeValue(
-            target.window.element,
+            window,
             kAXMainAttribute as CFString,
             kCFBooleanTrue
         )
@@ -131,8 +134,9 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     }
 
     func raiseWindow(_ target: GestureTargetContext) throws {
+        let window = try target.requireWindow().element
         let result = AXUIElementPerformAction(
-            target.window.element,
+            window,
             kAXRaiseAction as CFString
         )
         guard result == .success else {
@@ -149,6 +153,7 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     }
 
     func verifyFocusedWindow(_ target: GestureTargetContext) throws {
+        let window = try target.requireWindow().element
         let appElement = AXUIElementCreateApplication(target.processIdentifier)
         let focused = try GestureTargetAXAccessor.copyElement(
             from: appElement,
@@ -157,7 +162,7 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
                 operation: .copyFocusedWindowForVerification
             )
         )
-        guard CFEqual(focused, target.window.element) else {
+        guard CFEqual(focused, window) else {
             throw GestureTargetError.focusedWindowMismatch(target.processIdentifier)
         }
     }

@@ -2822,13 +2822,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Window"
+            "value": "Target"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "窗口"
+            "value": "目标"
           }
         }
       }
@@ -2838,13 +2838,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Active Window"
+            "value": "Frontmost App"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "当前活动窗口"
+            "value": "当前前台应用"
           }
         }
       }
@@ -2854,13 +2854,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Window Under Pointer"
+            "value": "App Under Pointer"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "指针下方窗口"
+            "value": "指针位置所属应用"
           }
         }
       }
@@ -2870,13 +2870,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the active window at the moment the trigger button is pressed."
+            "value": "Freeze the frontmost app when the trigger is pressed, plus its active window when one is available."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用按下触发键时的当前活动窗口。"
+            "value": "按下触发键时锁定当前前台应用；若存在活动窗口，则同时锁定该窗口。"
           }
         }
       }
@@ -2886,13 +2886,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the window under the pointer at the moment the trigger button is pressed."
+            "value": "Freeze the app under the pointer when the trigger is pressed, plus the exact window when one is available."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "使用按下触发键时指针下方的窗口。"
+            "value": "按下触发键时锁定指针位置所属应用；若存在普通窗口，则同时锁定该窗口。"
           }
         }
       }
@@ -2902,13 +2902,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shortcuts bring the target window and app to the front first. This may switch focus or Spaces."
+            "value": "Shortcuts bring the frozen app to the front and, when available, its exact window. This may switch focus or Spaces."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "快捷键会先将目标窗口和应用置于前台，可能切换焦点或桌面空间。"
+            "value": "快捷键会先将锁定应用置于前台；若有精确窗口，也会置前该窗口，因此可能切换焦点或桌面空间。"
           }
         }
       }
@@ -2918,13 +2918,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This action needs a window captured at gesture start. Save, then perform the gesture to test it."
+            "value": "This action needs target context captured at gesture start. Save, then perform the gesture to test it."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此动作需要在手势开始时捕获窗口。请保存后用真实手势测试。"
+            "value": "此动作需要在手势开始时捕获目标上下文。请保存后用真实手势测试。"
           }
         }
       }
@@ -3309,6 +3309,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "捕获的窗口不支持此动作。"
+          }
+        }
+      }
+    },
+    "action.targetHasNoOperableWindow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The captured target app has no operable window for this action."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捕获的目标应用没有可供此动作操作的窗口。"
           }
         }
       }

@@ -39,9 +39,9 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
         do {
             switch policy {
             case .frontmostWindow:
-                return .resolved(try captureFrontmostWindow())
+                return .resolved(try captureFrontmostTarget())
             case .windowUnderPointer:
-                return .resolved(try captureWindowUnderPointer(at: quartzLocation))
+                return .resolved(try captureTargetUnderPointer(at: quartzLocation))
             }
         } catch let error as GestureTargetError {
             return .unavailable(error)
@@ -50,20 +50,15 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
         }
     }
 
-    private func captureFrontmostWindow() throws -> GestureTargetContext {
+    private func captureFrontmostTarget() throws -> GestureTargetContext {
         guard let application = system.frontmostApplication else {
             throw GestureTargetError.noFrontmostApplication
         }
         let appElement = AXUIElementCreateApplication(application.processIdentifier)
-        let window = try system.copyElement(
-            from: appElement,
-            attribute: GestureTargetAXAttribute(
-                name: kAXFocusedWindowAttribute as CFString,
-                operation: .copyFocusedWindow
-            )
+        let window = try optionalFrontmostWindow(
+            of: appElement,
+            expectedProcessIdentifier: application.processIdentifier
         )
-        try validatePID(of: window, expected: application.processIdentifier)
-        try validateWindowRole(window)
         return makeContext(
             policy: .frontmostWindow,
             application: application,
@@ -71,16 +66,19 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
         )
     }
 
-    private func captureWindowUnderPointer(at location: CGPoint) throws -> GestureTargetContext {
+    private func captureTargetUnderPointer(at location: CGPoint) throws -> GestureTargetContext {
         let hit = try system.element(at: location)
-        let window = try containingWindow(of: hit)
         let processIdentifier = try system.processIdentifier(
-            of: window,
+            of: hit,
             operation: .getProcessIdentifier
         )
         guard let application = system.runningApplication(processIdentifier: processIdentifier) else {
             throw GestureTargetError.applicationUnavailable(processIdentifier)
         }
+        let window = try optionalContainingWindow(
+            of: hit,
+            expectedProcessIdentifier: processIdentifier
+        )
         return makeContext(
             policy: .windowUnderPointer,
             application: application,
@@ -91,7 +89,7 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
     private func makeContext(
         policy: GestureTargetPolicy,
         application: NSRunningApplication,
-        window: AXUIElement
+        window: AXUIElement?
     ) -> GestureTargetContext {
         GestureTargetContext(
             policy: policy,
@@ -100,11 +98,36 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
                 bundleIdentifier: application.bundleIdentifier
             ),
             application: application,
-            window: GestureWindowTarget(element: window)
+            window: window.map(GestureWindowTarget.init)
         )
     }
 
-    private func containingWindow(of hit: AXUIElement) throws -> AXUIElement {
+    private func optionalFrontmostWindow(
+        of application: AXUIElement,
+        expectedProcessIdentifier: pid_t
+    ) throws -> AXUIElement? {
+        do {
+            let window = try system.copyElement(
+                from: application,
+                attribute: GestureTargetAXAttribute(
+                    name: kAXFocusedWindowAttribute as CFString,
+                    operation: .copyFocusedWindow
+                )
+            )
+            try validatePID(of: window, expected: expectedProcessIdentifier)
+            return try windowIfOperable(window)
+        } catch GestureTargetError.axOperationFailed(let operation, let code)
+            where operation == .copyFocusedWindow
+                && (code == .noValue || code == .attributeUnsupported)
+        {
+            return nil
+        }
+    }
+
+    private func optionalContainingWindow(
+        of hit: AXUIElement,
+        expectedProcessIdentifier: pid_t
+    ) throws -> AXUIElement? {
         do {
             let window = try system.copyElement(
                 from: hit,
@@ -113,18 +136,22 @@ final class MacGestureTargetCapturer: GestureTargetCapturing {
                     operation: .copyContainingWindow
                 )
             )
-            try validateWindowRole(window)
-            return window
+            try validatePID(of: window, expected: expectedProcessIdentifier)
+            return try windowIfOperable(window)
         } catch GestureTargetError.axOperationFailed(let operation, let code)
             where operation == .copyContainingWindow
                 && (code == .noValue || code == .attributeUnsupported)
         {
-            do {
-                try validateWindowRole(hit)
-            } catch GestureTargetError.windowRoleMismatch {
-                throw GestureTargetError.windowUnavailable
-            }
-            return hit
+            return try windowIfOperable(hit)
+        }
+    }
+
+    private func windowIfOperable(_ element: AXUIElement) throws -> AXUIElement? {
+        do {
+            try validateWindowRole(element)
+            return element
+        } catch GestureTargetError.windowRoleMismatch {
+            return nil
         }
     }
 

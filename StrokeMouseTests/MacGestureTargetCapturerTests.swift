@@ -19,7 +19,7 @@ final class MacGestureTargetCapturerTests: XCTestCase {
         XCTAssertEqual(system.hitTestLocations, [location])
         XCTAssertEqual(context.policy, .windowUnderPointer)
         XCTAssertEqual(context.processIdentifier, system.application.processIdentifier)
-        XCTAssertTrue(CFEqual(context.window.element, system.windowElement))
+        XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.windowElement))
         XCTAssertEqual(system.attributeReads, [.copyContainingWindow, .copyRole])
         guard case .unavailable(.targetNotCaptured(.frontmostWindow)) = snapshot.frontmostWindow
         else { return XCTFail("Frontmost target should not be captured") }
@@ -39,26 +39,43 @@ final class MacGestureTargetCapturerTests: XCTestCase {
         )
         let context = try snapshot.windowUnderPointer.requireContext()
 
-        XCTAssertTrue(CFEqual(context.window.element, system.hitElement))
+        XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.hitElement))
         XCTAssertEqual(system.attributeReads, [.copyContainingWindow, .copyRole])
     }
 
-    func testDockOrDesktopElementDoesNotBecomeAWindowTarget() throws {
+    func testDesktopElementCapturesItsApplicationWithoutAWindow() throws {
+        for errorCode in [AXError.noValue, .attributeUnsupported] {
+            let system = try makeSystem()
+            system.containingWindowError = GestureTargetError.axOperationFailed(
+                operation: .copyContainingWindow,
+                code: errorCode
+            )
+            system.role = "AXScrollArea"
+            let snapshot = MacGestureTargetCapturer(system: system).capture(
+                policies: [.windowUnderPointer],
+                at: .zero
+            )
+            let context = try snapshot.windowUnderPointer.requireContext()
+
+            XCTAssertTrue(context.application === system.application)
+            XCTAssertNil(context.window)
+            XCTAssertEqual(context.bundleIdentifier, system.application.bundleIdentifier)
+            XCTAssertEqual(system.applicationLookups, [system.application.processIdentifier])
+        }
+    }
+
+    func testPointerNonWindowContainingElementStaysResolvedAtApplicationLevel() throws {
         let system = try makeSystem()
-        system.containingWindowError = GestureTargetError.axOperationFailed(
-            operation: .copyContainingWindow,
-            code: .noValue
-        )
-        system.role = "AXDockItem"
+        system.role = "AXScrollArea"
         let snapshot = MacGestureTargetCapturer(system: system).capture(
             policies: [.windowUnderPointer],
             at: .zero
         )
+        let context = try snapshot.windowUnderPointer.requireContext()
 
-        guard case .unavailable(.windowUnavailable) = snapshot.windowUnderPointer else {
-            return XCTFail("Non-window pointer element must stay unavailable")
-        }
-        XCTAssertTrue(system.applicationLookups.isEmpty)
+        XCTAssertTrue(context.application === system.application)
+        XCTAssertNil(context.window)
+        XCTAssertEqual(context.processIdentifier, system.application.processIdentifier)
     }
 
     func testCannotCompleteIsReportedWithoutWindowFallback() throws {
@@ -80,6 +97,37 @@ final class MacGestureTargetCapturerTests: XCTestCase {
         XCTAssertEqual(system.attributeReads, [.copyContainingWindow])
     }
 
+    func testPointerWindowPIDMismatchDoesNotDowngradeToApplicationTarget() throws {
+        let system = try makeSystem()
+        let mismatchedPID = system.application.processIdentifier + 1
+        system.windowProcessIdentifier = mismatchedPID
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer],
+            at: .zero
+        )
+
+        guard case .unavailable(.processMismatch(let expected, let actual)) =
+            snapshot.windowUnderPointer
+        else { return XCTFail("Expected the mismatched window PID to remain unavailable") }
+        XCTAssertEqual(expected, system.application.processIdentifier)
+        XCTAssertEqual(actual, mismatchedPID)
+    }
+
+    func testUnexpectedPointerWindowValueDoesNotBecomeApplicationTarget() throws {
+        let system = try makeSystem()
+        system.containingWindowError = GestureTargetError.unexpectedAXValue(
+            operation: .copyContainingWindow
+        )
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer],
+            at: .zero
+        )
+
+        guard case .unavailable(.unexpectedAXValue(.copyContainingWindow)) =
+            snapshot.windowUnderPointer
+        else { return XCTFail("Expected the invalid AX value to remain unavailable") }
+    }
+
     func testFrontmostCaptureFreezesFocusedWindowAndApplicationIdentity() throws {
         let system = try makeSystem()
         let snapshot = MacGestureTargetCapturer(system: system).capture(
@@ -90,9 +138,92 @@ final class MacGestureTargetCapturerTests: XCTestCase {
 
         XCTAssertEqual(context.policy, .frontmostWindow)
         XCTAssertTrue(context.application === system.application)
-        XCTAssertTrue(CFEqual(context.window.element, system.windowElement))
+        XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.windowElement))
         XCTAssertEqual(system.attributeReads, [.copyFocusedWindow, .copyRole])
         XCTAssertTrue(system.hitTestLocations.isEmpty)
+    }
+
+    func testFrontmostApplicationWithoutFocusedWindowStaysResolved() throws {
+        for errorCode in [AXError.noValue, .attributeUnsupported] {
+            let system = try makeSystem()
+            system.focusedWindowError = GestureTargetError.axOperationFailed(
+                operation: .copyFocusedWindow,
+                code: errorCode
+            )
+            let snapshot = MacGestureTargetCapturer(system: system).capture(
+                policies: [.frontmostWindow],
+                at: .zero
+            )
+            let context = try snapshot.frontmostWindow.requireContext()
+
+            XCTAssertTrue(context.application === system.application)
+            XCTAssertNil(context.window)
+            XCTAssertEqual(context.processIdentifier, system.application.processIdentifier)
+            XCTAssertEqual(system.attributeReads, [.copyFocusedWindow])
+        }
+    }
+
+    func testFrontmostNonWindowFocusedElementStaysResolvedAtApplicationLevel() throws {
+        let system = try makeSystem()
+        system.role = "AXScrollArea"
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.frontmostWindow],
+            at: .zero
+        )
+        let context = try snapshot.frontmostWindow.requireContext()
+
+        XCTAssertTrue(context.application === system.application)
+        XCTAssertNil(context.window)
+        XCTAssertEqual(context.processIdentifier, system.application.processIdentifier)
+    }
+
+    func testFrontmostCannotCompleteRemainsUnavailable() throws {
+        let system = try makeSystem()
+        system.focusedWindowError = GestureTargetError.axOperationFailed(
+            operation: .copyFocusedWindow,
+            code: .cannotComplete
+        )
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.frontmostWindow],
+            at: .zero
+        )
+
+        guard case .unavailable(.axOperationFailed(let operation, let code)) =
+            snapshot.frontmostWindow
+        else { return XCTFail("Expected the original focused-window AX failure") }
+        XCTAssertEqual(operation, .copyFocusedWindow)
+        XCTAssertEqual(code, .cannotComplete)
+    }
+
+    func testFrontmostWindowPIDMismatchDoesNotDowngradeToApplicationTarget() throws {
+        let system = try makeSystem()
+        let mismatchedPID = system.application.processIdentifier + 1
+        system.windowProcessIdentifier = mismatchedPID
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.frontmostWindow],
+            at: .zero
+        )
+
+        guard case .unavailable(.processMismatch(let expected, let actual)) =
+            snapshot.frontmostWindow
+        else { return XCTFail("Expected the mismatched window PID to remain unavailable") }
+        XCTAssertEqual(expected, system.application.processIdentifier)
+        XCTAssertEqual(actual, mismatchedPID)
+    }
+
+    func testUnexpectedFrontmostWindowValueDoesNotBecomeApplicationTarget() throws {
+        let system = try makeSystem()
+        system.focusedWindowError = GestureTargetError.unexpectedAXValue(
+            operation: .copyFocusedWindow
+        )
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.frontmostWindow],
+            at: .zero
+        )
+
+        guard case .unavailable(.unexpectedAXValue(.copyFocusedWindow)) =
+            snapshot.frontmostWindow
+        else { return XCTFail("Expected the invalid AX value to remain unavailable") }
     }
 
     private func makeSystem() throws -> RecordingGestureTargetCaptureSystemClient {
@@ -113,7 +244,9 @@ private final class RecordingGestureTargetCaptureSystemClient:
     let windowElement: AXUIElement
 
     var role = kAXWindowRole as String
+    var focusedWindowError: Error?
     var containingWindowError: Error?
+    var windowProcessIdentifier: pid_t?
     private(set) var hitTestLocations: [CGPoint] = []
     private(set) var attributeReads: [GestureTargetAXOperation] = []
     private(set) var applicationLookups: [pid_t] = []
@@ -143,6 +276,7 @@ private final class RecordingGestureTargetCaptureSystemClient:
         attributeReads.append(attribute.operation)
         switch attribute.operation {
         case .copyFocusedWindow:
+            if let focusedWindowError { throw focusedWindowError }
             return windowElement
         case .copyContainingWindow:
             if let containingWindowError { throw containingWindowError }
@@ -163,9 +297,12 @@ private final class RecordingGestureTargetCaptureSystemClient:
     }
 
     func processIdentifier(
-        of _: AXUIElement,
+        of element: AXUIElement,
         operation _: GestureTargetAXOperation
     ) throws -> pid_t {
-        application.processIdentifier
+        if CFEqual(element, windowElement), let windowProcessIdentifier {
+            return windowProcessIdentifier
+        }
+        return application.processIdentifier
     }
 }

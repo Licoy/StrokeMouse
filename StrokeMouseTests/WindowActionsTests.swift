@@ -5,6 +5,206 @@ import XCTest
 
 @MainActor
 final class WindowActionsTests: XCTestCase {
+    func testDefaultMissionControlRunsFromFinderDesktopTarget() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeStates = [true]
+        let executor = ActionExecutor(
+            targetPlatform: WindowActions(system: system)
+        )
+        let profile = try XCTUnwrap(DefaultGestures.make().first)
+        let context = GestureTargetContext(
+            policy: .frontmostWindow,
+            identity: GestureTargetIdentity(
+                processIdentifier: 101,
+                bundleIdentifier: "com.apple.finder"
+            ),
+            application: nil,
+            window: nil
+        )
+        let snapshot = GestureTargetSnapshot(
+            frontmostWindow: .resolved(context),
+            windowUnderPointer: .unavailable(
+                .targetNotCaptured(.windowUnderPointer)
+            )
+        )
+
+        let selected = try XCTUnwrap(
+            GestureCandidateSelector.prepare(
+                profiles: [profile],
+                snapshot: snapshot
+            ).first
+        )
+        try await executor.execute(
+            selected.profile.action,
+            target: selected.target
+        )
+
+        XCTAssertEqual(system.operations, [
+            .isApplicationActive,
+            .postShortcut(
+                keyCode: 126,
+                modifiers: UInt(NSEvent.ModifierFlags.control.rawValue)
+            ),
+        ])
+    }
+
+    func testApplicationOnlyShortcutPostsWhenFrozenApplicationIsAlreadyActive() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeStates = [true]
+        let actions = WindowActions(system: system)
+
+        try await actions.performShortcut(
+            keyCode: 126,
+            modifiers: UInt(NSEvent.ModifierFlags.control.rawValue),
+            target: makeTargetContext(withWindow: false)
+        )
+
+        XCTAssertEqual(system.operations, [
+            .isApplicationActive,
+            .postShortcut(
+                keyCode: 126,
+                modifiers: UInt(NSEvent.ModifierFlags.control.rawValue)
+            ),
+        ])
+    }
+
+    func testApplicationOnlyShortcutActivatesFrozenApplicationBeforePosting() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeStates = [false, true]
+        let actions = WindowActions(
+            system: system,
+            activationTimeout: .seconds(1),
+            pollInterval: .milliseconds(1)
+        )
+
+        try await actions.performShortcut(
+            keyCode: 42,
+            modifiers: 7,
+            target: makeTargetContext(withWindow: false)
+        )
+
+        XCTAssertEqual(system.operations, [
+            .isApplicationActive,
+            .activateApplication,
+            .isApplicationActive,
+            .postShortcut(keyCode: 42, modifiers: 7),
+        ])
+    }
+
+    func testApplicationOnlyActivationRejectionNeverPostsShortcut() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeStates = [false]
+        system.activationAccepted = false
+        let actions = WindowActions(system: system)
+
+        do {
+            try await actions.performShortcut(
+                keyCode: 42,
+                modifiers: 7,
+                target: makeTargetContext(withWindow: false)
+            )
+            XCTFail("Expected activation rejection")
+        } catch GestureTargetError.activationFailed(let pid) {
+            XCTAssertEqual(pid, 101)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(system.operations, [
+            .isApplicationActive,
+            .activateApplication,
+        ])
+    }
+
+    func testApplicationOnlyActivationTimeoutNeverPostsShortcut() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeStates = [false]
+        let actions = WindowActions(
+            system: system,
+            activationTimeout: .zero,
+            pollInterval: .milliseconds(1)
+        )
+
+        do {
+            try await actions.performShortcut(
+                keyCode: 42,
+                modifiers: 7,
+                target: makeTargetContext(withWindow: false)
+            )
+            XCTFail("Expected activation timeout")
+        } catch GestureTargetError.activationTimedOut(let pid) {
+            XCTAssertEqual(pid, 101)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(system.operations, [
+            .isApplicationActive,
+            .activateApplication,
+            .isApplicationActive,
+        ])
+    }
+
+    func testTerminatedApplicationOnlyTargetNeverPostsShortcut() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.activeError = GestureTargetError.applicationTerminated(101)
+        let actions = WindowActions(system: system)
+
+        do {
+            try await actions.performShortcut(
+                keyCode: 42,
+                modifiers: 7,
+                target: makeTargetContext(withWindow: false)
+            )
+            XCTFail("Expected terminated application to fail")
+        } catch GestureTargetError.applicationTerminated(let pid) {
+            XCTAssertEqual(pid, 101)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(system.operations, [.isApplicationActive])
+    }
+
+    func testHideAllowsApplicationOnlyTarget() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        let actions = WindowActions(system: system)
+
+        try await actions.performWindow(
+            .hide,
+            target: makeTargetContext(withWindow: false)
+        )
+
+        XCTAssertEqual(system.operations, [.hideApplication])
+    }
+
+    func testWindowCommandsRequireAnOperableFrozenWindow() async {
+        for command in [
+            WindowCommand.close,
+            .minimize,
+            .zoom,
+            .fullscreen,
+            .center,
+        ] {
+            let system = RecordingGestureTargetSystemClient()
+            let actions = WindowActions(system: system)
+
+            do {
+                try await actions.performWindow(
+                    command,
+                    target: makeTargetContext(withWindow: false)
+                )
+                XCTFail("Expected \(command) to require an operable window")
+            } catch GestureTargetError.targetHasNoOperableWindow {
+                // Expected typed failure.
+            } catch {
+                XCTFail("Unexpected error for \(command): \(error)")
+            }
+
+            XCTAssertTrue(system.operations.isEmpty)
+        }
+    }
+
     func testShortcutPreparesActivatesAndVerifiesBeforePosting() async throws {
         let system = RecordingGestureTargetSystemClient()
         system.activeStates = [false, true]
@@ -204,7 +404,7 @@ final class WindowActionsTests: XCTestCase {
         XCTAssertEqual(system.operations, [.hideApplication])
     }
 
-    private func makeTargetContext() -> GestureTargetContext {
+    private func makeTargetContext(withWindow: Bool = true) -> GestureTargetContext {
         GestureTargetContext(
             policy: .frontmostWindow,
             identity: GestureTargetIdentity(
@@ -212,7 +412,9 @@ final class WindowActionsTests: XCTestCase {
                 bundleIdentifier: "com.apple.Safari"
             ),
             application: nil,
-            window: GestureWindowTarget(element: AXUIElementCreateApplication(101))
+            window: withWindow
+                ? GestureWindowTarget(element: AXUIElementCreateApplication(101))
+                : nil
         )
     }
 }
@@ -241,6 +443,7 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     var windowControlAvailable = true
     var validateError: Error?
     var hideError: Error?
+    var activeError: Error?
     private(set) var operations: [TargetSystemOperation] = []
     private(set) var targets: [GestureTargetContext] = []
 
@@ -281,6 +484,7 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
 
     func isApplicationActive(_ target: GestureTargetContext) throws -> Bool {
         record(.isApplicationActive, target: target)
+        if let activeError { throw activeError }
         guard activeStates.count > 1 else { return activeStates[0] }
         return activeStates.removeFirst()
     }

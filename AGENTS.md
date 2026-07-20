@@ -142,8 +142,8 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 3. 松开 → 仅在同按键的候选中匹配：
    - `freePath`：有序弧长重采样 + 1D/2D 归一化 + `±12°` 有限旋转匹配 ≥ `freePathMatchThreshold`
    - 显著段数 / 连续转角作为不可补偿的结构门控；不使用镜像、逆序或 near-miss 兜底
-4. 按每条 profile 的 `targetPolicy` 使用 button-down 时冻结目标的 `bundleIdentifier`
-   过滤 `AppScope`；命中后的动作必须复用同一个冻结目标
+4. 按每条 profile 的 `targetPolicy` 在 button-down 时冻结目标应用；若存在普通窗口则同时冻结精确窗口
+5. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；命中后的动作必须复用同一个目标，禁止重新定位或回退
 
 调参常量见 `Constants.swift`。
 

@@ -20,10 +20,17 @@ struct GestureTargetContext {
     let identity: GestureTargetIdentity
     /// Production captures and retains this object so PID reuse cannot retarget an action.
     let application: NSRunningApplication?
-    let window: GestureWindowTarget
+    let window: GestureWindowTarget?
 
     var processIdentifier: pid_t { identity.processIdentifier }
     var bundleIdentifier: String? { identity.bundleIdentifier }
+
+    func requireWindow() throws -> GestureWindowTarget {
+        guard let window else {
+            throw GestureTargetError.targetHasNoOperableWindow
+        }
+        return window
+    }
 }
 
 enum GestureTargetAXOperation: String, Equatable, Sendable {
@@ -50,6 +57,7 @@ enum GestureTargetError: LocalizedError {
     case applicationUnavailable(pid_t)
     case applicationTerminated(pid_t)
     case windowUnavailable
+    case targetHasNoOperableWindow
     case axOperationFailed(operation: GestureTargetAXOperation, code: AXError)
     case unexpectedAXValue(operation: GestureTargetAXOperation)
     case processMismatch(expected: pid_t, actual: pid_t)
@@ -67,6 +75,8 @@ enum GestureTargetError: LocalizedError {
         case .noFrontmostApplication, .noElementAtPointer, .targetNotCaptured,
              .applicationUnavailable, .applicationTerminated, .windowUnavailable:
             return L10n.string("action.targetUnavailable")
+        case .targetHasNoOperableWindow:
+            return L10n.string("action.targetHasNoOperableWindow")
         case .activationFailed:
             return L10n.string("action.targetActivationFailed")
         case .activationTimedOut:

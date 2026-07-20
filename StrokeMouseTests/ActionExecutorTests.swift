@@ -4,6 +4,21 @@ import XCTest
 
 @MainActor
 final class ActionExecutorTests: XCTestCase {
+    func testShortcutReceivesResolvedApplicationOnlyTarget() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        let executor = ActionExecutor(targetPlatform: platform)
+        let context = makeTargetContext(withWindow: false)
+
+        try await executor.execute(
+            .shortcut(keyCode: 126, modifiers: 0, display: "Mission Control"),
+            target: .resolved(context)
+        )
+
+        XCTAssertEqual(platform.shortcuts.count, 1)
+        XCTAssertNil(platform.shortcuts[0].target.window)
+        XCTAssertEqual(platform.shortcuts[0].target.identity, context.identity)
+    }
+
     func testTargetedActionsReceiveTheExactFrozenWindowContext() async throws {
         let platform = RecordingGestureTargetActionPlatform()
         let executor = ActionExecutor(targetPlatform: platform)
@@ -87,7 +102,7 @@ final class ActionExecutorTests: XCTestCase {
         XCTAssertEqual(platform.shortcuts.count, 1)
     }
 
-    private func makeTargetContext() -> GestureTargetContext {
+    private func makeTargetContext(withWindow: Bool = true) -> GestureTargetContext {
         GestureTargetContext(
             policy: .frontmostWindow,
             identity: GestureTargetIdentity(
@@ -95,7 +110,9 @@ final class ActionExecutorTests: XCTestCase {
                 bundleIdentifier: "com.apple.Safari"
             ),
             application: nil,
-            window: GestureWindowTarget(element: AXUIElementCreateApplication(101))
+            window: withWindow
+                ? GestureWindowTarget(element: AXUIElementCreateApplication(101))
+                : nil
         )
     }
 }
