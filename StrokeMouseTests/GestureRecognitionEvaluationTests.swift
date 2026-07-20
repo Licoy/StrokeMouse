@@ -2,6 +2,126 @@ import XCTest
 @testable import StrokeMouse
 
 final class GestureRecognitionEvaluationTests: XCTestCase {
+    func testCandidateSelectorUsesEachProfilesFrozenTargetForAppScope() {
+        let frontmost = targetContext(
+            policy: .frontmostWindow,
+            processIdentifier: 101,
+            bundleIdentifier: "com.apple.Safari"
+        )
+        let underPointer = targetContext(
+            policy: .windowUnderPointer,
+            processIdentifier: 202,
+            bundleIdentifier: "com.apple.dt.Xcode"
+        )
+        let snapshot = GestureTargetSnapshot(
+            frontmostWindow: .resolved(frontmost),
+            windowUnderPointer: .resolved(underPointer)
+        )
+        let profiles = [
+            GestureProfile(
+                name: "Global Active",
+                pattern: .freePath(PathTemplates.up),
+                scope: .global,
+                targetPolicy: .frontmostWindow
+            ),
+            GestureProfile(
+                name: "Global Hover",
+                pattern: .freePath(PathTemplates.up),
+                scope: .global,
+                targetPolicy: .windowUnderPointer
+            ),
+            GestureProfile(
+                name: "Safari Active",
+                pattern: .freePath(PathTemplates.down),
+                scope: .apps(["com.apple.Safari"]),
+                targetPolicy: .frontmostWindow
+            ),
+            GestureProfile(
+                name: "Xcode Active",
+                pattern: .freePath(PathTemplates.right),
+                scope: .apps(["com.apple.dt.Xcode"]),
+                targetPolicy: .frontmostWindow
+            ),
+            GestureProfile(
+                name: "Xcode Hover",
+                pattern: .freePath(PathTemplates.left),
+                scope: .apps(["com.apple.dt.Xcode"]),
+                targetPolicy: .windowUnderPointer
+            ),
+            GestureProfile(
+                name: "Safari Hover",
+                pattern: .freePath(PathTemplates.right),
+                scope: .apps(["com.apple.Safari"]),
+                targetPolicy: .windowUnderPointer
+            ),
+        ]
+
+        let targeted = GestureCandidateSelector.prepare(
+            profiles: profiles,
+            snapshot: snapshot
+        )
+
+        XCTAssertEqual(targeted.map(\.profile.name), [
+            "Global Active",
+            "Global Hover",
+            "Safari Active",
+            "Xcode Hover",
+        ])
+        XCTAssertEqual(targeted.map(\.target.processIdentifier), [101, 202, 101, 202])
+    }
+
+    func testCandidateSelectorDoesNotFallBackToAnotherPolicy() {
+        let underPointer = targetContext(
+            policy: .windowUnderPointer,
+            processIdentifier: 202,
+            bundleIdentifier: "com.apple.dt.Xcode"
+        )
+        let snapshot = GestureTargetSnapshot(
+            frontmostWindow: .unavailable(.noFrontmostApplication),
+            windowUnderPointer: .resolved(underPointer)
+        )
+        let global = GestureProfile(
+            name: "Global",
+            pattern: .freePath(PathTemplates.up),
+            targetPolicy: .frontmostWindow
+        )
+        let appScoped = GestureProfile(
+            name: "Scoped",
+            pattern: .freePath(PathTemplates.down),
+            scope: .apps(["com.apple.Safari"]),
+            targetPolicy: .frontmostWindow
+        )
+        let hoverScoped = GestureProfile(
+            name: "Hover Scoped",
+            pattern: .freePath(PathTemplates.left),
+            scope: .apps(["com.apple.dt.Xcode"]),
+            targetPolicy: .windowUnderPointer
+        )
+
+        let targeted = GestureCandidateSelector.prepare(
+            profiles: [global, appScoped, hoverScoped],
+            snapshot: snapshot
+        )
+
+        XCTAssertEqual(targeted.map(\.profile.id), [global.id, hoverScoped.id])
+        XCTAssertNil(targeted.first?.target.processIdentifier)
+    }
+
+    private func targetContext(
+        policy: GestureTargetPolicy,
+        processIdentifier: pid_t,
+        bundleIdentifier: String
+    ) -> GestureTargetContext {
+        GestureTargetContext(
+            policy: policy,
+            processIdentifier: processIdentifier,
+            bundleIdentifier: bundleIdentifier,
+            window: GestureWindowTarget(
+                element: AXUIElementCreateApplication(processIdentifier)
+            )
+        )
+    }
+
     func testAcceptsMatchingEnabledProfileForSelectedTrigger() {
         let template = GestureRecognitionTestSupport.recordedNarrowPeak
         let matching = GestureProfile(

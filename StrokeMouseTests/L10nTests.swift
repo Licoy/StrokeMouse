@@ -91,4 +91,42 @@ final class L10nTests: XCTestCase {
         }
         XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
     }
+
+    func testIssue3TargetStringsAreLocalized() {
+        let keys = [
+            "editor.target",
+            "editor.targetWindow",
+            "target.frontmostWindow",
+            "target.windowUnderPointer",
+            "editor.targetHelp.frontmostWindow",
+            "editor.targetHelp.windowUnderPointer",
+            "editor.targetPointerShortcutWarning",
+            "editor.testActionNeedsTarget",
+            "editor.scopeHelp",
+            "engine.actionFailed",
+            "action.targetUnavailable",
+            "action.targetActivationFailed",
+            "action.targetActivationTimedOut",
+            "action.targetFocusChanged",
+            "action.targetWindowControlUnavailable",
+            "action.targetOperationFailed",
+            "action.appNotFound",
+            "action.invalidURL",
+            "action.openFailed",
+        ]
+        L10n.apply(.english)
+        let english = keys.map(L10n.string)
+        L10n.apply(.simplifiedChinese)
+        let chinese = keys.map(L10n.string)
+
+        for (key, value) in zip(keys, english) {
+            XCTAssertFalse(value.isEmpty, "Missing EN for \(key)")
+            XCTAssertNotEqual(value, key, "Unresolved EN key \(key)")
+        }
+        for (key, value) in zip(keys, chinese) {
+            XCTAssertFalse(value.isEmpty, "Missing ZH for \(key)")
+            XCTAssertNotEqual(value, key, "Unresolved ZH key \(key)")
+        }
+        XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
+    }
 }

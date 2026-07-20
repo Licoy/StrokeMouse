@@ -23,6 +23,7 @@ final class GestureEngine {
     private let configStore: ConfigStore
     private let actionExecutor: ActionExecutor
     private let permissionManager: PermissionManager
+    private let targetSession: GestureStrokeTargetSession
 
     private var activeButton: MouseTriggerButton?
     private var strokeOrigin: CGPoint?
@@ -37,10 +38,18 @@ final class GestureEngine {
 
     var onMatch: ((GestureMatchResult) -> Void)?
 
-    init(configStore: ConfigStore, actionExecutor: ActionExecutor, permissionManager: PermissionManager) {
+    init(
+        configStore: ConfigStore,
+        actionExecutor: ActionExecutor,
+        permissionManager: PermissionManager,
+        targetCapturer: (any GestureTargetCapturing)? = nil
+    ) {
         self.configStore = configStore
         self.actionExecutor = actionExecutor
         self.permissionManager = permissionManager
+        targetSession = GestureStrokeTargetSession(
+            capturer: targetCapturer ?? MacGestureTargetCapturer()
+        )
 
         eventTap.onEvent = { [weak self] event in
             Task { @MainActor in
@@ -102,6 +111,7 @@ final class GestureEngine {
         activeButton = nil
         strokeOrigin = nil
         pendingClickQuartzLocation = nil
+        targetSession.cancel()
         isDrawing = false
         currentPath = []
         GestureHUDController.shared.hide()
@@ -166,6 +176,7 @@ final class GestureEngine {
         activeButton = nil
         strokeOrigin = nil
         pendingClickQuartzLocation = nil
+        targetSession.cancel()
         GestureHUDController.shared.hide()
     }
 
@@ -193,6 +204,10 @@ final class GestureEngine {
     private func beginStroke(button: MouseTriggerButton, quartzLocation: CGPoint) {
         activeButton = button
         pendingClickQuartzLocation = quartzLocation
+        targetSession.handleButtonDown(
+            profiles: configStore.enabledGestures(button: button),
+            at: quartzLocation
+        )
         let point = Self.appKitMouseLocation()
         strokeOrigin = point
         currentPath = [point]
@@ -228,6 +243,7 @@ final class GestureEngine {
         let button = activeButton
         let drawing = isDrawing
         let clickLocation = pendingClickQuartzLocation
+        let targetSnapshot = targetSession.takeAtButtonUp()
 
         activeButton = nil
         strokeOrigin = nil
@@ -237,8 +253,8 @@ final class GestureEngine {
         GestureHUDController.shared.hide()
 
         guard let button else { return }
-        if drawing {
-            recognize(path: path, button: button)
+        if drawing, let targetSnapshot {
+            recognize(path: path, button: button, targetSnapshot: targetSnapshot)
         } else if let clickLocation,
                   !eventTap.replayClick(button: button, location: clickLocation) {
             lastError = "Failed to replay mouse click"
@@ -271,12 +287,18 @@ final class GestureEngine {
         sampleTimer = nil
     }
 
-    private func recognize(path: [CGPoint], button: MouseTriggerButton) {
-        let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        let profiles = configStore.enabledGestures(frontmostBundleId: frontmost, button: button)
+    private func recognize(
+        path: [CGPoint],
+        button: MouseTriggerButton,
+        targetSnapshot: GestureTargetSnapshot
+    ) {
+        let targeted = GestureCandidateSelector.prepare(
+            profiles: configStore.enabledGestures(button: button),
+            snapshot: targetSnapshot
+        )
         let evaluation = GestureRecognitionEvaluator.evaluate(
             path: path,
-            profiles: profiles,
+            profiles: targeted.map(\.profile),
             button: button,
             minimumLength: minStrokeDistance
         )
@@ -287,7 +309,9 @@ final class GestureEngine {
             return
         }
 
-        guard let accepted = evaluation.acceptedCandidate else {
+        guard let accepted = evaluation.acceptedCandidate,
+              let selected = targeted.first(where: { $0.profile.id == accepted.profile.id })
+        else {
             statusMessageKey = "engine.noMatch"
             GestureToastController.shared.showNoMatch()
             return
@@ -295,10 +319,22 @@ final class GestureEngine {
 
         let result = GestureMatchResult(profile: accepted.profile, score: accepted.score)
         lastMatch = result
+        lastError = nil
         statusMessageKey = "engine.matched"
         onMatch?(result)
         GestureToastController.shared.showMatched(name: accepted.profile.name, score: accepted.score)
-        actionExecutor.execute(accepted.profile.action)
+        Task { @MainActor [weak self] in
+            do {
+                try await self?.actionExecutor.execute(
+                    accepted.profile.action,
+                    target: selected.target
+                )
+            } catch {
+                self?.lastError = error.localizedDescription
+                self?.statusMessageKey = "engine.actionFailed"
+                GestureToastController.shared.showActionError(error.localizedDescription)
+            }
+        }
     }
 
     /// Evaluate against every enabled profile for the selected trigger without

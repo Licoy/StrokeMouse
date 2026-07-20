@@ -288,6 +288,15 @@ enum AppScope: Codable, Equatable, Sendable {
     }
 }
 
+enum GestureTargetPolicy: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case frontmostWindow
+    case windowUnderPointer
+
+    var id: String { rawValue }
+
+    var displayKey: String { "target.\(rawValue)" }
+}
+
 // MARK: - Profile
 
 struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
@@ -298,6 +307,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
     var pattern: GesturePattern
     var action: GestureAction
     var scope: AppScope
+    var targetPolicy: GestureTargetPolicy
     var notes: String
 
     init(
@@ -308,6 +318,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         pattern: GesturePattern,
         action: GestureAction = .none,
         scope: AppScope = .global,
+        targetPolicy: GestureTargetPolicy = .frontmostWindow,
         notes: String = ""
     ) {
         self.id = id
@@ -317,6 +328,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         self.pattern = pattern
         self.action = action
         self.scope = scope
+        self.targetPolicy = targetPolicy
         self.notes = notes
     }
 
@@ -330,6 +342,8 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         pattern = try container.decode(GesturePattern.self, forKey: .pattern)
         action = try container.decodeIfPresent(GestureAction.self, forKey: .action) ?? .none
         scope = try container.decodeIfPresent(AppScope.self, forKey: .scope) ?? .global
+        targetPolicy = try container.decodeIfPresent(GestureTargetPolicy.self, forKey: .targetPolicy)
+            ?? .frontmostWindow
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
     }
 
@@ -341,11 +355,12 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
             && pattern == other.pattern
             && action == other.action
             && scope == other.scope
+            && targetPolicy == other.targetPolicy
             && notes == other.notes
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, isEnabled, trigger, pattern, action, scope, notes
+        case id, name, isEnabled, trigger, pattern, action, scope, targetPolicy, notes
     }
 }
 

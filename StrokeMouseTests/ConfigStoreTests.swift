@@ -29,7 +29,37 @@ final class ConfigStoreTests: XCTestCase {
         try? FileManager.default.removeItem(at: dir)
     }
 
-    func testEnabledGesturesRespectsScope() {
+    func testLegacyProfileWithoutTargetPolicyDefaultsToFrontmostWindow() throws {
+        let profile = GestureProfile(
+            name: "Legacy",
+            pattern: .freePath(PathTemplates.up)
+        )
+        let encoded = try JSONEncoder().encode(profile)
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object.removeValue(forKey: "targetPolicy")
+
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+        let decoded = try JSONDecoder().decode(GestureProfile.self, from: legacyData)
+
+        XCTAssertEqual(decoded.targetPolicy, .frontmostWindow)
+    }
+
+    func testTargetPolicyRoundTrips() throws {
+        let profile = GestureProfile(
+            name: "Hover",
+            pattern: .freePath(PathTemplates.down),
+            targetPolicy: .windowUnderPointer
+        )
+
+        let data = try JSONEncoder().encode(profile)
+        let decoded = try JSONDecoder().decode(GestureProfile.self, from: data)
+
+        XCTAssertEqual(decoded, profile)
+    }
+
+    func testEnabledGesturesOnlyFiltersEnabledStateAndTrigger() {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -46,17 +76,18 @@ final class ConfigStoreTests: XCTestCase {
             pattern: .freePath(PathTemplates.down),
             scope: .apps(["com.apple.Safari"])
         )
-        store.replaceAll([global, safariOnly])
+        let disabled = GestureProfile(
+            name: "Disabled",
+            isEnabled: false,
+            pattern: .freePath(PathTemplates.left)
+        )
+        store.replaceAll([global, safariOnly, disabled])
 
-        let all = store.enabledGestures(frontmostBundleId: "com.apple.Safari", button: .right)
-        XCTAssertEqual(all.count, 2)
-
-        let onlyGlobal = store.enabledGestures(frontmostBundleId: "com.apple.finder", button: .right)
-        XCTAssertEqual(onlyGlobal.count, 1)
-        XCTAssertEqual(onlyGlobal.first?.name, "Global")
+        let right = store.enabledGestures(button: .right)
+        XCTAssertEqual(right.map(\.name), ["Global", "Safari"])
 
         // Middle button has no matching profiles.
-        let middle = store.enabledGestures(frontmostBundleId: "com.apple.Safari", button: .middle)
+        let middle = store.enabledGestures(button: .middle)
         XCTAssertTrue(middle.isEmpty)
 
         try? FileManager.default.removeItem(at: dir)
@@ -81,10 +112,10 @@ final class ConfigStoreTests: XCTestCase {
         )
         store.replaceAll([right, middle])
 
-        let r = store.enabledGestures(frontmostBundleId: nil, button: .right)
+        let r = store.enabledGestures(button: .right)
         XCTAssertEqual(r.map(\.name), ["Right"])
 
-        let m = store.enabledGestures(frontmostBundleId: nil, button: .middle)
+        let m = store.enabledGestures(button: .middle)
         XCTAssertEqual(m.map(\.name), ["Middle"])
 
         XCTAssertEqual(store.enabledTriggerButtons(), Set([.right, .middle]))
@@ -372,5 +403,9 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertTrue(a.isContentEqual(to: b))
         XCTAssertNotEqual(a.id, b.id)
         XCTAssertFalse(a.isContentEqual(to: GestureProfile(name: "Y", pattern: .freePath(PathTemplates.left))))
+
+        var differentTarget = b
+        differentTarget.targetPolicy = .windowUnderPointer
+        XCTAssertFalse(a.isContentEqual(to: differentTarget))
     }
 }

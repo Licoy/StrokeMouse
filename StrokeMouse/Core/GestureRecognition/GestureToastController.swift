@@ -25,6 +25,10 @@ final class GestureToastController {
         present(text: L10n.string("toast.tooShort"), isSuccess: false)
     }
 
+    func showActionError(_ message: String) {
+        present(text: message, isSuccess: false)
+    }
+
     private func present(text: String, isSuccess: Bool) {
         hideWorkItem?.cancel()
 

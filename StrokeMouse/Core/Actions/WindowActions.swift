@@ -1,94 +1,132 @@
 import AppKit
-import ApplicationServices
 import Foundation
 
-enum WindowActions {
-    static func perform(_ command: WindowCommand) throws {
-        guard let app = NSWorkspace.shared.frontmostApplication else { return }
-        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+@MainActor
+protocol GestureTargetSystemClient: AnyObject {
+    func validateWindow(_ target: GestureTargetContext) throws
+    func pressWindowControl(
+        _ command: WindowCommand,
+        target: GestureTargetContext
+    ) throws -> Bool
+    func hideApplication(_ target: GestureTargetContext) throws
+    func centerWindow(_ target: GestureTargetContext) throws
+    func setMainWindow(_ target: GestureTargetContext) throws
+    func raiseWindow(_ target: GestureTargetContext) throws
+    func activateApplication(_ target: GestureTargetContext) -> Bool
+    func isApplicationActive(_ target: GestureTargetContext) throws -> Bool
+    func verifyFocusedWindow(_ target: GestureTargetContext) throws
+    func postShortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        target: GestureTargetContext
+    ) throws
+}
 
-        switch command {
-        case .hide:
-            app.hide()
-            return
-        case .close, .minimize, .zoom, .fullscreen, .center:
-            break
-        }
+@MainActor
+final class MacGestureTargetActionPlatform: GestureTargetActionPlatform {
+    private let windowActions: WindowActions
 
-        guard let window = focusedWindow(of: appElement) else { return }
-
-        switch command {
-        case .close:
-            pressButton(window, attribute: kAXCloseButtonAttribute as CFString)
-        case .minimize:
-            pressButton(window, attribute: kAXMinimizeButtonAttribute as CFString)
-        case .zoom:
-            pressButton(window, attribute: kAXZoomButtonAttribute as CFString)
-        case .fullscreen:
-            // Toggle fullscreen via green button menu is unreliable; use zoom as best-effort.
-            pressButton(window, attribute: kAXFullScreenButtonAttribute as CFString)
-            // Fallback: standard macOS shortcut Control+Command+F
-            if !buttonExists(window, attribute: kAXFullScreenButtonAttribute as CFString) {
-                try ShortcutAction.post(
-                    keyCode: 3, // F
-                    modifiers: UInt(NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.command.rawValue)
-                )
-            }
-        case .center:
-            center(window)
-        case .hide:
-            break
-        }
+    init(windowActions: WindowActions? = nil) {
+        self.windowActions = windowActions ?? WindowActions()
     }
 
-    private static func focusedWindow(of app: AXUIElement) -> AXUIElement? {
-        var ref: CFTypeRef?
-        let result = AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &ref)
-        guard result == .success, let ref else { return nil }
-        return (ref as! AXUIElement)
-    }
-
-    private static func pressButton(_ window: AXUIElement, attribute: CFString) {
-        var ref: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, attribute, &ref) == .success,
-              let ref
-        else { return }
-        let button = ref as! AXUIElement
-        AXUIElementPerformAction(button, kAXPressAction as CFString)
-    }
-
-    private static func buttonExists(_ window: AXUIElement, attribute: CFString) -> Bool {
-        var ref: CFTypeRef?
-        return AXUIElementCopyAttributeValue(window, attribute, &ref) == .success
-    }
-
-    private static func center(_ window: AXUIElement) {
-        var positionRef: CFTypeRef?
-        var sizeRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &positionRef) == .success,
-              AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef) == .success,
-              let positionRef, let sizeRef
-        else { return }
-
-        var position = CGPoint.zero
-        var size = CGSize.zero
-        AXValueGetValue(positionRef as! AXValue, .cgPoint, &position)
-        AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
-
-        guard let screen = NSScreen.main else { return }
-        let visible = screen.visibleFrame
-        var newOrigin = CGPoint(
-            x: visible.midX - size.width / 2,
-            y: visible.midY - size.height / 2
+    func performShortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        target: GestureTargetContext
+    ) async throws {
+        try await windowActions.performShortcut(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            target: target
         )
+    }
 
-        // AX uses top-left global coordinates with flipped Y relative to AppKit in some contexts;
-        // convert AppKit bottom-left to AX.
-        let axY = screen.frame.maxY - newOrigin.y - size.height
-        newOrigin = CGPoint(x: newOrigin.x, y: axY)
+    func performWindow(
+        _ command: WindowCommand,
+        target: GestureTargetContext
+    ) async throws {
+        try await windowActions.perform(command, target: target)
+    }
+}
 
-        if let posValue = AXValueCreate(.cgPoint, &newOrigin) {
-            AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, posValue)
+@MainActor
+struct WindowActions {
+    private let system: any GestureTargetSystemClient
+    private let activationTimeout: Duration
+    private let pollInterval: Duration
+
+    init(
+        system: (any GestureTargetSystemClient)? = nil,
+        activationTimeout: Duration = .seconds(2),
+        pollInterval: Duration = .milliseconds(25)
+    ) {
+        self.system = system ?? MacGestureTargetSystemClient()
+        self.activationTimeout = activationTimeout
+        self.pollInterval = pollInterval
+    }
+
+    func perform(
+        _ command: WindowCommand,
+        target: GestureTargetContext
+    ) async throws {
+        switch command {
+        case .hide:
+            try system.hideApplication(target)
+        case .center:
+            try system.validateWindow(target)
+            try system.centerWindow(target)
+        case .close, .minimize, .zoom:
+            try system.validateWindow(target)
+            guard try system.pressWindowControl(command, target: target) else {
+                throw GestureTargetError.windowControlUnavailable(command)
+            }
+        case .fullscreen:
+            try system.validateWindow(target)
+            if try !system.pressWindowControl(.fullscreen, target: target) {
+                try await performFullscreenShortcut(target: target)
+            }
+        }
+    }
+
+    func performShortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        target: GestureTargetContext
+    ) async throws {
+        try system.validateWindow(target)
+        try system.setMainWindow(target)
+        try system.raiseWindow(target)
+        guard system.activateApplication(target) else {
+            throw GestureTargetError.activationFailed(target.processIdentifier)
+        }
+        try await waitUntilActive(target)
+        try system.verifyFocusedWindow(target)
+        try system.postShortcut(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            target: target
+        )
+    }
+
+    private func performFullscreenShortcut(
+        target: GestureTargetContext
+    ) async throws {
+        let modifiers = UInt(
+            NSEvent.ModifierFlags.control.rawValue
+                | NSEvent.ModifierFlags.command.rawValue
+        )
+        try await performShortcut(keyCode: 3, modifiers: modifiers, target: target)
+    }
+
+    private func waitUntilActive(_ target: GestureTargetContext) async throws {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: activationTimeout)
+        while try !system.isApplicationActive(target) {
+            guard clock.now < deadline else {
+                throw GestureTargetError.activationTimedOut(target.processIdentifier)
+            }
+            try await Task.sleep(for: pollInterval)
         }
     }
 }

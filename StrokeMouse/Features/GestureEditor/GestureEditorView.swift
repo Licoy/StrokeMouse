@@ -71,6 +71,37 @@ struct GestureEditorView: View {
 
                 Section(L10n.string("editor.action")) {
                     ActionPickerView(kind: $actionKind, action: $profile.action)
+                    if profile.action.requiresCapturedTarget {
+                        Text(L10n.string("editor.testActionNeedsTarget"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section(L10n.string("editor.target")) {
+                    Picker(
+                        L10n.string("editor.targetWindow"),
+                        selection: $profile.targetPolicy
+                    ) {
+                        ForEach(GestureTargetPolicy.allCases) { policy in
+                            Text(L10n.string(policy.displayKey))
+                                .tag(policy)
+                        }
+                    }
+                    Text(L10n.string(targetHelpKey))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if profile.targetPolicy == .windowUnderPointer,
+                       actionKind == .shortcut
+                    {
+                        Label(
+                            L10n.string("editor.targetPointerShortcutWarning"),
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                    }
                 }
 
                 Section(L10n.string("editor.scope")) {
@@ -91,8 +122,17 @@ struct GestureEditorView: View {
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(L10n.string("common.testAction")) {
-                    appState.actionExecutor.execute(profile.action)
+                    Task { @MainActor in
+                        do {
+                            try await appState.actionExecutor.executeForTesting(profile.action)
+                        } catch {
+                            GestureToastController.shared.showActionError(
+                                error.localizedDescription
+                            )
+                        }
+                    }
                 }
+                .disabled(profile.action.requiresCapturedTarget)
                 Button(L10n.string("common.save")) {
                     commitAndSave()
                 }
@@ -120,6 +160,15 @@ struct GestureEditorView: View {
             profile.scope = .apps(scopeBundleIds)
         }
         onSave(profile)
+    }
+
+    private var targetHelpKey: String {
+        switch profile.targetPolicy {
+        case .frontmostWindow:
+            return "editor.targetHelp.frontmostWindow"
+        case .windowUnderPointer:
+            return "editor.targetHelp.windowUnderPointer"
+        }
     }
 }
 

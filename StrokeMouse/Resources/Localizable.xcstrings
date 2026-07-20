@@ -2017,6 +2017,22 @@
         }
       }
     },
+    "engine.actionFailed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesture action failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手势动作执行失败"
+          }
+        }
+      }
+    },
     "engine.noMatch": {
       "localizations": {
         "en": {
@@ -2785,6 +2801,134 @@
         }
       }
     },
+    "editor.target": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesture Target"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手势目标"
+          }
+        }
+      }
+    },
+    "editor.targetWindow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口"
+          }
+        }
+      }
+    },
+    "target.frontmostWindow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Active Window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前活动窗口"
+          }
+        }
+      }
+    },
+    "target.windowUnderPointer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window Under Pointer"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指针下方窗口"
+          }
+        }
+      }
+    },
+    "editor.targetHelp.frontmostWindow": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the active window at the moment the trigger button is pressed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用按下触发键时的当前活动窗口。"
+          }
+        }
+      }
+    },
+    "editor.targetHelp.windowUnderPointer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the window under the pointer at the moment the trigger button is pressed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用按下触发键时指针下方的窗口。"
+          }
+        }
+      }
+    },
+    "editor.targetPointerShortcutWarning": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts bring the target window and app to the front first. This may switch focus or Spaces."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键会先将目标窗口和应用置于前台，可能切换焦点或桌面空间。"
+          }
+        }
+      }
+    },
+    "editor.testActionNeedsTarget": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This action needs a window captured at gesture start. Save, then perform the gesture to test it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此动作需要在手势开始时捕获窗口。请保存后用真实手势测试。"
+          }
+        }
+      }
+    },
     "editor.scope": {
       "localizations": {
         "en": {
@@ -2870,13 +3014,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When Global is off, this gesture only runs in the selected apps."
+            "value": "When Global is off, this gesture only runs when the selected target belongs to one of these apps."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关闭全局后，该手势仅在所选应用中生效。"
+            "value": "关闭全局后，仅当所选手势目标属于以下应用时，此手势才会生效。"
           }
         }
       }
@@ -3085,6 +3229,150 @@
           "stringUnit": {
             "state": "translated",
             "value": "键盘快捷键事件创建失败"
+          }
+        }
+      }
+    },
+    "action.targetUnavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The window captured for this gesture is no longer available."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此手势捕获的窗口已不可用。"
+          }
+        }
+      }
+    },
+    "action.targetActivationFailed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The target app rejected the activation request."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标应用拒绝了激活请求。"
+          }
+        }
+      }
+    },
+    "action.targetActivationTimedOut": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timed out while activating the target app."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "激活目标应用超时。"
+          }
+        }
+      }
+    },
+    "action.targetFocusChanged": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The captured window did not become focused, so the shortcut was not sent."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捕获的窗口未获得焦点，因此没有发送快捷键。"
+          }
+        }
+      }
+    },
+    "action.targetWindowControlUnavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The captured window does not support this action."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捕获的窗口不支持此动作。"
+          }
+        }
+      }
+    },
+    "action.targetOperationFailed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not operate on the captured window."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法操作捕获的窗口。"
+          }
+        }
+      }
+    },
+    "action.appNotFound": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected application could not be found."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到所选应用。"
+          }
+        }
+      }
+    },
+    "action.invalidURL": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The URL is invalid."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL 无效。"
+          }
+        }
+      }
+    },
+    "action.openFailed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The item could not be opened."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开该项目。"
           }
         }
       }

@@ -229,19 +229,10 @@ final class ConfigStore {
         return p
     }
 
-    /// Enabled gestures for the frontmost app and the mouse button used for this stroke.
-    func enabledGestures(frontmostBundleId: String?, button: MouseTriggerButton) -> [GestureProfile] {
-        gestures.filter { profile in
-            guard profile.isEnabled else { return false }
-            guard profile.trigger.button == button else { return false }
-            switch profile.scope {
-            case .global:
-                return true
-            case .apps(let ids):
-                guard let frontmostBundleId else { return false }
-                return ids.contains(frontmostBundleId)
-            }
-        }
+    /// Enabled gestures for the mouse button used for this stroke.
+    /// App scope is evaluated later against each profile's frozen target.
+    func enabledGestures(button: MouseTriggerButton) -> [GestureProfile] {
+        gestures.filter { $0.isEnabled && $0.trigger.button == button }
     }
 
     /// Buttons used by any currently enabled gesture (for event-tap watch set).
