@@ -42,8 +42,8 @@ targets:
         PRODUCT_NAME: StrokeMouse
         PRODUCT_BUNDLE_IDENTIFIER: com.strokemouse.app
         APP_DISPLAY_NAME: StrokeMouse
-        MARKETING_VERSION: "0.0.11"
-        CURRENT_PROJECT_VERSION: "11"
+        MARKETING_VERSION: "0.0.12"
+        CURRENT_PROJECT_VERSION: "12"
         SPARKLE_PUBLIC_KEY: "__REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY__"
         INFOPLIST_FILE: StrokeMouse/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: StrokeMouse/Supporting/StrokeMouse.entitlements
