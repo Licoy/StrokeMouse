@@ -1,5 +1,5 @@
 /** App marketing version — keep in sync with project.yml MARKETING_VERSION */
-export const APP_VERSION = '0.0.9'
+export const APP_VERSION = '0.0.10'
 
 export const GITHUB_REPO = 'https://github.com/Licoy/StrokeMouse'
 export const GITHUB_RELEASES = `${GITHUB_REPO}/releases`
