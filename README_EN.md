@@ -27,13 +27,13 @@ Custom mouse gestures for macOS. Hold a **per-gesture trigger** (right button by
 
 ## Features
 
-- **Menu bar app**: enable/disable gestures, open settings, permission status, quit
-- **Gesture library**: search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
+- **Menu bar app**: enable/disable gestures, open settings, quit; icon tints by status (normal / paused / needs permission); optional **hide menu bar icon** (confirm if Dock is also hidden; reopen via Dock or relaunch to open settings)
+- **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
 - **Per-gesture triggers**: right button by default; middle / side buttons optional; only enabled triggers are monitored
 - **Free-path recognition**: arc-length resampling + 1D/2D normalization + limited rotation; significant-turn structure gates; live stroke HUD while holding the trigger
 - **App scope**: global, or pick apps by icon from installed applications (search / browse `.app`)
-- **Actions**: keyboard shortcuts, open App, URL, media keys, window actions, Shell, AppleScript
-- **Polish**: EN / 中文 UI, light/dark appearance (system or forced), launch at login, hide Dock icon, Sparkle in-app updates (falls back to GitHub Releases on failure)
+- **Actions**: shortcuts, open app (icon picker), URL, media keys, window actions, Shell / AppleScript (syntax-highlighted editor; AppleScript presets such as sleep, lock screen, empty trash, plus custom)
+- **Polish**: EN / 中文 UI, light/dark appearance (system or forced), launch at login, hide Dock / menu bar icon, Sparkle in-app updates (falls back to GitHub Releases on failure)
 
 ## Requirements
 
@@ -48,7 +48,7 @@ Custom mouse gestures for macOS. Hold a **per-gesture trigger** (right button by
 | **Accessibility** | Global mouse listening (`CGEventTap`), shortcut injection, window AX actions |
 | **Automation** | Optional; required when AppleScript controls other apps |
 
-After first launch, grant Accessibility under **Settings → Permissions**. Without it the gesture engine cannot listen.
+On first launch or **Settings → Permissions**, use in-app **Guide Me**: open System Settings and drag StrokeMouse into the list. Without trust the engine will not pretend to listen.
 
 ## Build & run
 

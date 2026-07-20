@@ -64,7 +64,8 @@ While holding the trigger, the current path is drawn on screen so you can align 
 
 In the editor, pick **installed apps by icon** (search, multi-select, or browse a `.app`)—no need to type bundle ids by hand (matching still uses bundle identifiers under the hood). Use for browser-only or IDE-only gestures.
 
-The gesture list scope column shows “Global” or a compact set of app icons.
+The gesture list scope column shows “Global” or a compact set of app icons. Under **Settings → Gestures**, the left sidebar browses Global and per-app groups; creating a gesture under a node pre-fills that scope.
+
 ## Enable / disable
 
 Per-gesture toggle. Disabled profiles leave the monitor set and matching pool.

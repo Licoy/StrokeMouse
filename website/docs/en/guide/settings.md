@@ -12,22 +12,25 @@ Day-to-day controls:
 
 - **Start / stop gestures**
 - **Open settings**
-- **Permission / status hints**
+- **Status tint** — normal; **yellow** when gestures are paused; **red** when Accessibility is missing
 - **Quit**
 
-Optional login launch and hidden Dock icon for a pure menu-bar tool.
+Optional login launch, hidden Dock icon, and **hidden menu bar icon**. With the menu bar icon hidden, click StrokeMouse in the Dock or relaunch the app to open settings; if the Dock is also hidden, relaunch the app. General settings can restore the menu bar icon and **quit the app**.
+
+Hiding both Dock and menu bar icons requires a confirmation so you do not lose every visible entry point.
 
 ## Settings sections
 
 | Section | Content |
 |---------|---------|
-| **Gestures** | Library: search / filter / multi-select batch ops, import/export, editor |
-| **General** | Appearance (system / light / dark), login item, Dock |
-| **Permissions** | Accessibility / Automation status + deep links |
+| **Gestures** | Sidebar (Global / per-app) + list: search / filter / multi-select batch ops, import/export, editor |
+| **General** | Appearance, login item, hide Dock / menu bar, quit |
+| **Permissions** | Accessibility / Automation status, guided authorize, deep links |
 | **About** | Version and product info |
 
 ## Gesture list
 
+- Left sidebar groups by **Global** and **scoped apps** (similar to system shortcut scopes); **New** under an app pre-fills that scope
 - Name, trigger, action, **scope (global or app icons)**, enabled state
 - **Search** by name / action / notes; filter **All / Enabled / Disabled**; column sort
 - Create / edit / delete; **multi-select** to batch enable, disable, delete, or export

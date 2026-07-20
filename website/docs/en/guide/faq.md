@@ -45,6 +45,10 @@ Confirm Accessibility. Some apps expose weak AX trees — try an equivalent shor
 - For controlling other apps, is **Automation** granted?
 - Any system prompt hidden behind windows?
 
+## Hid the menu bar icon?
+
+Click StrokeMouse in the Dock (if the Dock icon is still visible), or relaunch the app — settings opens. Under **Settings → General** you can show the menu bar icon again or quit. If both Dock and menu bar icons are hidden, relaunch the app to reach settings.
+
 ## No launch at login?
 
 Enable in **Settings → General**. Also check **System Settings → Login Items** if macOS disabled it.

@@ -46,11 +46,11 @@ description: "StrokeMouse is a macOS mouse gesture tool. Hold a trigger, draw a 
   subheading="Capabilities"
   heading="Built for power users"
   :items="[
-    { icon: 'menu', title: 'Menu bar resident', desc: 'Start/stop gestures, open settings, see permission status, quit — all from the menu bar.' },
+    { icon: 'menu', title: 'Menu bar resident', desc: 'Start/stop gestures, open settings, quit; icon tints when paused or missing permission — or hide the menu bar icon.' },
     { icon: 'sparkles', title: 'Free-path matching', desc: 'Normalize + limited rotation + structure gates that reject sloppy near-misses.' },
     { icon: 'mouse', title: 'Per-gesture triggers', desc: 'Default right button; middle or side buttons allowed. Only enabled triggers are monitored.' },
-    { icon: 'window', title: 'Visual app scope', desc: 'Global, or multi-select installed apps by icon. Match only when those apps are frontmost.' },
-    { icon: 'zap', title: 'Rich actions', desc: 'Shortcuts, open app, URL, media keys, window ops, Shell, AppleScript.' },
+    { icon: 'window', title: 'Visual app scope', desc: 'Global or per-app matching; settings sidebar groups by Global / app and pre-fills scope on create.' },
+    { icon: 'zap', title: 'Rich actions', desc: 'Shortcuts, pick apps by icon, URL, media and window ops; Shell / AppleScript with presets and syntax highlighting.' },
     { icon: 'import', title: 'Import, export & batch', desc: 'Search, filter, multi-select batch toggles; JSON packages with skip-or-force duplicate handling.' },
   ]"
 />
