@@ -5,9 +5,26 @@ import CoreGraphics
 import Foundation
 
 enum ShortcutRecordingInput: Equatable {
-    case modifierChanged(keyCode: UInt16, isDown: Bool)
+    case flagsChanged(keyCode: UInt16, flags: CGEventFlags)
     case keyDown(keyCode: UInt16, isRepeat: Bool)
     case keyUp(keyCode: UInt16)
+
+    init?(type: CGEventType, event: CGEvent) {
+        let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
+        switch type {
+        case .keyDown:
+            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            self = .keyDown(keyCode: keyCode, isRepeat: isRepeat)
+        case .keyUp:
+            self = .keyUp(keyCode: keyCode)
+        case .flagsChanged:
+            // A swallowed head-tap event may not reach the session key-state table.
+            // Its own flags already describe the modifier state for this transition.
+            self = .flagsChanged(keyCode: keyCode, flags: event.flags)
+        default:
+            return nil
+        }
+    }
 }
 
 enum ShortcutRecordingResult: Equatable {
@@ -30,8 +47,8 @@ struct ShortcutRecordingState {
 
     mutating func handle(_ input: ShortcutRecordingInput) -> ShortcutRecordingResult {
         switch input {
-        case .modifierChanged(let keyCode, let isDown):
-            return handleModifier(keyCode: keyCode, isDown: isDown)
+        case .flagsChanged(let keyCode, let flags):
+            return handleFlagsChanged(keyCode: keyCode, flags: flags)
 
         case .keyDown(let keyCode, let isRepeat):
             return handleKeyDown(keyCode: keyCode, isRepeat: isRepeat)
@@ -41,6 +58,31 @@ struct ShortcutRecordingState {
             hasStartedRelease = true
             return finishIfReleased()
         }
+    }
+
+    private mutating func handleFlagsChanged(
+        keyCode: UInt16,
+        flags: CGEventFlags
+    ) -> ShortcutRecordingResult {
+        if Int(keyCode) == kVK_CapsLock {
+            hasUnsupportedModifier = true
+            return finishIfReleased()
+        }
+        if Int(keyCode) == kVK_Function {
+            let isDown = !unsupportedModifierKeys.contains(keyCode)
+            guard !isDown || flags.contains(.maskSecondaryFn) else {
+                return .listening
+            }
+            return handleModifier(keyCode: keyCode, isDown: isDown)
+        }
+        guard let modifier = Self.modifier(for: keyCode) else { return .listening }
+        // Track each physical key so releasing one side remains distinguishable
+        // while the other side still keeps the aggregate event flag set.
+        if pressedModifiers[keyCode] != nil {
+            return handleModifier(keyCode: keyCode, isDown: false)
+        }
+        guard flags.contains(Self.eventFlag(for: modifier)) else { return .listening }
+        return handleModifier(keyCode: keyCode, isDown: true)
     }
 
     private mutating func handleModifier(
@@ -126,6 +168,15 @@ struct ShortcutRecordingState {
 
     private static func isUnsupportedModifier(_ keyCode: UInt16) -> Bool {
         Int(keyCode) == kVK_Function || Int(keyCode) == kVK_CapsLock
+    }
+
+    private static func eventFlag(for modifier: ShortcutModifier) -> CGEventFlags {
+        switch modifier {
+        case .command: return .maskCommand
+        case .option: return .maskAlternate
+        case .control: return .maskControl
+        case .shift: return .maskShift
+        }
     }
 }
 
@@ -214,20 +265,7 @@ final class ShortcutRecorderTap: @unchecked Sendable {
             return nil
         }
 
-        let keyCode = UInt16(event.getIntegerValueField(.keyboardEventKeycode))
-        let input: ShortcutRecordingInput
-        switch type {
-        case .keyDown:
-            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
-            input = .keyDown(keyCode: keyCode, isRepeat: isRepeat)
-        case .keyUp:
-            input = .keyUp(keyCode: keyCode)
-        case .flagsChanged:
-            let isDown = CGEventSource.keyState(.combinedSessionState, key: CGKeyCode(keyCode))
-            input = .modifierChanged(keyCode: keyCode, isDown: isDown)
-        default:
-            return nil
-        }
+        guard let input = ShortcutRecordingInput(type: type, event: event) else { return nil }
 
         let result = recordingState.handle(input)
         switch result {
