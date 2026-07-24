@@ -18,6 +18,11 @@ enum Constants {
     static let githubReleasesLatestDownloadBase =
         "https://github.com/Licoy/StrokeMouse/releases/latest/download"
 
+    /// GitHub Issues 新建页
+    static let githubIssuesURL = URL(string: "https://github.com/Licoy/StrokeMouse/issues/new")!
+    /// License 文件（GitHub blob 页面）
+    static let licenseURL = URL(string: "https://github.com/Licoy/StrokeMouse/blob/main/LICENSE")!
+
     /// Minimum path length (points) before a gesture is considered intentional.
     static let defaultMinStrokeDistance: CGFloat = 40
     /// Douglas–Peucker simplification epsilon in normalized space.

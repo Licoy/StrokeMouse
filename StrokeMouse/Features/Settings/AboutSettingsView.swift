@@ -71,6 +71,30 @@ struct AboutSettingsView: View {
                 .disabled(isCheckingForUpdates)
             }
 
+            HStack(spacing: 12) {
+                Button {
+                    NSWorkspace.shared.open(Constants.githubIssuesURL)
+                } label: {
+                    Label {
+                        Text(L10n.string("about.reportIssue"))
+                    } icon: {
+                        Image(systemName: "ladybug")
+                    }
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    NSWorkspace.shared.open(Constants.licenseURL)
+                } label: {
+                    Label {
+                        Text(L10n.string("about.license"))
+                    } icon: {
+                        Image(systemName: "doc.text")
+                    }
+                }
+                .buttonStyle(.bordered)
+            }
+
             Spacer()
         }
         .padding(32)
