@@ -47,6 +47,7 @@ final class L10nTests: XCTestCase {
             "gestures.test",
             "gestureTest.title",
             "gestureTest.decision.accepted",
+            "gestureTest.matchMode.singleTurnCanonical",
             "gestureTest.matchMode.simpleSegmentCanonical",
             "gestureTest.matchMode.orderedPath",
             "gestureTest.structure.segmentCount",

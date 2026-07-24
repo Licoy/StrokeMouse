@@ -865,6 +865,22 @@
         }
       }
     },
+    "gestureTest.matchMode.singleTurnCanonical": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flexible single-turn matching"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "弹性单转弯匹配"
+          }
+        }
+      }
+    },
     "gestureTest.matchMode.simpleSegmentCanonical": {
       "localizations": {
         "en": {

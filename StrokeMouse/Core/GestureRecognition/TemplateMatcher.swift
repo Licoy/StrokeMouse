@@ -5,6 +5,7 @@ import Foundation
 /// $1/$N recognizer family. License notices ship with the app resources.
 enum TemplateMatcher {
     enum MatchingMode: String, Sendable {
+        case singleTurnCanonical
         case simpleSegmentCanonical
         case orderedPath
     }
@@ -39,6 +40,9 @@ enum TemplateMatcher {
     private static let nearOneDimensionalRatio: CGFloat = 0.25
     private static let rotationToleranceDegrees = 12
     private static let scoreDistanceScale = 0.18
+    /// Keeps the existing 55° turn budget meaningful after intermediate segments
+    /// are intentionally removed from a rounded-turn canonical path.
+    private static let singleTurnScoreDistanceScale = 0.36
 
     /// Score in 0...1. A structurally incompatible stroke always returns zero.
     static func bestScore(
@@ -74,12 +78,17 @@ enum TemplateMatcher {
         let finalGeometry: SimilarityEvaluation
         if let canonical = canonicalPaths(
             strokeSegments: cores.strokeSegments,
-            templateSegments: cores.templateSegments
+            templateSegments: cores.templateSegments,
+            flexibleSingleTurn: structure.usesFlexibleSingleTurn
         ) {
+            let distanceScale = structure.usesFlexibleSingleTurn
+                ? singleTurnScoreDistanceScale
+                : scoreDistanceScale
             finalGeometry = orderedSimilarity(
                 canonical.stroke,
                 canonical.template,
-                sampleCount: sampleCount
+                sampleCount: sampleCount,
+                distanceScale: distanceScale
             )
         } else {
             finalGeometry = orderedSimilarity(
@@ -112,7 +121,8 @@ enum TemplateMatcher {
     private static func orderedSimilarity(
         _ stroke: [CGPoint],
         _ template: [CGPoint],
-        sampleCount: Int
+        sampleCount: Int,
+        distanceScale: Double = scoreDistanceScale
     ) -> SimilarityEvaluation {
         guard sampleCount > 1,
               let sampledStroke = UnistrokeGeometry.resampledPath(stroke, count: sampleCount),
@@ -153,7 +163,7 @@ enum TemplateMatcher {
         guard bestDistance.isFinite else {
             return SimilarityEvaluation(score: 0, distance: .infinity, rotationDegrees: 0)
         }
-        let score = min(1, max(0, exp(-bestDistance / scoreDistanceScale)))
+        let score = min(1, max(0, exp(-bestDistance / distanceScale)))
         return SimilarityEvaluation(
             score: score,
             distance: bestDistance,
@@ -163,14 +173,37 @@ enum TemplateMatcher {
 
     private static func canonicalPaths(
         strokeSegments: [StrokeStructureDescriptor],
-        templateSegments: [StrokeStructureDescriptor]
+        templateSegments: [StrokeStructureDescriptor],
+        flexibleSingleTurn: Bool
     ) -> (stroke: [CGPoint], template: [CGPoint])? {
+        if flexibleSingleTurn,
+           StrokeStructureMatcher.monotonicTurn(in: strokeSegments) != nil,
+           let stroke = singleTurnCanonicalPath(strokeSegments),
+           let template = singleTurnCanonicalPath(templateSegments) {
+            return (stroke, template)
+        }
+
         guard (2...4).contains(templateSegments.count),
               strokeSegments.count == templateSegments.count,
               let stroke = canonicalPath(strokeSegments, lengthsFrom: templateSegments),
               let template = canonicalPath(templateSegments, lengthsFrom: templateSegments)
         else { return nil }
         return (stroke, template)
+    }
+
+    private static func singleTurnCanonicalPath(
+        _ segments: [StrokeStructureDescriptor]
+    ) -> [CGPoint]? {
+        guard let first = segments.first, let last = segments.last else { return nil }
+        let corner = first.unitDirection
+        return [
+            .zero,
+            corner,
+            CGPoint(
+                x: corner.x + last.unitDirection.x,
+                y: corner.y + last.unitDirection.y
+            ),
+        ]
     }
 
     private static func canonicalPath(
@@ -199,7 +232,10 @@ enum TemplateMatcher {
         rawGeometryScore: Double
     ) -> Diagnostics {
         let mode: MatchingMode? = finalSimilarity.map { _ in
-            (2...4).contains(structure.templateSegments.count)
+            if structure.usesFlexibleSingleTurn {
+                return .singleTurnCanonical
+            }
+            return (2...4).contains(structure.templateSegments.count)
                 ? .simpleSegmentCanonical
                 : .orderedPath
         }

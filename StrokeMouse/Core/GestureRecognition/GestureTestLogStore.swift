@@ -49,7 +49,8 @@ struct GestureTestLogCandidate: Codable, Sendable {
     let score: Double
     let shapeScore: Double
     let structuralMismatch: StrokeStructureMatcher.Mismatch?
-    /// Optional so existing schema-v1 JSON lines remain decodable.
+    /// Normalized 32-point template; optional so schema-v1/v2 lines remain decodable.
+    let templatePath: [CodablePoint]?
     let diagnostics: GestureTestLogMatchDiagnostics?
 }
 
@@ -73,7 +74,7 @@ struct GestureTestLogEntry: Codable, Sendable {
         timestamp: Date = Date()
     ) {
         let accepted = evaluation.acceptedCandidate
-        schemaVersion = 2
+        schemaVersion = 3
         self.timestamp = timestamp
         self.sessionID = sessionID
         selectedTrigger = evaluation.button
@@ -93,11 +94,25 @@ struct GestureTestLogEntry: Codable, Sendable {
                 score: candidate.score,
                 shapeScore: candidate.shapeScore,
                 structuralMismatch: candidate.structuralMismatch,
+                templatePath: Self.normalizedTemplatePath(for: candidate.profile),
                 diagnostics: candidate.diagnostics.map {
                     GestureTestLogMatchDiagnostics($0, finalScore: candidate.score)
                 }
             )
         }
+    }
+
+    private static func normalizedTemplatePath(
+        for profile: GestureProfile
+    ) -> [CodablePoint]? {
+        let points = profile.pattern.freePathPoints.map(\.cgPoint)
+        guard let sampled = UnistrokeGeometry.resampledPath(
+            points,
+            count: Constants.freePathSampleCount
+        ), let normalized = UnistrokeGeometry.normalize(sampled, uniform: true) else {
+            return nil
+        }
+        return normalized.map(CodablePoint.init)
     }
 
     private static func metrics(
