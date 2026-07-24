@@ -130,6 +130,17 @@ struct GestureTestView: View {
             )
             .font(.caption)
             .foregroundStyle(.secondary)
+
+            Text(
+                String(
+                    format: L10n.string("gestureTest.policyMetrics"),
+                    locale: L10n.locale,
+                    Int((result.policy.matchThreshold * 100).rounded()),
+                    Int((result.policy.minimumLeadOverSecond * 100).rounded())
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
         }
     }
 

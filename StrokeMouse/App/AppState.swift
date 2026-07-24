@@ -177,6 +177,9 @@ final class AppState {
         if defaults.object(forKey: PreferenceKey.minStrokeDistance) == nil {
             defaults.set(Double(Constants.defaultMinStrokeDistance), forKey: PreferenceKey.minStrokeDistance)
         }
+        if defaults.object(forKey: PreferenceKey.matchThreshold) == nil {
+            defaults.set(Constants.freePathMatchThreshold, forKey: PreferenceKey.matchThreshold)
+        }
         if defaults.object(forKey: PreferenceKey.appearance) == nil {
             defaults.set(AppearanceMode.system.rawValue, forKey: PreferenceKey.appearance)
         }
@@ -186,6 +189,12 @@ final class AppState {
 
         let enabled = defaults.bool(forKey: PreferenceKey.gesturesEnabled)
         let minDistance = CGFloat(defaults.double(forKey: PreferenceKey.minStrokeDistance))
+        let storedMatchThreshold = defaults.object(
+            forKey: PreferenceKey.matchThreshold
+        ) as? Double
+        let matchThreshold = GestureRecognitionPolicy.normalizedMatchThreshold(
+            storedMatchThreshold
+        )
 
         // Do not start the event tap here — AppState.init schedules startIfPossible
         // after the main run loop is spinning (see init).
@@ -194,6 +203,8 @@ final class AppState {
             enabled: enabled,
             startIfEnabled: false
         )
+        gestureEngine.setMatchThreshold(matchThreshold)
+        defaults.set(gestureEngine.matchThreshold, forKey: PreferenceKey.matchThreshold)
         refreshMenuBarIconStatus()
 
         applyLanguage()
@@ -228,6 +239,14 @@ final class AppState {
         gestureEngine.applyPreferences(
             minDistance: CGFloat(value),
             enabled: UserDefaults.standard.bool(forKey: PreferenceKey.gesturesEnabled)
+        )
+    }
+
+    func updateMatchThreshold(_ value: Double) {
+        gestureEngine.setMatchThreshold(value)
+        UserDefaults.standard.set(
+            gestureEngine.matchThreshold,
+            forKey: PreferenceKey.matchThreshold
         )
     }
 

@@ -833,6 +833,22 @@
         }
       }
     },
+    "gestureTest.policyMetrics": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Threshold %d%% · Required lead %d%%"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阈值 %d%% · 要求领先 %d%%"
+          }
+        }
+      }
+    },
     "gestureTest.matchScore": {
       "localizations": {
         "en": {
@@ -1229,6 +1245,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "最小滑动距离"
+          }
+        }
+      }
+    },
+    "general.matchThreshold": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Match Threshold"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匹配阈值"
+          }
+        }
+      }
+    },
+    "general.matchThresholdHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lower values are more sensitive and may conflict with similar gestures. Structural safety checks always remain enabled."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数值越低越容易触发，也越可能与相似手势冲突；结构安全检查始终启用。"
           }
         }
       }

@@ -8,6 +8,18 @@ struct GestureTestPathMetrics: Codable, Sendable {
     let height: Double
 }
 
+struct GestureTestLogRecognitionPolicy: Codable, Sendable, Equatable {
+    let minimumPathLength: Double
+    let matchThreshold: Double
+    let minimumLeadOverSecond: Double
+
+    init(_ policy: GestureRecognitionPolicy) {
+        minimumPathLength = Double(policy.minimumPathLength)
+        matchThreshold = policy.matchThreshold
+        minimumLeadOverSecond = policy.minimumLeadOverSecond
+    }
+}
+
 struct GestureTestLogSegmentDiagnostics: Codable, Sendable, Equatable {
     let angleDegrees: Double
     let lengthFraction: Double
@@ -62,6 +74,8 @@ struct GestureTestLogEntry: Codable, Sendable {
     let decision: GestureEvaluationDecision
     let acceptedProfileID: UUID?
     let acceptedProfileName: String?
+    /// Optional so schema-v1/v2/v3 lines remain decodable.
+    let policy: GestureTestLogRecognitionPolicy?
     let metrics: GestureTestPathMetrics
     let rawPath: [CodablePoint]
     let sampledPath: [CodablePoint]
@@ -74,13 +88,14 @@ struct GestureTestLogEntry: Codable, Sendable {
         timestamp: Date = Date()
     ) {
         let accepted = evaluation.acceptedCandidate
-        schemaVersion = 3
+        schemaVersion = 4
         self.timestamp = timestamp
         self.sessionID = sessionID
         selectedTrigger = evaluation.button
         decision = evaluation.decision
         acceptedProfileID = accepted?.profile.id
         acceptedProfileName = accepted?.profile.name
+        policy = GestureTestLogRecognitionPolicy(evaluation.policy)
         metrics = Self.metrics(for: rawPath, pathLength: evaluation.pathLength)
         self.rawPath = rawPath.map(CodablePoint.init)
         sampledPath = (UnistrokeGeometry.resampledPath(

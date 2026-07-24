@@ -7,6 +7,7 @@ struct GeneralSettingsView: View {
 
     @AppStorage(PreferenceKey.gesturesEnabled) private var gesturesEnabled = true
     @AppStorage(PreferenceKey.minStrokeDistance) private var minStrokeDistance = Double(Constants.defaultMinStrokeDistance)
+    @AppStorage(PreferenceKey.matchThreshold) private var matchThreshold = Constants.freePathMatchThreshold
     @AppStorage(PreferenceKey.appearance) private var appearanceRaw = AppearanceMode.system.rawValue
     @AppStorage(PreferenceKey.menuBarIconStyle) private var menuBarIconStyle = MenuBarIconStyle.default
     @AppStorage(PreferenceKey.language) private var languageRaw = LanguageOverride.system.rawValue
@@ -67,6 +68,21 @@ struct GeneralSettingsView: View {
                 .onChange(of: minStrokeDistance) { _, newValue in
                     appState.updateMinStrokeDistance(newValue)
                 }
+
+                sliderRow(
+                    title: L10n.string("general.matchThreshold"),
+                    valueText: "\(Int((matchThreshold * 100).rounded()))%",
+                    value: $matchThreshold,
+                    range: Constants.freePathMatchThresholdRange,
+                    step: Constants.freePathMatchThresholdStep
+                )
+                .onChange(of: matchThreshold) { _, newValue in
+                    appState.updateMatchThreshold(newValue)
+                }
+
+                Text(L10n.string("general.matchThresholdHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } header: {
                 Text(L10n.string("general.engine"))
             } footer: {

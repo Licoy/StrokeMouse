@@ -175,7 +175,7 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
             path: template,
             profiles: [matching, wrongTrigger],
             button: .middle,
-            minimumLength: 0
+            policy: .standard(minimumPathLength: 0)
         )
 
         XCTAssertEqual(result.decision, .accepted)
@@ -194,7 +194,7 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
             path: PathTemplates.up.map(\.cgPoint),
             profiles: [disabled],
             button: .right,
-            minimumLength: 0
+            policy: .standard(minimumPathLength: 0)
         )
 
         XCTAssertEqual(result.decision, .noCandidates)
@@ -221,11 +221,38 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
             path: unrelated,
             profiles: [peak, horizontal],
             button: .right,
-            minimumLength: 0
+            policy: .standard(minimumPathLength: 0)
         )
 
         XCTAssertNotEqual(result.decision, .accepted)
         XCTAssertNil(result.acceptedCandidate)
+    }
+
+    func testEqualFinalScoresSortByRawGeometryBeforeUUID() {
+        let vertical = GestureProfile(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "Vertical",
+            pattern: .freePath(PathTemplates.up)
+        )
+        let horizontal = GestureProfile(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            name: "Horizontal",
+            pattern: .freePath(PathTemplates.right)
+        )
+
+        let result = GestureRecognitionEvaluator.evaluate(
+            path: GestureRecognitionTestSupport.recordedNarrowPeak,
+            profiles: [vertical, horizontal],
+            button: .right,
+            policy: .standard(minimumPathLength: 0)
+        )
+
+        XCTAssertEqual(result.candidates.map(\.score), [0, 0])
+        XCTAssertEqual(result.candidates.first?.profile.id, horizontal.id)
+        XCTAssertGreaterThan(
+            result.candidates[0].shapeScore,
+            result.candidates[1].shapeScore
+        )
     }
 
     func testStructuralMismatchIsAvailableForDiagnostics() {
@@ -244,7 +271,7 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
             path: tailed,
             profiles: [profile],
             button: .right,
-            minimumLength: 0
+            policy: .standard(minimumPathLength: 0)
         )
 
         XCTAssertEqual(result.decision, .belowThreshold)
@@ -265,7 +292,7 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
             path: template,
             profiles: profiles,
             button: .right,
-            minimumLength: 0
+            policy: .standard(minimumPathLength: 0)
         )
 
         XCTAssertEqual(result.decision, .ambiguous)
@@ -278,13 +305,13 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
             path: [CGPoint(x: CGFloat.nan, y: 0), CGPoint(x: 1, y: 1)],
             profiles: [],
             button: .right,
-            minimumLength: 40
+            policy: .standard(minimumPathLength: 40)
         )
         let tooShort = GestureRecognitionEvaluator.evaluate(
             path: [CGPoint.zero, CGPoint(x: 5, y: 0)],
             profiles: [],
             button: .right,
-            minimumLength: 40
+            policy: .standard(minimumPathLength: 40)
         )
 
         XCTAssertEqual(invalid.decision, .invalidPath)

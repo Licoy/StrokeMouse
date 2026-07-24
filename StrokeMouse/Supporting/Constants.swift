@@ -29,6 +29,8 @@ enum Constants {
     static let pathSimplifyEpsilon: CGFloat = 0.02
     /// Free-path template match acceptance threshold (0...1, higher is better).
     static let freePathMatchThreshold: Double = 0.70
+    static let freePathMatchThresholdRange: ClosedRange<Double> = 0.60...0.85
+    static let freePathMatchThresholdStep: Double = 0.01
     /// Minimum score lead over second-best to accept (when ≥2 candidates).
     static let freePathMinLeadOverSecond: Double = 0.06
     /// Resample free-path templates to this many points.
@@ -54,6 +56,7 @@ enum PreferenceKey {
     static let gesturesEnabled = "gesturesEnabled"
     static let triggerButton = "triggerButton"
     static let minStrokeDistance = "minStrokeDistance"
+    static let matchThreshold = "matchThreshold"
     static let appearance = "appearanceMode"
     static let menuBarIconStyle = "menuBarIconStyle"
     static let language = "languageOverride"

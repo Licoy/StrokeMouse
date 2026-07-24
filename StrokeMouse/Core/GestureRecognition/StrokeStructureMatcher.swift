@@ -12,9 +12,11 @@ struct StrokeStructureDescriptor: Sendable {
 
 /// Non-compensating structural validation layered ahead of shape similarity.
 enum StrokeStructureMatcher {
-    private static let maximumContinuousTurnDegrees = 120.0
+    private static let maximumStandardContinuousTurnDegrees = 120.0
+    private static let maximumContinuousTurnDegrees = 150.0
     private static let maximumOpposingTurnFraction = 0.25
     private static let maximumConcentratedTurnFraction = 0.95
+    private static let maximumWideTurnConcentratedFraction = 0.88
 
     struct MonotonicTurn: Sendable {
         let sign: Double
@@ -126,7 +128,12 @@ enum StrokeStructureMatcher {
               ) else {
             return false
         }
-        return hasDistributedTurn(points)
+        let concentrationLimit = turn.magnitude > StrokeSegmentReducer.degreesToRadians(
+            maximumStandardContinuousTurnDegrees
+        )
+            ? maximumWideTurnConcentratedFraction
+            : maximumConcentratedTurnFraction
+        return hasDistributedTurn(points, concentrationLimit: concentrationLimit)
     }
 
     static func monotonicTurn(
@@ -249,7 +256,10 @@ enum StrokeStructureMatcher {
         )
     }
 
-    private static func hasDistributedTurn(_ points: [CGPoint]) -> Bool {
+    private static func hasDistributedTurn(
+        _ points: [CGPoint],
+        concentrationLimit: Double
+    ) -> Bool {
         let sampleCount = Constants.freePathSampleCount
         let chordOffset = 3
         guard points.count >= 3 else { return false }
@@ -280,6 +290,6 @@ enum StrokeStructureMatcher {
         let mostConcentrated = dominantTurns.indices.map { start in
             dominantTurns[start..<min(start + windowSize, dominantTurns.count)].reduce(0, +)
         }.max() ?? dominant
-        return mostConcentrated <= dominant * maximumConcentratedTurnFraction
+        return mostConcentrated <= dominant * concentrationLimit
     }
 }

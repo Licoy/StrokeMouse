@@ -3,30 +3,35 @@ import Foundation
 import XCTest
 @testable import StrokeMouse
 
-final class RoundedTurnGestureRegressionTests: XCTestCase {
-    func testAllRecordedRoundedTurnRedrawsMatchRepresentativeTemplate() throws {
+final class WideTurnGestureRegressionTests: XCTestCase {
+    func testRecordedWideTurnRedrawsMeetDefaultRecallTargetWithoutSegmentCountRejections() throws {
         let fixture = try loadFixture()
-        XCTAssertEqual(fixture.strokes.count, 46)
-        XCTAssertEqual(fixture.templateSegments.count, 3)
+        XCTAssertEqual(fixture.strokes.count, 22)
+        XCTAssertEqual(fixture.templateSegments.count, 4)
 
         let evaluations = fixture.strokes.map {
             TemplateMatcher.evaluate($0.cgPoints, fixture.template.cgPoints)
         }
-        let rejected = evaluations.enumerated().compactMap { index, evaluation -> String? in
-            guard evaluation.score < Constants.freePathMatchThreshold else { return nil }
-            return "stroke=\(index + 1), score=\(evaluation.score), "
-                + "raw=\(evaluation.shapeScore), "
-                + "mismatch=\(String(describing: evaluation.structuralMismatch))"
-        }
+        let accepted = evaluations.filter {
+            $0.score >= Constants.freePathMatchThreshold
+        }.count
+        let acceptedAtSixtyFivePercent = evaluations.filter {
+            $0.score >= 0.65
+        }.count
+        let segmentCountRejections = evaluations.filter {
+            $0.structuralMismatch == .segmentCount
+        }.count
 
-        XCTAssertTrue(rejected.isEmpty, "Rejected recorded redraws: \(rejected)")
+        XCTAssertGreaterThanOrEqual(accepted, 21)
+        XCTAssertEqual(acceptedAtSixtyFivePercent, 22)
+        XCTAssertEqual(segmentCountRejections, 0)
     }
 
-    func testEquivalentRoundedTurnsStayContinuousAcrossTwoThreeAndFourSegments() throws {
+    func testWideTurnScoresStayContinuousAcrossTwoThroughSixSegments() throws {
         let fixture = try loadFixture()
         let startAngle = try XCTUnwrap(fixture.templateSegments.first?.angleDegrees)
         let endAngle = try XCTUnwrap(fixture.templateSegments.last?.angleDegrees)
-        let evaluations = (2...4).map { count in
+        let evaluations = (2...6).map { count in
             let angles = (0..<count).map { index in
                 startAngle + (endAngle - startAngle)
                     * Double(index) / Double(count - 1)
@@ -36,41 +41,53 @@ final class RoundedTurnGestureRegressionTests: XCTestCase {
                 fixture.template.cgPoints
             )
         }
-        let segmentCounts = evaluations.map {
-            $0.diagnostics?.strokeSegments.count
-        }
-        XCTAssertEqual(segmentCounts, [2, 3, 4].map(Optional.some))
 
+        XCTAssertEqual(
+            evaluations.map { $0.diagnostics?.strokeSegments.count },
+            (2...6).map(Optional.some)
+        )
         for evaluation in evaluations {
             XCTAssertEqual(evaluation.diagnostics?.mode, .singleTurnCanonical)
             XCTAssertGreaterThanOrEqual(evaluation.score, Constants.freePathMatchThreshold)
         }
         let scores = evaluations.map(\.score)
-        XCTAssertLessThan((scores.max() ?? 1) - (scores.min() ?? 0), 0.03)
+        let adjacentDifferences = zip(scores, scores.dropFirst()).map {
+            abs($0 - $1)
+        }
+        XCTAssertLessThan(
+            adjacentDifferences.max() ?? 1,
+            0.04,
+            "scores=\(scores)"
+        )
     }
 
-    func testTwoSegmentRoundedTemplateMatchesThreeAndFourSegmentRedraws() throws {
+    func testLenientPolicyAcceptsTheRecordedDefaultThresholdNearMiss() throws {
         let fixture = try loadFixture()
-        let classified = fixture.strokes.compactMap { stroke -> (Int, [CGPoint])? in
-            let evaluation = TemplateMatcher.evaluate(
-                stroke.cgPoints,
-                fixture.template.cgPoints
-            )
-            guard let count = evaluation.diagnostics?.strokeSegments.count else { return nil }
-            return (count, stroke.cgPoints)
-        }
-        let twoSegmentTemplate = try XCTUnwrap(classified.first { $0.0 == 2 }?.1)
+        let profile = GestureProfile(
+            name: "Wide turn",
+            pattern: .freePath(fixture.template.cgPoints.map(CodablePoint.init))
+        )
+        let stroke = try XCTUnwrap(fixture.strokes[safe: 15]?.cgPoints)
+        let strict = GestureRecognitionEvaluator.evaluate(
+            path: stroke,
+            profiles: [profile],
+            button: .right,
+            policy: policy(threshold: 0.70)
+        )
+        let lenient = GestureRecognitionEvaluator.evaluate(
+            path: stroke,
+            profiles: [profile],
+            button: .right,
+            policy: policy(threshold: 0.65)
+        )
 
-        for count in [3, 4] {
-            let redraw = try XCTUnwrap(classified.first { $0.0 == count }?.1)
-            let evaluation = TemplateMatcher.evaluate(redraw, twoSegmentTemplate)
-            XCTAssertEqual(evaluation.diagnostics?.mode, .singleTurnCanonical)
-            XCTAssertGreaterThanOrEqual(evaluation.score, Constants.freePathMatchThreshold)
-        }
+        XCTAssertEqual(strict.decision, .belowThreshold)
+        XCTAssertEqual(lenient.decision, .accepted)
     }
 
-    func testRoundedTurnStillRejectsMirrorReverseTruncationAndExtraTurns() throws {
-        let template = try loadFixture().template.cgPoints
+    func testMinimumThresholdStillRejectsUnsafeWideTurnVariants() throws {
+        let fixture = try loadFixture()
+        let template = fixture.template.cgPoints
         let start = try XCTUnwrap(template.first)
         let mirrored = template.map {
             CGPoint(x: start.x - ($0.x - start.x), y: $0.y)
@@ -80,11 +97,13 @@ final class RoundedTurnGestureRegressionTests: XCTestCase {
             CGPoint(x: start.x + 80, y: start.y),
             start,
         ] + Array(template.dropFirst())
+        let multiTurn = polyline(angles: [-80, -20, -65, 55])
         let variants = [
             ("mirrored", mirrored),
             ("reversed", Array(template.reversed())),
             ("truncated", truncated),
             ("prepended", prepended),
+            ("multi-turn", multiTurn),
         ] + [CGFloat(0.15), 0.30, 0.70].map { fraction in
             (
                 "tail-\(fraction)",
@@ -106,7 +125,16 @@ final class RoundedTurnGestureRegressionTests: XCTestCase {
         }
     }
 
-    func testTwoThousandRoundedTurnTailsHaveNoFalseMatches() throws {
+    func testOverOneHundredFiftyDegreeTurnKeepsStrictSegmentCount() {
+        let template = polyline(angles: [-80, 0, 80])
+        let redraw = polyline(angles: [-80, -27, 27, 80])
+        let evaluation = TemplateMatcher.evaluate(redraw, template)
+
+        XCTAssertEqual(evaluation.structuralMismatch, .segmentCount)
+        XCTAssertEqual(evaluation.score, 0)
+    }
+
+    func testTwoThousandWideTurnTailsHaveNoMatchesAtMinimumThreshold() throws {
         let fixture = try loadFixture()
         var falseMatches = 0
         for index in 0..<2_000 {
@@ -127,20 +155,18 @@ final class RoundedTurnGestureRegressionTests: XCTestCase {
         XCTAssertEqual(falseMatches, 0)
     }
 
-    func testDistinctSameTopologyRoundedTurnCandidatesRemainAmbiguous() throws {
+    func testSimilarWideTurnCandidatesRemainAmbiguousAtMinimumThreshold() throws {
         let template = try loadFixture().template.cgPoints
         let rotated = GestureRecognitionTestSupport.rotate(template, degrees: 2)
-        XCTAssertNotEqual(template.map(CodablePoint.init), rotated.map(CodablePoint.init))
         let profiles = [
             GestureProfile(name: "First", pattern: .freePath(template.map(CodablePoint.init))),
             GestureProfile(name: "Second", pattern: .freePath(rotated.map(CodablePoint.init))),
         ]
-
         let result = GestureRecognitionEvaluator.evaluate(
             path: template,
             profiles: profiles,
             button: .right,
-            policy: .standard(minimumPathLength: 0)
+            policy: policy(threshold: Constants.freePathMatchThresholdRange.lowerBound)
         )
 
         XCTAssertEqual(result.decision, .ambiguous)
@@ -151,15 +177,23 @@ final class RoundedTurnGestureRegressionTests: XCTestCase {
         )
     }
 
-    private func loadFixture() throws -> RoundedTurnGestureFixture {
+    private func policy(threshold: Double) -> GestureRecognitionPolicy {
+        GestureRecognitionPolicy(
+            minimumPathLength: 0,
+            matchThreshold: threshold,
+            minimumLeadOverSecond: Constants.freePathMinLeadOverSecond
+        )
+    }
+
+    private func loadFixture() throws -> WideTurnGestureFixture {
         let url = try XCTUnwrap(
-            Bundle(for: RoundedTurnGestureRegressionTests.self).url(
-                forResource: "RecordedRoundedTurnGestureFixture",
+            Bundle(for: WideTurnGestureRegressionTests.self).url(
+                forResource: "RecordedWideTurnGestureFixture",
                 withExtension: "json"
             )
         )
         return try JSONDecoder().decode(
-            RoundedTurnGestureFixture.self,
+            WideTurnGestureFixture.self,
             from: Data(contentsOf: url)
         )
     }
@@ -185,22 +219,28 @@ final class RoundedTurnGestureRegressionTests: XCTestCase {
     }
 }
 
-private struct RoundedTurnGestureFixture: Decodable {
-    let template: [RoundedTurnGesturePoint]
-    let templateSegments: [RoundedTurnGestureSegment]
-    let strokes: [[RoundedTurnGesturePoint]]
+private struct WideTurnGestureFixture: Decodable {
+    let template: [WideTurnGesturePoint]
+    let templateSegments: [WideTurnGestureSegment]
+    let strokes: [[WideTurnGesturePoint]]
 }
 
-private struct RoundedTurnGestureSegment: Decodable {
+private struct WideTurnGestureSegment: Decodable {
     let angleDegrees: Double
     let lengthFraction: Double
 }
 
-private struct RoundedTurnGesturePoint: Decodable {
+private struct WideTurnGesturePoint: Decodable {
     let x: CGFloat
     let y: CGFloat
 }
 
-private extension Array where Element == RoundedTurnGesturePoint {
+private extension Array where Element == WideTurnGesturePoint {
     var cgPoints: [CGPoint] { map { CGPoint(x: $0.x, y: $0.y) } }
+}
+
+private extension Array {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
 }

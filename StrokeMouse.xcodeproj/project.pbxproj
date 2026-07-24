@@ -68,6 +68,7 @@
 		7DE8DB4834D4EF6AE7988EDC /* WindowActionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 857224F415772C5D50C8A67F /* WindowActionsTests.swift */; };
 		8158A8B851DFF34D24F12D31 /* PathTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32908A96E6C69947C2B8BF1F /* PathTemplates.swift */; };
 		85138224BFA71E7A11E6E6D9 /* OnboardingWelcomeStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C656874384F388B3007071C /* OnboardingWelcomeStep.swift */; };
+		8B6300ABAAAD4D6849EB6DF1 /* RecordedWideTurnGestureFixture.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D1F6EC2AF6B064C91349D1B /* RecordedWideTurnGestureFixture.json */; };
 		8C211C4028CCB749587D9475 /* OnboardingPermissionStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C788D1B156AB40831445309 /* OnboardingPermissionStep.swift */; };
 		8D995A28C1B846AA0A41FFDA /* GestureRecognitionEvaluationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54CA52355745A5A6D9B973A2 /* GestureRecognitionEvaluationTests.swift */; };
 		901EA362FE7E25FD626D9770 /* StrokeSegmentReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22BDFE2AA7E93AFADC6260E8 /* StrokeSegmentReducer.swift */; };
@@ -80,6 +81,7 @@
 		AE5269ADCB61E07080114265 /* OnboardingGestureDemoStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9516A610B12F2564617DFB02 /* OnboardingGestureDemoStep.swift */; };
 		AE5A014CA2DE40FF80FCF82F /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9C6FCA0A4196CE5CF54B1FE /* GeneralSettingsView.swift */; };
 		AFC1F6D12E7756E0E69FC246 /* AppleScriptPresetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 336195192821619700D648E6 /* AppleScriptPresetTests.swift */; };
+		B0ACCE525FB81B91CDDBEBBC /* WideTurnGestureRegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028665E78A611CE3540B0F40 /* WideTurnGestureRegressionTests.swift */; };
 		B80BE40DA1B47024F88B922E /* GestureEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E274C0BB3CD32706BC07696A /* GestureEditorView.swift */; };
 		B8441D2B35F22167CE5DFB3B /* ShortcutRecordingStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BF18EBFBDB8449C757BABFB /* ShortcutRecordingStateTests.swift */; };
 		B8EAD7909208F1B62AE87E28 /* MediaActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2997615DB065E884F3C9FC6E /* MediaActions.swift */; };
@@ -122,6 +124,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		028665E78A611CE3540B0F40 /* WideTurnGestureRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WideTurnGestureRegressionTests.swift; sourceTree = "<group>"; };
 		03CB92F4A8F87C446CB53E21 /* StrokeStructureMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeStructureMatcher.swift; sourceTree = "<group>"; };
 		0416F5DF5B1FA8657A2CB54C /* UpdateInstallEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallEnvironment.swift; sourceTree = "<group>"; };
 		0E984684C8AA6EE77170D9FF /* ConfigModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigModels.swift; sourceTree = "<group>"; };
@@ -182,6 +185,7 @@
 		7A9936C0BB33B4D8EC8AB38B /* StrokeMouse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StrokeMouse.entitlements; sourceTree = "<group>"; };
 		7C656874384F388B3007071C /* OnboardingWelcomeStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWelcomeStep.swift; sourceTree = "<group>"; };
 		7CA6D366778AFF733AE72056 /* StrokeStructureExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrokeStructureExtractor.swift; sourceTree = "<group>"; };
+		7D1F6EC2AF6B064C91349D1B /* RecordedWideTurnGestureFixture.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = RecordedWideTurnGestureFixture.json; sourceTree = "<group>"; };
 		822A88F82CA58D4ED1CE45FF /* InstalledAppPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledAppPickerSheet.swift; sourceTree = "<group>"; };
 		84952723214A84B48A39B49C /* MouseEventTap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MouseEventTap.swift; sourceTree = "<group>"; };
 		857224F415772C5D50C8A67F /* WindowActionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowActionsTests.swift; sourceTree = "<group>"; };
@@ -450,6 +454,7 @@
 				13949AD7FB3A58C54F920653 /* TemplateMatcherRobustnessTests.swift */,
 				2EB15E814ADB4C587A458F7A /* TemplateMatcherTests.swift */,
 				49154A7D7A13DAC7BB56C19E /* UpdateInstallEnvironmentTests.swift */,
+				028665E78A611CE3540B0F40 /* WideTurnGestureRegressionTests.swift */,
 				857224F415772C5D50C8A67F /* WindowActionsTests.swift */,
 			);
 			path = StrokeMouseTests;
@@ -460,6 +465,7 @@
 			children = (
 				E7D00A1B0CD2EDA8D001D417 /* RecordedPeakGestureFixture.json */,
 				B1433691AAC42589F503744F /* RecordedRoundedTurnGestureFixture.json */,
+				7D1F6EC2AF6B064C91349D1B /* RecordedWideTurnGestureFixture.json */,
 			);
 			path = Fixtures;
 			sourceTree = "<group>";
@@ -608,6 +614,7 @@
 			files = (
 				ACC22C5934BAC6C3D508658C /* RecordedPeakGestureFixture.json in Resources */,
 				5F03EEC273468860A6BA4BC3 /* RecordedRoundedTurnGestureFixture.json in Resources */,
+				8B6300ABAAAD4D6849EB6DF1 /* RecordedWideTurnGestureFixture.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -656,6 +663,7 @@
 				62EB66605E25A5D9D4969CD4 /* TemplateMatcherRobustnessTests.swift in Sources */,
 				03695EB3DCD049EC658E8DFE /* TemplateMatcherTests.swift in Sources */,
 				52A2E7657189F2AE59B06896 /* UpdateInstallEnvironmentTests.swift in Sources */,
+				B0ACCE525FB81B91CDDBEBBC /* WideTurnGestureRegressionTests.swift in Sources */,
 				7DE8DB4834D4EF6AE7988EDC /* WindowActionsTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

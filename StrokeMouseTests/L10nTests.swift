@@ -50,10 +50,13 @@ final class L10nTests: XCTestCase {
             "gestureTest.matchMode.singleTurnCanonical",
             "gestureTest.matchMode.simpleSegmentCanonical",
             "gestureTest.matchMode.orderedPath",
+            "gestureTest.policyMetrics",
             "gestureTest.structure.segmentCount",
             "gestureTest.structure.segmentProportion",
             "gestureTest.structure.terminalOverrun",
             "gestureTest.logSaved",
+            "general.matchThreshold",
+            "general.matchThresholdHint",
         ]
         L10n.apply(.english)
         let english = keys.map(L10n.string)

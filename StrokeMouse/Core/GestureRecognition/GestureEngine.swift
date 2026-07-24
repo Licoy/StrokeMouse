@@ -29,6 +29,7 @@ final class GestureEngine {
     private var strokeOrigin: CGPoint?
     private var pendingClickQuartzLocation: CGPoint?
     private var minStrokeDistance: CGFloat = Constants.defaultMinStrokeDistance
+    private(set) var matchThreshold: Double = Constants.freePathMatchThreshold
     /// Polling keeps path sampling smooth when apps coalesce drag events.
     private var sampleTimer: Timer?
     private var hudEnabled = true
@@ -85,6 +86,13 @@ final class GestureEngine {
                 statusMessageKey = "engine.paused"
             }
         }
+    }
+
+    func setMatchThreshold(_ value: Double) {
+        matchThreshold = GestureRecognitionPolicy(
+            minimumPathLength: minStrokeDistance,
+            matchThreshold: value
+        ).matchThreshold
     }
 
     /// Rebuild the set of mouse buttons that arm gesture capture from enabled profiles.
@@ -302,7 +310,7 @@ final class GestureEngine {
             path: path,
             profiles: targeted.map(\.profile),
             button: button,
-            minimumLength: minStrokeDistance
+            policy: recognitionPolicy
         )
 
         if evaluation.decision == .tooShort {
@@ -349,7 +357,14 @@ final class GestureEngine {
             path: path,
             profiles: configStore.gestures,
             button: button,
-            minimumLength: minStrokeDistance
+            policy: recognitionPolicy
+        )
+    }
+
+    private var recognitionPolicy: GestureRecognitionPolicy {
+        GestureRecognitionPolicy(
+            minimumPathLength: minStrokeDistance,
+            matchThreshold: matchThreshold
         )
     }
 
