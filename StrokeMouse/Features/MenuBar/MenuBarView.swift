@@ -44,6 +44,10 @@ struct MenuBarView: View {
             }
         }
 
+        Button(L10n.string("about.github")) {
+            NSWorkspace.shared.open(Constants.githubURL)
+        }
+
         Button {
             // Defer: MenuBarExtra tears down its content as the menu closes.
             let check = appState.updaterService.checkForUpdates
