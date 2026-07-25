@@ -381,9 +381,12 @@ struct GesturesSettingsView: View {
     private var toolbar: some View {
         VStack(spacing: 10) {
             HStack(spacing: 12) {
-                Text(detailTitle)
-                    .font(.title2.weight(.semibold))
-                    .lineLimit(1)
+                HStack(spacing: 8) {
+                    detailTitleIcon
+                    Text(detailTitle)
+                        .font(.title2.weight(.semibold))
+                        .lineLimit(1)
+                }
                 Spacer()
                 Button {
                     importGestures()
@@ -438,6 +441,24 @@ struct GesturesSettingsView: View {
         }
     }
 
+    @ViewBuilder
+    private var detailTitleIcon: some View {
+        switch sidebarSelection {
+        case .global:
+            Image(systemName: "globe")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+                .frame(width: 22, height: 22)
+        case .app(let bundleId):
+            let info = AppInfoLookup.info(forBundleId: bundleId)
+            Image(nsImage: AppInfoLookup.icon(for: info.path))
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 20, height: 20)
+                .cornerRadius(4)
+        }
+    }
+
     // MARK: - Table
 
     private var gestureTable: some View {
@@ -454,12 +475,19 @@ struct GesturesSettingsView: View {
             .width(min: 52, ideal: 60, max: 70)
 
             TableColumn(L10n.string("gestures.col.pattern")) { gesture in
-                GestureMiniPreview(points: gesture.pattern.freePathPoints)
-                    .frame(width: 48, height: 28)
+                GestureMiniPreview(
+                    points: gesture.pattern.freePathPoints,
+                    isEnabled: gesture.isEnabled
+                )
+                .frame(width: 48, height: 28)
             }
             .width(min: 56, ideal: 64, max: 80)
 
-            TableColumn(L10n.string("gestures.col.name"), value: \.name)
+            TableColumn(L10n.string("gestures.col.name"), value: \.name) { gesture in
+                Text(gesture.name)
+                    .lineLimit(1)
+                    .foregroundStyle(gesture.isEnabled ? .primary : .secondary)
+            }
 
             TableColumn(L10n.string("gestures.col.trigger")) { gesture in
                 Text(L10n.string(gesture.trigger.button.displayKey))
@@ -957,6 +985,7 @@ private struct GestureScopeCell: View {
 
 private struct GestureMiniPreview: View {
     let points: [CodablePoint]
+    var isEnabled: Bool = true
 
     @AppStorage(PreferenceKey.hudLineColor) private var lineColorHex = Constants.defaultHUDLineColorHex
     @AppStorage(PreferenceKey.hudShowStartPoint) private var showStartPoint = true
@@ -967,6 +996,14 @@ private struct GestureMiniPreview: View {
             return Color(nsColor: ns)
         }
         return DrawingStyle.lineSwiftUIColor
+    }
+
+    private var strokeColor: Color {
+        isEnabled ? lineColor : .secondary
+    }
+
+    private var startFillColor: Color {
+        isEnabled ? .red : .secondary
     }
 
     var body: some View {
@@ -1004,7 +1041,7 @@ private struct GestureMiniPreview: View {
                 let strokeWidth = max(1.2, min(lineWidth * 0.35, 2.5))
                 context.stroke(
                     path,
-                    with: .color(lineColor),
+                    with: .color(strokeColor),
                     style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round)
                 )
             }
@@ -1013,12 +1050,13 @@ private struct GestureMiniPreview: View {
                 let start = map(pts[0])
                 let r: CGFloat = 3.5
                 let circle = Path(ellipseIn: CGRect(x: start.x - r, y: start.y - r, width: r * 2, height: r * 2))
-                context.fill(circle, with: .color(.red))
-                context.stroke(circle, with: .color(.white.opacity(0.9)), lineWidth: 1)
+                context.fill(circle, with: .color(startFillColor))
+                context.stroke(circle, with: .color(.white.opacity(isEnabled ? 0.9 : 0.5)), lineWidth: 1)
             }
         }
-        .id("\(lineColorHex)-\(showStartPoint)-\(lineWidth)")
+        .id("\(lineColorHex)-\(showStartPoint)-\(lineWidth)-\(isEnabled)")
         .background(RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .controlBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.quaternary, lineWidth: 1))
+        .opacity(isEnabled ? 1 : 0.75)
     }
 }
