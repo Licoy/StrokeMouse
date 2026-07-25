@@ -4,7 +4,7 @@
 
 - 默认语言：简体中文（`/`）
 - 英文：`/en/`
-- 主题：扩展 VitePress 默认主题的极客风定制（`docs/.vitepress/theme`）
+- 主题：扩展 VitePress 默认主题的产品向定制（Geist + 品牌蓝，`docs/.vitepress/theme`）
 
 ## 开发
 

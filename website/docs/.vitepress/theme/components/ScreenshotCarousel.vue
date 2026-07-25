@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Autoplay, Navigation, Pagination } from 'swiper/modules'
 import type { Swiper as SwiperType } from 'swiper'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { PhCaretLeft, PhCaretRight } from '@phosphor-icons/vue'
+import { useReveal } from '../composables/useReveal'
 
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -16,16 +17,11 @@ export interface Shot {
 
 const props = withDefaults(
   defineProps<{
-    subheading?: string
     heading?: string
     description?: string
-    frameTag?: string
-    framePath?: string
     shots?: Shot[]
   }>(),
   {
-    frameTag: 'Preview',
-    framePath: '~/StrokeMouse/screenshots',
     shots: () => [
       { src: '/screenshots/1.png', alt: 'Gesture list' },
       { src: '/screenshots/2.png', alt: 'Gesture test' },
@@ -40,6 +36,23 @@ const props = withDefaults(
 const modules = [Autoplay, Navigation, Pagination]
 const active = ref(0)
 const swiperRef = ref<SwiperType | null>(null)
+const root = ref<HTMLElement | null>(null)
+const reducedMotion = ref(false)
+useReveal(root)
+
+onMounted(() => {
+  reducedMotion.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+})
+
+const autoplay = computed(() =>
+  reducedMotion.value
+    ? false
+    : {
+        delay: 4000,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true,
+      },
+)
 
 function onSwiper(swiper: SwiperType) {
   swiperRef.value = swiper
@@ -55,20 +68,15 @@ function onSlideChange(swiper: SwiperType) {
 </script>
 
 <template>
-  <section class="sm-showcase">
-    <header v-if="heading || subheading || description" class="sm-showcase__head">
-      <p v-if="subheading" class="sm-showcase__kicker">{{ subheading }}</p>
-      <h2 v-if="heading" class="sm-showcase__heading">{{ heading }}</h2>
-      <p v-if="description" class="sm-showcase__desc">{{ description }}</p>
+  <section ref="root" class="sm-showcase sm-section">
+    <header v-if="heading || description" class="sm-showcase__head sm-reveal">
+      <h2 v-if="heading" class="sm-section__title">{{ heading }}</h2>
+      <p v-if="description" class="sm-section__lead">{{ description }}</p>
     </header>
 
-    <div class="sm-showcase__carousel">
-      <div class="sm-showcase__frame">
-        <div class="sm-showcase__frame-bar">
-          <span class="sm-showcase__frame-tag">{{ frameTag }}</span>
-          <span class="sm-showcase__frame-path">{{ framePath }}</span>
-        </div>
-        <div class="sm-showcase__stage">
+    <div class="sm-showcase__carousel sm-reveal">
+      <div class="sm-bezel">
+        <div class="sm-bezel__core sm-showcase__stage">
           <Swiper
             :modules="modules"
             :slides-per-view="1"
@@ -77,11 +85,7 @@ function onSlideChange(swiper: SwiperType) {
             :simulate-touch="true"
             :allow-touch-move="true"
             :speed="450"
-            :autoplay="{
-              delay: 3500,
-              disableOnInteraction: false,
-              pauseOnMouseEnter: true,
-            }"
+            :autoplay="autoplay"
             :navigation="{
               nextEl: '.sm-showcase-next',
               prevEl: '.sm-showcase-prev',
@@ -102,10 +106,10 @@ function onSlideChange(swiper: SwiperType) {
           </Swiper>
 
           <button type="button" class="sm-showcase__nav sm-showcase-prev" aria-label="Previous">
-            <ChevronLeft :size="22" />
+            <PhCaretLeft :size="20" weight="bold" />
           </button>
           <button type="button" class="sm-showcase__nav sm-showcase-next" aria-label="Next">
-            <ChevronRight :size="22" />
+            <PhCaretRight :size="20" weight="bold" />
           </button>
         </div>
       </div>
@@ -131,46 +135,8 @@ function onSlideChange(swiper: SwiperType) {
 </template>
 
 <style scoped>
-.sm-showcase {
-  margin: 2.5rem 0 2rem;
-}
-
 .sm-showcase__head {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 1.75rem;
-}
-
-.sm-showcase__kicker {
-  margin: 0 0 0.4rem;
-  font-family: var(--sm-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sm-accent);
-}
-
-/* Override .vp-doc h2 border-top / padding (doc section divider) */
-h2.sm-showcase__heading {
-  margin: 0;
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-  border-top: none !important;
-  font-family: var(--sm-font-mono);
-  font-size: 1.45rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--sm-text);
-}
-
-.sm-showcase__desc {
-  margin: 0.65rem 0 0;
-  max-width: 36rem;
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: var(--sm-text-muted);
+  margin-bottom: 0.25rem;
 }
 
 .sm-showcase__carousel {
@@ -179,58 +145,21 @@ h2.sm-showcase__heading {
   margin: 0 auto;
 }
 
-.sm-showcase__frame {
-  border-radius: var(--sm-radius);
-  background: var(--sm-panel);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow:
-    inset 0 0 0 1px var(--sm-border),
-    var(--sm-shadow);
-  overflow: hidden;
-}
-
-.sm-showcase__frame-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--sm-bg-elevated);
-  border-bottom: 1px solid var(--sm-border);
-  font-family: var(--sm-font-mono);
-  font-size: 11px;
-}
-
-.sm-showcase__frame-tag {
-  color: var(--sm-accent);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.sm-showcase__frame-path {
-  color: var(--sm-text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .sm-showcase__stage {
   position: relative;
-  height: 380px;
-  background: var(--sm-bg-elevated);
+  height: 400px;
+  background: var(--sm-bg-soft);
 }
 
 @media (max-width: 640px) {
   .sm-showcase__stage {
-    height: 240px;
+    height: 250px;
   }
 }
 
 @media (min-width: 641px) and (max-width: 959px) {
   .sm-showcase__stage {
-    height: 320px;
+    height: 340px;
   }
 }
 
@@ -252,11 +181,11 @@ h2.sm-showcase__heading {
 }
 
 .sm-showcase__swiper :deep(.swiper-slide) {
-  background: var(--sm-bg-elevated);
+  background: var(--sm-bg-soft);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 16px;
+  padding: 14px 18px;
   box-sizing: border-box;
 }
 
@@ -268,6 +197,7 @@ h2.sm-showcase__heading {
   height: auto;
   object-fit: contain;
   pointer-events: none;
+  border-radius: 8px;
 }
 
 .sm-showcase__nav {
@@ -275,11 +205,11 @@ h2.sm-showcase__heading {
   top: 50%;
   transform: translateY(-50%);
   z-index: 5;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   border: 1px solid var(--sm-border);
-  background: var(--sm-bg-elevated);
+  background: color-mix(in srgb, var(--sm-bg-elevated) 92%, transparent);
   color: var(--sm-text-muted);
   display: flex;
   align-items: center;
@@ -288,11 +218,10 @@ h2.sm-showcase__heading {
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+    opacity 0.25s var(--sm-ease),
+    color 0.2s var(--sm-ease),
+    border-color 0.2s var(--sm-ease),
+    background 0.2s var(--sm-ease);
   box-shadow: var(--sm-shadow-sm);
 }
 
@@ -304,16 +233,14 @@ h2.sm-showcase__heading {
 .sm-showcase__nav:hover {
   color: var(--sm-accent);
   border-color: var(--sm-border-strong);
-  background: var(--sm-bg-soft);
-  box-shadow: 0 0 0 1px var(--sm-accent-glow), var(--sm-shadow-sm);
 }
 
 .sm-showcase-prev {
-  left: 10px;
+  left: 12px;
 }
 
 .sm-showcase-next {
-  right: 10px;
+  right: 12px;
 }
 
 @media (hover: none), (pointer: coarse) {
@@ -338,7 +265,7 @@ h2.sm-showcase__heading {
   background: var(--sm-text-faint);
   opacity: 0.4;
   margin: 0 !important;
-  transition: all 0.25s ease;
+  transition: all 0.25s var(--sm-ease);
 }
 
 .sm-showcase__pagination :deep(.swiper-pagination-bullet-active) {
@@ -362,16 +289,16 @@ h2.sm-showcase__heading {
   width: 72px;
   height: 48px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--sm-border);
   overflow: hidden;
   cursor: pointer;
   background: var(--sm-bg-elevated);
   opacity: 0.55;
   transition:
-    opacity 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    opacity 0.2s var(--sm-ease),
+    border-color 0.2s var(--sm-ease),
+    box-shadow 0.2s var(--sm-ease);
 }
 
 .sm-showcase__thumb img {
@@ -398,15 +325,8 @@ h2.sm-showcase__heading {
   }
 
   .sm-showcase__nav {
-    width: 38px;
-    height: 38px;
-  }
-
-  .sm-showcase-prev {
-    left: 8px;
-  }
-  .sm-showcase-next {
-    right: 8px;
+    width: 36px;
+    height: 36px;
   }
 }
 

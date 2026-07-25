@@ -170,7 +170,7 @@ export const PAGE_SEO: Record<string, PageSeo> = {
 const FALLBACK_ZH: PageSeo = {
   title: SITE_TITLE,
   description:
-    'StrokeMouse — macOS 鼠标手势自定义工具。按住触发键绘制轨迹，匹配后执行动作。',
+    'StrokeMouse 是 macOS 鼠标手势自定义工具。按住触发键绘制轨迹，匹配后执行动作。',
   keywords: 'StrokeMouse,macOS,鼠标手势',
   ogType: 'website',
 }
@@ -178,7 +178,7 @@ const FALLBACK_ZH: PageSeo = {
 const FALLBACK_EN: PageSeo = {
   title: SITE_TITLE,
   description:
-    'StrokeMouse — custom mouse gestures for macOS. Hold a trigger, draw a stroke, run actions.',
+    'StrokeMouse is a custom mouse gestures tool for macOS. Hold a trigger, draw a stroke, run actions.',
   keywords: 'StrokeMouse,macOS,mouse gestures',
   ogType: 'website',
 }

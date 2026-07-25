@@ -9,10 +9,9 @@ const { Layout } = DefaultTheme
   <Layout>
     <template #layout-top>
       <div class="sm-backdrop" aria-hidden="true">
-        <div class="sm-backdrop__grid" />
-        <div class="sm-backdrop__grid-lg" />
         <div class="sm-backdrop__vignette" />
       </div>
+      <div class="sm-grain" aria-hidden="true" />
     </template>
     <template #layout-bottom>
       <SiteFooter />

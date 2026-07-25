@@ -41,6 +41,7 @@ const licenseUrl = `${GITHUB_REPO}/blob/main/LICENSE`
     <div class="sm-footer__inner">
       <div class="sm-footer__top">
         <div class="sm-footer__brand">
+          <img class="sm-footer__logo" src="/logo.svg" width="22" height="22" alt="" />
           <span class="sm-footer__name">{{ copy.brand }}</span>
         </div>
         <nav class="sm-footer__nav">
@@ -61,25 +62,23 @@ const licenseUrl = `${GITHUB_REPO}/blob/main/LICENSE`
 
 <style scoped>
 .sm-footer {
-  margin-top: 4rem;
+  margin-top: 2rem;
   border-top: 1px solid var(--sm-border);
-  background: color-mix(in srgb, var(--sm-bg-elevated) 85%, transparent);
+  background: color-mix(in srgb, var(--sm-bg-elevated) 88%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .sm-footer__inner {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2.25rem 1.5rem 2.5rem;
-  display: grid;
-  gap: 1.15rem;
 }
 
 .sm-footer__top {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1.25rem 2rem;
 }
@@ -87,37 +86,48 @@ const licenseUrl = `${GITHUB_REPO}/blob/main/LICENSE`
 .sm-footer__brand {
   display: flex;
   align-items: center;
+  gap: 0.55rem;
+}
+
+.sm-footer__logo {
+  display: block;
+  width: 22px;
+  height: 22px;
 }
 
 .sm-footer__name {
-  font-family: var(--sm-font-mono);
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--sm-accent);
+  font-family: var(--sm-font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--sm-text);
   letter-spacing: -0.02em;
 }
 
 .sm-footer__nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.85rem 1.4rem;
+  gap: 0.85rem 1.35rem;
 }
 
 .sm-footer__nav a {
-  font-family: var(--sm-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
+  font-family: var(--sm-font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
   color: var(--sm-text-muted);
   text-decoration: none;
-  padding: 0.25rem 0;
-  box-shadow: inset 0 -1px 0 0 transparent;
-  transition:
-    color 0.15s ease,
-    box-shadow 0.15s ease;
+  padding: 0.2rem 0;
+  transition: color 0.2s var(--sm-ease);
 }
 
 .sm-footer__nav a:hover {
   color: var(--sm-accent);
-  box-shadow: inset 0 -1px 0 0 var(--sm-accent);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .sm-footer {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--sm-bg-elevated);
+  }
 }
 </style>

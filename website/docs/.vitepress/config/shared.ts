@@ -93,7 +93,7 @@ export const sharedConfig: UserConfig = {
     const isEn = pageData.relativePath.replace(/\\/g, '/').startsWith('en/')
     const locale = isEn ? 'en_US' : 'zh_CN'
     const fullTitle =
-      seo.title === SITE_TITLE ? `${SITE_TITLE} — ${isEn ? 'Mouse gestures for macOS' : 'macOS 鼠标手势'}` : `${seo.title} | ${SITE_TITLE}`
+      seo.title === SITE_TITLE ? `${SITE_TITLE} - ${isEn ? 'Mouse gestures for macOS' : 'macOS 鼠标手势'}` : `${seo.title} | ${SITE_TITLE}`
 
     const tags: HeadConfig[] = [
       ['meta', { name: 'description', content: seo.description }],

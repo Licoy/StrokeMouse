@@ -8,30 +8,51 @@ description: "StrokeMouse is a macOS mouse gesture tool. Hold a trigger, draw a 
 <div class="sm-home">
 
 <GeekHero
-  title="StrokeMouse"
-  title-accent="Draw. Match. Act."
-  tagline="Hold a trigger button, draw a stroke, and run shortcuts, apps, window actions, media keys, or Shell / AppleScript. Import and export configs, pick app scopes visually. Local-first, menu-bar resident—no remote telemetry or data collection."
+  title="Drive macOS with mouse strokes"
+  tagline="Hold a trigger, draw a stroke, run shortcuts, window actions, or scripts."
   primary-text="Download"
   primary-link="/en/download"
   secondary-text="Read the docs"
   secondary-link="/en/guide/getting-started"
-  hud-label="stroke capture · live"
+  image-src="/screenshots/1.png"
+  image-alt="Gesture library"
+  hud-label="Stroke capture"
 />
 
-<TerminalBlock
-  title="quickstart"
-  :lines="[
-    'open StrokeMouse.app',
-    '# Settings → Permissions → enable Accessibility',
-    '# Hold right button, stroke upward, release',
-    '# → Mission Control',
+<ProofStrip
+  :items="['Local-first', 'No telemetry', 'Open source AGPL', 'macOS 14+']"
+/>
+
+<HowItWorks
+  heading="Your first gesture in three steps"
+  :steps="[
+    { title: 'Download', desc: 'Install the Apple Silicon or Intel build.' },
+    { title: 'Grant access', desc: 'Enable Accessibility in System Settings.' },
+    { title: 'Draw', desc: 'Hold right-click and stroke up for Mission Control.' },
   ]"
 />
 
+<FeatureBento
+  heading="Built for power users"
+  lead="Menu-bar resident, controllable matching, actions from shortcuts to scripts."
+  :items="[
+    { icon: 'sparkles', title: 'Free-path matching', desc: 'Normalize, limited rotation, and structure gates that reject sloppy near-misses.', size: 'large', image: '/screenshots/5.png', imageAlt: 'Record stroke' },
+    { icon: 'menu', title: 'Menu bar resident', desc: 'Start or stop gestures, open settings; icon tints when paused or untrusted.' },
+    { icon: 'mouse', title: 'Per-gesture triggers', desc: 'Default right button; middle or side allowed. Only enabled triggers are watched.' },
+    { title: 'General settings', desc: 'Match threshold, appearance, and engine options.', size: 'media', image: '/screenshots/3.png', imageAlt: 'General settings' },
+    { icon: 'window', title: 'App scope', desc: 'Global or per-app matching; sidebar groups by scope.' },
+    { icon: 'zap', title: 'Actions and import', desc: 'Shortcuts, windows, media, Shell and AppleScript; JSON batch tools.' },
+  ]"
+/>
+
+<GestureTiles
+  heading="Default gestures"
+  lead="Useful strokes out of the box, fully customizable."
+/>
+
 <ScreenshotCarousel
-  heading="Screenshots"
-  description="Gesture library, testing, settings, and permissions — what you see is what you get."
-  frame-tag="Preview"
+  heading="Product screens"
+  description="Gesture library, testing, settings, and permissions."
   :shots="[
     { src: '/screenshots/1.png', alt: 'Gesture list' },
     { src: '/screenshots/2.png', alt: 'Gesture test' },
@@ -42,42 +63,14 @@ description: "StrokeMouse is a macOS mouse gesture tool. Hold a trigger, draw a 
   ]"
 />
 
-<FeatureGrid
-  subheading="Capabilities"
-  heading="Built for power users"
-  :items="[
-    { icon: 'menu', title: 'Menu bar resident', desc: 'Start/stop gestures, open settings, quit; icon tints when paused or missing permission — or hide the menu bar icon.' },
-    { icon: 'sparkles', title: 'Free-path matching', desc: 'Normalize + limited rotation + structure gates that reject sloppy near-misses.' },
-    { icon: 'mouse', title: 'Per-gesture triggers', desc: 'Default right button; middle or side buttons allowed. Only enabled triggers are monitored.' },
-    { icon: 'window', title: 'Visual app scope', desc: 'Global or per-app matching; settings sidebar groups by Global / app and pre-fills scope on create.' },
-    { icon: 'zap', title: 'Rich actions', desc: 'Shortcuts, pick apps by icon, URL, media and window ops; Shell / AppleScript with presets and syntax highlighting.' },
-    { icon: 'import', title: 'Import, export & batch', desc: 'Search, filter, multi-select batch toggles; JSON packages with skip-or-force duplicate handling.' },
-  ]"
+<HomeCta
+  heading="Get StrokeMouse"
+  lead="Runs locally. Configs import and export as JSON."
+  :steps="['Download the build for your chip', 'Grant Accessibility', 'Draw your first stroke']"
+  primary-text="Download"
+  primary-link="/en/download"
+  secondary-text="Read the docs"
+  secondary-link="/en/guide/getting-started"
 />
-
-<DefaultGestures subheading="Defaults" heading="Default gestures" />
-
-<section class="sm-cta">
-  <p class="sm-cta__kicker">Get started now</p>
-  <h2 class="sm-cta__title">Three steps to your first gesture</h2>
-  <ol class="sm-cta__steps">
-    <li>
-      <span class="sm-cta__num">1</span>
-      <span class="sm-cta__text"><strong>Download</strong> — pick Apple Silicon or Intel</span>
-    </li>
-    <li>
-      <span class="sm-cta__num">2</span>
-      <span class="sm-cta__text"><strong>Grant Accessibility</strong> — Settings → Permissions</span>
-    </li>
-    <li>
-      <span class="sm-cta__num">3</span>
-      <span class="sm-cta__text"><strong>Draw a stroke</strong> — hold right-click, swipe up for Mission Control</span>
-    </li>
-  </ol>
-  <div class="sm-cta__actions">
-    <a class="sm-btn sm-btn--primary" href="/en/download">Download now</a>
-    <a class="sm-btn sm-btn--ghost" href="/en/guide/getting-started">Quick start guide</a>
-  </div>
-</section>
 
 </div>

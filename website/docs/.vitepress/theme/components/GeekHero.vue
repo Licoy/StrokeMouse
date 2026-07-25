@@ -1,179 +1,165 @@
 <script setup lang="ts">
+import SmButton from './SmButton.vue'
 import HeroStrokeHud from './HeroStrokeHud.vue'
 
 defineProps<{
-  badge?: string
   title: string
-  titleAccent?: string
   tagline: string
   primaryText: string
   primaryLink: string
   secondaryText: string
   secondaryLink: string
-  statusLine?: string
+  imageSrc?: string
+  imageAlt?: string
   hudLabel?: string
-  hudFooterLeft?: string
-  hudFooterRight?: string
 }>()
 </script>
 
 <template>
-  <section class="geek-hero">
-    <div class="geek-hero__meta">
-      <span v-if="badge" class="geek-hero__badge">
-        <span class="geek-hero__pulse" />
-        {{ badge }}
-      </span>
-      <p v-if="statusLine" class="geek-hero__status">
-        <span class="geek-hero__prompt">$</span> {{ statusLine }}
-      </p>
+  <section class="product-hero">
+    <div class="product-hero__copy">
+      <h1 class="product-hero__title">{{ title }}</h1>
+      <p class="product-hero__tagline">{{ tagline }}</p>
+      <div class="product-hero__actions">
+        <SmButton :href="primaryLink">{{ primaryText }}</SmButton>
+        <SmButton :href="secondaryLink" variant="ghost" :arrow="false">
+          {{ secondaryText }}
+        </SmButton>
+      </div>
     </div>
 
-    <h1 class="geek-hero__title">
-      <span class="geek-hero__title-main">{{ title }}</span>
-      <span v-if="titleAccent" class="geek-hero__title-accent">{{ titleAccent }}</span>
-    </h1>
-
-    <p class="geek-hero__tagline">{{ tagline }}</p>
-
-    <div class="geek-hero__actions">
-      <a class="sm-btn sm-btn--primary" :href="primaryLink">{{ primaryText }}</a>
-      <a class="sm-btn sm-btn--ghost" :href="secondaryLink">{{ secondaryText }}</a>
-    </div>
-
-    <div class="geek-hero__visual">
-      <HeroStrokeHud :label="hudLabel" />
+    <div class="product-hero__media">
+      <div class="sm-bezel product-hero__bezel">
+        <div class="sm-bezel__core product-hero__core">
+          <img
+            v-if="imageSrc"
+            class="product-hero__shot"
+            :src="imageSrc"
+            :alt="imageAlt || ''"
+            width="2032"
+            height="1342"
+            fetchpriority="high"
+            decoding="async"
+          />
+        </div>
+      </div>
+      <div class="product-hero__hud">
+        <HeroStrokeHud :label="hudLabel" compact />
+      </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.geek-hero {
+.product-hero {
   display: grid;
-  gap: 1.25rem;
-  padding: 1rem 0 2.5rem;
-}
-
-.geek-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
+  gap: 2rem;
+  padding: 0.25rem 0 0.5rem;
   align-items: center;
-  gap: 0.75rem 1.25rem;
 }
 
-.geek-hero__badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: var(--sm-font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--sm-accent);
-  background: var(--sm-accent-glow);
-  border: none;
-  box-shadow: inset 0 0 0 1px var(--sm-border-strong);
-  border-radius: 999px;
-  padding: 0.35rem 0.85rem;
-}
-
-.geek-hero__pulse {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--sm-accent);
-  box-shadow: 0 0 0 0 var(--sm-accent-glow);
-  animation: pulse 1.8s ease-out infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--sm-accent) 55%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 8px transparent;
-  }
-  100% {
-    box-shadow: 0 0 0 0 transparent;
-  }
-}
-
-.geek-hero__status {
-  margin: 0;
-  font-family: var(--sm-font-mono);
-  font-size: 13px;
-  color: var(--sm-text-muted);
-}
-
-.geek-hero__prompt {
-  color: var(--sm-accent);
-  margin-right: 0.25rem;
-}
-
-.geek-hero__title {
-  margin: 0;
-  font-family: var(--sm-font-mono);
-  font-size: clamp(2.1rem, 5vw, 3.4rem);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.03em;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35em;
-}
-
-.geek-hero__title-main {
-  color: var(--sm-text);
-}
-
-.geek-hero__title-accent {
-  background: linear-gradient(120deg, var(--sm-accent), var(--sm-cyan));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.geek-hero__tagline {
-  margin: 0;
-  max-width: 36rem;
-  font-size: 1.1rem;
-  line-height: 1.65;
-  color: var(--sm-text-muted);
-}
-
-.geek-hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.35rem;
-}
-
-.geek-hero__visual {
-  margin-top: 1.5rem;
+.product-hero__copy {
   min-width: 0;
 }
 
+.product-hero__title {
+  margin: 0;
+  font-family: var(--sm-font-sans);
+  font-size: clamp(2rem, 4.2vw, 2.85rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--sm-text);
+  text-wrap: balance;
+  max-width: 14em;
+}
+
+.product-hero__tagline {
+  margin: 0.85rem 0 0;
+  max-width: 32rem;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--sm-text-muted);
+  text-wrap: pretty;
+}
+
+.product-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+}
+
+.product-hero__media {
+  position: relative;
+  min-width: 0;
+  /* Keep floating HUD from painting over fixed nav menus */
+  z-index: 0;
+  isolation: isolate;
+}
+
+.product-hero__bezel {
+  width: 100%;
+}
+
+.product-hero__core {
+  /* Let the image define height; no forced crop */
+  line-height: 0;
+  background: var(--sm-bg-soft);
+}
+
+.product-hero__shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: top;
+}
+
+.product-hero__hud {
+  display: none;
+}
+
 @media (min-width: 960px) {
-  .geek-hero {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto auto auto;
-    column-gap: 2.5rem;
-    align-items: start;
+  .product-hero {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    column-gap: 2.75rem;
+    padding: 0.5rem 0 1rem;
+    /* Compact: no empty 720px void */
+    min-height: 0;
+    align-items: center;
   }
 
-  .geek-hero__meta,
-  .geek-hero__title,
-  .geek-hero__tagline,
-  .geek-hero__actions {
-    grid-column: 1;
+  .product-hero__copy {
+    order: 0;
   }
 
-  .geek-hero__visual {
-    grid-column: 2;
-    grid-row: 1 / span 4;
-    margin-top: 0;
-    align-self: center;
+  .product-hero__media {
+    order: 1;
+  }
+
+  .product-hero__hud {
+    display: block;
+    position: absolute;
+    right: 4%;
+    bottom: -8%;
+    width: min(48%, 220px);
+    z-index: 1;
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.32));
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .product-hero {
+    gap: 1.5rem;
+  }
+
+  .product-hero__copy {
+    order: 0;
+  }
+
+  .product-hero__media {
+    order: 1;
   }
 }
 </style>

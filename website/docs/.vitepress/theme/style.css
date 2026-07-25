@@ -1,80 +1,109 @@
 /**
- * StrokeMouse — Warp-inspired geek product theme
- * Single source of visual truth for home + docs.
+ * StrokeMouse — premium product theme
+ * Precision-instrument language · brand-blue lock · Geist
+ * Radius: buttons pill · media shells 28px · cards 16px
  */
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+/* ——— Fonts (self-hosted) ——— */
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  /* Brand tokens — dark first */
-  --sm-bg: #07090d;
-  --sm-bg-elevated: #0d1118;
-  --sm-bg-soft: #121820;
-  --sm-panel: rgba(13, 17, 24, 0.78);
-  --sm-chrome: rgba(255, 255, 255, 0.04);
-  --sm-border: rgba(255, 255, 255, 0.12);
-  --sm-border-strong: rgba(56, 152, 248, 0.45);
+  --sm-bg: #080a0f;
+  --sm-bg-elevated: #10141c;
+  --sm-bg-soft: #161b26;
+  --sm-panel: rgba(16, 20, 28, 0.82);
+  --sm-chrome: rgba(255, 255, 255, 0.035);
+  --sm-border: rgba(255, 255, 255, 0.1);
+  --sm-border-strong: rgba(56, 152, 248, 0.42);
   --sm-accent: #3898f8;
   --sm-accent-dim: #1d6fd4;
-  --sm-accent-glow: rgba(56, 152, 248, 0.2);
-  --sm-cyan: #60b4ff;
-  --sm-amber: #fbbf24;
-  --sm-rose: #fb7185;
+  --sm-accent-glow: rgba(56, 152, 248, 0.16);
   --sm-text: #e8edf5;
-  --sm-text-muted: #9aa6b8;
-  --sm-text-faint: #6b778c;
-  --sm-grid-line: rgba(56, 152, 248, 0.08);
-  --sm-grid-line-strong: rgba(56, 152, 248, 0.05);
-  --sm-radius: 14px;
-  --sm-radius-sm: 10px;
-  --sm-ring: 0 0 0 1px rgba(255, 255, 255, 0.12);
-  --sm-ring-strong: 0 0 0 1px rgba(56, 152, 248, 0.42);
-  --sm-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
-  --sm-shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.28);
-  --sm-font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
-    sans-serif;
-  --sm-font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --sm-text-muted: #94a3b8;
+  --sm-text-faint: #64748b;
+  --sm-radius: 16px;
+  --sm-radius-sm: 12px;
+  --sm-radius-shell: 28px;
+  --sm-radius-core: 22px;
+  --sm-ring: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --sm-ring-strong: 0 0 0 1px rgba(56, 152, 248, 0.4);
+  --sm-shadow: 0 20px 50px rgba(8, 12, 24, 0.45);
+  --sm-shadow-sm: 0 8px 24px rgba(8, 12, 24, 0.28);
+  --sm-shadow-accent: 0 10px 28px rgba(56, 152, 248, 0.22);
+  --sm-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --sm-font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --sm-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  /* Stacking: grain under all; nav above sidebar so logo is not covered by sidebar curtain */
+  --sm-z-backdrop: 0;
+  --sm-z-grain: 0;
+  --sm-z-content: 1;
+  --sm-z-nav: 60;
+  --vp-z-index-layout-top: 1;
+  --vp-z-index-local-nav: 20;
+  --vp-z-index-sidebar: 40;
+  --vp-z-index-nav: 60;
+  --vp-z-index-backdrop: 70;
 
-  /* Map to VitePress */
   --vp-c-bg: var(--sm-bg);
   --vp-c-bg-alt: var(--sm-bg-elevated);
   --vp-c-bg-elv: var(--sm-bg-soft);
   --vp-c-bg-soft: var(--sm-bg-soft);
-
   --vp-c-border: var(--sm-border);
   --vp-c-divider: var(--sm-border);
   --vp-c-gutter: var(--sm-bg);
-
   --vp-c-text-1: var(--sm-text);
   --vp-c-text-2: var(--sm-text-muted);
   --vp-c-text-3: var(--sm-text-faint);
-
   --vp-c-brand-1: var(--sm-accent);
   --vp-c-brand-2: #5aabff;
   --vp-c-brand-3: var(--sm-accent-dim);
   --vp-c-brand-soft: var(--sm-accent-glow);
-
   --vp-c-default-1: #1c2433;
   --vp-c-default-2: #161d2a;
   --vp-c-default-3: #121822;
-  --vp-c-default-soft: rgba(28, 36, 51, 0.6);
-
+  --vp-c-default-soft: rgba(255, 255, 255, 0.08);
+  --vp-c-mute: #1c2433;
+  --vp-c-mute-soft: rgba(28, 36, 51, 0.55);
+  --vp-c-mute-1: #1c2433;
+  --vp-c-mute-2: #161d2a;
   --vp-c-tip-1: var(--sm-accent);
   --vp-c-tip-2: var(--sm-accent-dim);
   --vp-c-tip-3: #0c2a4a;
   --vp-c-tip-soft: rgba(56, 152, 248, 0.1);
-
-  --vp-c-warning-1: var(--sm-amber);
+  --vp-c-warning-1: #fbbf24;
   --vp-c-warning-soft: rgba(251, 191, 36, 0.12);
-
-  --vp-c-danger-1: var(--sm-rose);
+  --vp-c-danger-1: #fb7185;
   --vp-c-danger-soft: rgba(251, 113, 133, 0.12);
-
   --vp-font-family-base: var(--sm-font-sans);
   --vp-font-family-mono: var(--sm-font-mono);
-
-  --vp-c-sponsor: var(--sm-cyan);
-
+  --vp-c-sponsor: var(--sm-accent);
   --vp-button-brand-bg: var(--sm-accent);
   --vp-button-brand-hover-bg: #5aabff;
   --vp-button-brand-active-bg: var(--sm-accent-dim);
@@ -82,42 +111,26 @@
   --vp-button-brand-hover-text: #ffffff;
   --vp-button-brand-border: transparent;
   --vp-button-brand-hover-border: transparent;
-
   --vp-button-alt-bg: transparent;
   --vp-button-alt-text: var(--sm-accent);
   --vp-button-alt-border: transparent;
   --vp-button-alt-hover-bg: var(--sm-accent-glow);
   --vp-button-alt-hover-text: var(--sm-accent);
   --vp-button-alt-hover-border: transparent;
-
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: linear-gradient(
-    120deg,
-    var(--sm-accent) 10%,
-    var(--sm-cyan) 90%
-  );
-  --vp-home-hero-image-background-image: radial-gradient(
-    ellipse 80% 60% at 50% 40%,
-    var(--sm-accent-glow),
-    transparent 70%
-  );
-
-  --vp-nav-bg-color: rgba(7, 9, 13, 0.88);
-  --vp-sidebar-bg-color: rgba(10, 12, 16, 0.96);
+  --vp-home-hero-name-color: var(--sm-text);
+  --vp-home-hero-name-background: transparent;
+  --vp-nav-bg-color: rgba(8, 10, 15, 0.72);
+  --vp-sidebar-bg-color: rgba(10, 12, 18, 0.96);
   --vp-code-block-bg: #0c1016;
   --vp-code-copy-code-bg: #161d2a;
   --vp-code-copy-code-hover-bg: #1c2433;
   --vp-code-line-highlight-color: rgba(56, 152, 248, 0.1);
-
-  /* Copy icons (dark) */
-  --vp-icon-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%239aa6b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3C/svg%3E");
+  --vp-icon-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3C/svg%3E");
   --vp-icon-copied: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%233898f8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='m9 14 2 2 4-4'/%3E%3C/svg%3E");
-
   --vp-custom-block-tip-border: var(--sm-border-strong);
   --vp-custom-block-tip-text: var(--sm-text);
   --vp-custom-block-tip-bg: rgba(56, 152, 248, 0.07);
   --vp-custom-block-tip-code-bg: rgba(0, 0, 0, 0.25);
-
   --vp-local-search-bg: var(--sm-bg-elevated);
   --vp-local-search-result-bg: var(--sm-bg-soft);
   --vp-local-search-result-border: var(--sm-border);
@@ -125,29 +138,25 @@
   --vp-local-search-highlight-text: var(--sm-accent);
 }
 
-/* Light mode — clean product site, no dirty chrome bars */
 html:not(.dark) {
-  --sm-bg: #f5f6f8;
+  --sm-bg: #f4f5f7;
   --sm-bg-elevated: #ffffff;
   --sm-bg-soft: #eef0f4;
-  --sm-panel: rgba(255, 255, 255, 0.86);
-  --sm-chrome: rgba(15, 23, 42, 0.035);
+  --sm-panel: rgba(255, 255, 255, 0.9);
+  --sm-chrome: rgba(15, 23, 42, 0.03);
   --sm-border: rgba(15, 23, 42, 0.1);
-  --sm-border-strong: rgba(29, 111, 212, 0.4);
+  --sm-border-strong: rgba(29, 111, 212, 0.38);
   --sm-accent: #1d6fd4;
   --sm-accent-dim: #1557a8;
-  --sm-accent-glow: rgba(56, 152, 248, 0.14);
-  --sm-cyan: #2563eb;
+  --sm-accent-glow: rgba(56, 152, 248, 0.12);
   --sm-text: #0f172a;
   --sm-text-muted: #475569;
   --sm-text-faint: #64748b;
-  --sm-grid-line: rgba(56, 152, 248, 0.1);
-  --sm-grid-line-strong: rgba(15, 23, 42, 0.05);
   --sm-ring: 0 0 0 1px rgba(15, 23, 42, 0.1);
-  --sm-ring-strong: 0 0 0 1px rgba(29, 111, 212, 0.4);
+  --sm-ring-strong: 0 0 0 1px rgba(29, 111, 212, 0.38);
   --sm-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
   --sm-shadow-sm: 0 8px 24px rgba(15, 23, 42, 0.06);
-
+  --sm-shadow-accent: 0 10px 28px rgba(29, 111, 212, 0.18);
   --vp-c-bg: var(--sm-bg);
   --vp-c-bg-alt: #e9ecf1;
   --vp-c-bg-elv: #ffffff;
@@ -160,108 +169,127 @@ html:not(.dark) {
   --vp-c-brand-1: var(--sm-accent);
   --vp-c-brand-2: #3898f8;
   --vp-c-brand-3: var(--sm-accent-dim);
+  --vp-c-default-1: #e8ecf2;
+  --vp-c-default-2: #e2e7ef;
+  --vp-c-default-3: #d8dee8;
+  /* Menu hover/active soft fill — was dark rgba left over from dark tokens */
+  --vp-c-default-soft: rgba(15, 23, 42, 0.06);
+  --vp-c-mute: #eef1f6;
+  --vp-c-mute-soft: rgba(15, 23, 42, 0.05);
+  --vp-c-mute-1: #eef1f6;
+  --vp-c-mute-2: #e5e9f0;
   --vp-button-brand-text: #ffffff;
   --vp-button-brand-hover-text: #ffffff;
-  --vp-nav-bg-color: rgba(245, 246, 248, 0.9);
-  --vp-sidebar-bg-color: rgba(245, 246, 248, 0.98);
+  --vp-nav-bg-color: rgba(244, 245, 247, 0.92);
+  --vp-sidebar-bg-color: rgba(244, 245, 247, 0.98);
+  --vp-shadow-3: 0 12px 32px rgba(15, 23, 42, 0.12);
   --vp-code-block-bg: #f1f3f6;
   --vp-code-copy-code-bg: #e8ebf0;
   --vp-code-copy-code-hover-bg: #dde2ea;
   --vp-code-line-highlight-color: rgba(56, 152, 248, 0.1);
-
   --vp-icon-copy: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23475569' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3C/svg%3E");
   --vp-icon-copied: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%231d6fd4' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' viewBox='0 0 24 24'%3E%3Crect width='8' height='4' x='8' y='2' rx='1' ry='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='m9 14 2 2 4-4'/%3E%3C/svg%3E");
 }
 
-/* ——— Global canvas ——— */
-
 html,
 body {
   background-color: var(--sm-bg);
+  font-family: var(--sm-font-sans);
 }
 
 .Layout {
   position: relative;
   isolation: isolate;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
-/* Warp-like grid + radial fade backdrop */
+/* Soft ambient depth — no heavy tech grid */
 .sm-backdrop {
   pointer-events: none;
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: var(--sm-z-backdrop);
   overflow: hidden;
   background:
-    radial-gradient(ellipse 90% 55% at 50% -8%, var(--sm-accent-glow), transparent 58%),
-    radial-gradient(ellipse 70% 40% at 80% 20%, rgba(96, 180, 255, 0.07), transparent 50%),
-    radial-gradient(ellipse 60% 35% at 15% 30%, rgba(56, 152, 248, 0.06), transparent 45%),
-    linear-gradient(180deg, var(--sm-bg) 0%, var(--sm-bg) 40%, var(--sm-bg-elevated) 100%);
+    radial-gradient(ellipse 80% 50% at 50% -12%, var(--sm-accent-glow), transparent 55%),
+    radial-gradient(ellipse 45% 35% at 90% 10%, rgba(56, 152, 248, 0.06), transparent 50%),
+    linear-gradient(180deg, var(--sm-bg) 0%, var(--sm-bg) 55%, var(--sm-bg-elevated) 100%);
 }
 
-.sm-backdrop__grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--sm-grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--sm-grid-line) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 95% 80% at 50% 18%, #000 0%, #000 35%, transparent 78%);
-  -webkit-mask-image: radial-gradient(
-    ellipse 95% 80% at 50% 18%,
-    #000 0%,
-    #000 35%,
-    transparent 78%
-  );
-}
-
+.sm-backdrop__grid,
 .sm-backdrop__grid-lg {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(var(--sm-grid-line-strong) 1px, transparent 1px),
-    linear-gradient(90deg, var(--sm-grid-line-strong) 1px, transparent 1px);
-  background-size: 192px 192px;
-  mask-image: radial-gradient(ellipse 90% 70% at 50% 10%, #000 10%, transparent 72%);
-  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 10%, #000 10%, transparent 72%);
-  opacity: 0.9;
+  display: none;
 }
 
 .sm-backdrop__vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 75% 65% at 50% 40%, transparent 40%, var(--sm-bg) 100%);
-  opacity: 0.55;
+  background: radial-gradient(ellipse 70% 60% at 50% 35%, transparent 45%, var(--sm-bg) 100%);
+  opacity: 0.45;
+}
+
+/* Fixed grain — never on scrolling containers */
+.sm-grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  z-index: var(--sm-z-grain);
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+}
+
+html:not(.dark) .sm-grain {
+  opacity: 0.028;
+  mix-blend-mode: multiply;
 }
 
 html:not(.dark) .sm-backdrop {
   background:
-    radial-gradient(ellipse 90% 50% at 50% -5%, rgba(56, 152, 248, 0.12), transparent 55%),
-    radial-gradient(ellipse 50% 30% at 85% 15%, rgba(37, 99, 235, 0.06), transparent 50%),
-    linear-gradient(180deg, #f8f9fb 0%, var(--sm-bg) 45%, #eef1f5 100%);
+    radial-gradient(ellipse 85% 45% at 50% -8%, rgba(56, 152, 248, 0.1), transparent 55%),
+    linear-gradient(180deg, #f8f9fb 0%, var(--sm-bg) 50%, #eef1f5 100%);
 }
 
 html:not(.dark) .sm-backdrop__vignette {
-  opacity: 0.35;
+  opacity: 0.25;
 }
 
-/* Keep content above backdrop */
-.Layout > * {
-  position: relative;
-  z-index: 1;
+/*
+ * NEVER force position on .Layout children — that overrides VitePress
+ * .VPNav { position: fixed } and kills sticky nav + doubles doc top padding.
+ */
+.sm-backdrop,
+.sm-grain {
+  pointer-events: none !important;
+  position: fixed !important;
+  inset: 0;
+  z-index: var(--sm-z-grain) !important;
 }
 
-/* ——— Nav ——— */
+.sm-backdrop {
+  z-index: var(--sm-z-backdrop) !important;
+}
+
+/* ——— Nav (global unified) ——— */
+.VPNav {
+  z-index: var(--vp-z-index-nav) !important;
+}
 
 .VPNavBar {
-  border-bottom: 1px solid transparent !important;
+  /* Never use a hairline under the bar — shadow only when elevated */
+  border: none !important;
+  border-bottom: none !important;
   transition:
-    border-color 0.25s ease,
-    background 0.25s ease,
-    box-shadow 0.25s ease;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+    background 0.3s var(--sm-ease),
+    box-shadow 0.3s var(--sm-ease);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  background: transparent !important;
 }
 
 .VPNavBar .wrapper,
@@ -269,56 +297,163 @@ html:not(.dark) .sm-backdrop__vignette {
   background: transparent !important;
 }
 
+/* Top of page: clear bar (home) */
 .VPNavBar.top {
   background: transparent !important;
+  box-shadow: none !important;
 }
 
+/* Scrolled / elevated: soft fill + shadow, NO border */
 .VPNavBar:not(.top) {
   background: var(--vp-nav-bg-color) !important;
-  border-bottom-color: var(--sm-border) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border-bottom: none !important;
+  box-shadow: 0 8px 28px rgba(8, 12, 24, 0.1);
 }
 
-/* Doc pages: always show bottom border (nav rarely has .top on scroll) */
-.Layout:has(.VPContent.has-sidebar) .VPNavBar {
-  border-bottom-color: var(--sm-border) !important;
+html:not(.dark) .VPNavBar:not(.top) {
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07);
+}
+
+/*
+ * Docs pages always show solid nav (content under bar), same chrome as scrolled home.
+ * No forced divider line.
+ */
+.Layout:has(.VPContent.has-sidebar) .VPNavBar,
+.VPNavBar.has-sidebar {
   background: var(--vp-nav-bg-color) !important;
+  border-bottom: none !important;
+  box-shadow: none;
+}
+
+.Layout:has(.VPContent.has-sidebar) .VPNavBar:not(.top),
+.VPNavBar.has-sidebar:not(.top) {
+  box-shadow: 0 8px 28px rgba(8, 12, 24, 0.1);
+}
+
+html:not(.dark) .Layout:has(.VPContent.has-sidebar) .VPNavBar:not(.top),
+html:not(.dark) .VPNavBar.has-sidebar:not(.top) {
+  box-shadow: 0 8px 28px rgba(15, 23, 42, 0.07);
+}
+
+/* Kill VitePress built-in bottom divider entirely */
+.VPNavBar .divider,
+.VPNavBar .divider-line {
+  display: none !important;
+  height: 0 !important;
+  opacity: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+}
+
+/*
+ * Unify logo + menu layout across home & docs:
+ * stop parking the title in the sidebar column; use the same flex row as home.
+ */
+@media (min-width: 960px) {
+  .VPNavBar.has-sidebar .wrapper {
+    padding: 0 32px !important;
+  }
+
+  .VPNavBar.has-sidebar .container {
+    max-width: calc(var(--vp-layout-max-width) - 64px) !important;
+  }
+
+  .VPNavBar.has-sidebar .title {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    height: var(--vp-nav-height) !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  .VPNavBar.has-sidebar .content {
+    position: relative !important;
+    z-index: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+
+@media (min-width: 1440px) {
+  .VPNavBar.has-sidebar .title {
+    padding-left: 0 !important;
+    width: auto !important;
+  }
+
+  .VPNavBar.has-sidebar .content {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 
 .VPNavBar .title {
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-weight: 600;
   letter-spacing: -0.02em;
-  /* VP default puts a second divider under the logo title — remove it */
+  border: none !important;
   border-bottom: none !important;
+  color: var(--sm-text) !important;
+  height: var(--vp-nav-height) !important;
 }
 
-.VPNavBarTitle {
-  border-bottom: none !important;
-}
-
+.VPNavBarTitle,
 .VPNavBarTitle .title {
   border: none !important;
   border-bottom: none !important;
 }
 
-/* Sidebar screen: avoid double line under logo (nav + sidebar header) */
-.VPSidebar .VPNavBarTitle,
-.VPSidebar .title {
-  border-bottom: none !important;
+.VPNavBarTitle .logo,
+.VPNavBarTitle .VPImage.logo {
+  display: block !important;
+  height: 28px !important;
+  width: 28px !important;
+  margin-right: 10px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  object-fit: contain;
 }
 
-.VPNavBarTitle .logo {
-  height: 28px;
-  width: 28px;
-  margin-right: 10px;
+/* Language / appearance dropdown — light-mode friendly */
+.VPMenu {
+  background-color: var(--vp-c-bg-elv) !important;
+  border-color: var(--sm-border) !important;
+  box-shadow: var(--sm-shadow) !important;
+}
+
+.VPMenuLink .link {
+  color: var(--sm-text) !important;
+  border-radius: 8px !important;
+}
+
+.VPMenuLink .link:hover {
+  background-color: var(--vp-c-default-soft) !important;
+  color: var(--sm-accent) !important;
+}
+
+.VPMenuLink .link.active {
+  background-color: var(--vp-c-default-soft) !important;
+  color: var(--sm-accent) !important;
+}
+
+html:not(.dark) .VPMenuLink .link.active,
+html:not(.dark) .VPMenuLink .link:hover {
+  background-color: rgba(29, 111, 212, 0.1) !important;
+  color: #1557a8 !important;
 }
 
 .VPNavBarMenuLink {
-  font-family: var(--sm-font-mono);
-  font-size: 13px !important;
-  letter-spacing: 0.02em;
+  font-family: var(--sm-font-sans);
+  font-size: 13.5px !important;
+  letter-spacing: -0.01em;
   font-weight: 500 !important;
+  transition: color 0.2s var(--sm-ease);
 }
 
 .VPNavBarMenuLink:hover,
@@ -327,26 +462,25 @@ html:not(.dark) .sm-backdrop__vignette {
 }
 
 /* ——— Sidebar ——— */
-
 .VPSidebar {
   border-right: 1px solid var(--sm-border) !important;
   backdrop-filter: blur(12px);
-  z-index: 20;
+  z-index: var(--vp-z-index-sidebar) !important;
 }
 
 .VPSidebarItem.level-0 > .item > .text {
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-size: 11px;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--sm-text-faint) !important;
 }
 
-/* Space between sidebar menu items */
 .VPSidebarItem.level-0 > .items {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   padding: 4px 0 10px;
 }
 
@@ -360,12 +494,12 @@ html:not(.dark) .sm-backdrop__vignette {
 }
 
 .VPSidebarItem.level-1 > .item .link {
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 8px 12px !important;
   min-height: 0 !important;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background 0.2s var(--sm-ease),
+    color 0.2s var(--sm-ease);
 }
 
 .VPSidebarItem.level-1 > .item .link:hover {
@@ -389,12 +523,10 @@ html:not(.dark) .sm-backdrop__vignette {
   display: none !important;
 }
 
-/* Gap between sidebar groups (开始使用 / 操作手册 / …) */
 .VPSidebar .group + .group {
   margin-top: 10px;
 }
 
-/* Footer must not sit under fixed sidebar */
 @media (min-width: 960px) {
   .Layout:has(.VPContent.has-sidebar) .sm-footer {
     margin-left: var(--vp-sidebar-width);
@@ -404,45 +536,43 @@ html:not(.dark) .sm-backdrop__vignette {
 }
 
 /* ——— Doc content ——— */
-
 .vp-doc h1,
 .vp-doc h2,
 .vp-doc h3 {
-  font-family: var(--sm-font-mono);
-  letter-spacing: -0.02em;
+  font-family: var(--sm-font-sans);
+  letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
 .vp-doc h1 {
-  font-size: 1.85rem;
+  font-size: 1.9rem;
+  font-weight: 700;
 }
 
 .vp-doc h2 {
   border-top: 1px solid var(--sm-border);
-  margin-top: 2.2rem;
-  padding-top: 1.4rem;
+  margin-top: 2.4rem;
+  padding-top: 1.5rem;
+  font-weight: 600;
 }
 
 .vp-doc h2::before {
-  content: '// ';
-  color: var(--sm-accent);
-  opacity: 0.45;
-  font-weight: 500;
+  content: none;
 }
 
 .vp-doc a {
   color: var(--sm-accent);
   text-decoration: none;
-  border-bottom: 1px dashed transparent;
+  border-bottom: 1px solid transparent;
   transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+    border-color 0.2s var(--sm-ease),
+    color 0.2s var(--sm-ease);
 }
 
 .vp-doc a:hover {
   border-bottom-color: var(--sm-accent);
 }
 
-/* Never let doc-link styles break CTA buttons */
 .vp-doc a.sm-btn,
 .sm-home a.sm-btn,
 a.sm-btn {
@@ -450,24 +580,41 @@ a.sm-btn {
   text-decoration: none !important;
 }
 
-.vp-doc code {
-  font-family: var(--sm-font-mono);
+/*
+ * Inline code contrast — set vars on .vp-doc so they win over VitePress :root.
+ * Light: dark blue on pale chip. Dark: light cyan on translucent blue.
+ */
+html:not(.dark) .vp-doc {
+  --vp-code-color: #0b3f8c !important;
+  --vp-code-bg: #e2ecfa !important;
+  --sm-code-border: rgba(29, 111, 212, 0.35);
+}
+
+html.dark .vp-doc,
+.dark .vp-doc {
+  --vp-code-color: #9fd4ff !important;
+  --vp-code-bg: rgba(56, 152, 248, 0.18) !important;
+  --sm-code-border: rgba(56, 152, 248, 0.4);
+}
+
+.vp-doc :not(pre) > code,
+.vp-doc :not(pre, h1, h2, h3, h4, h5, h6) > code {
+  font-family: var(--sm-font-mono) !important;
   font-size: 0.88em;
-  color: var(--sm-accent) !important;
-  background: var(--sm-accent-glow);
-  border: 1px solid color-mix(in srgb, var(--sm-accent) 22%, transparent);
+  color: var(--vp-code-color) !important;
+  background-color: var(--vp-code-bg) !important;
+  border: 1px solid var(--sm-code-border) !important;
   border-radius: 6px;
   padding: 0.12em 0.4em;
   box-shadow: none;
 }
 
-/* Fenced code blocks — single clean shell, light/dark via tokens */
 .vp-doc div[class*='language-'],
 .vp-block {
   position: relative;
   margin: 1.2em 0 !important;
   border: 1px solid var(--sm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--sm-radius) !important;
   background: var(--vp-code-block-bg) !important;
   box-shadow: var(--sm-shadow-sm);
   overflow: hidden;
@@ -488,13 +635,12 @@ a.sm-btn {
   background: transparent !important;
 }
 
-/* Copy button: fixed size, never override background-image with shorthand */
 .vp-doc [class*='language-'] > button.copy {
   width: 28px !important;
   height: 28px !important;
   top: 10px !important;
   right: 10px !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   border: 1px solid var(--sm-border) !important;
   background-color: var(--vp-code-copy-code-bg) !important;
   background-image: var(--vp-icon-copy) !important;
@@ -524,13 +670,13 @@ a.sm-btn {
   background-position: 50% !important;
   background-size: 14px !important;
   background-repeat: no-repeat !important;
-  border-radius: 0 6px 6px 0 !important;
+  border-radius: 0 8px 8px 0 !important;
 }
 
 .vp-doc [class*='language-'] > button.copy.copied::before,
 .vp-doc [class*='language-'] > button.copy:hover.copied::before {
   height: 28px !important;
-  border-radius: 6px 0 0 6px !important;
+  border-radius: 8px 0 0 8px !important;
   font-size: 11px !important;
   line-height: 28px !important;
   background-color: var(--vp-code-copy-code-bg) !important;
@@ -548,7 +694,6 @@ a.sm-btn {
   top: 12px !important;
 }
 
-/* Light mode shiki: ensure readable code on light code bg */
 html:not(.dark) .vp-doc div[class*='language-'] {
   color: #1e293b;
 }
@@ -572,8 +717,9 @@ html:not(.dark) .vp-doc div[class*='language-'] {
 }
 
 .vp-doc th {
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-size: 0.8rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--sm-accent);
@@ -582,43 +728,6 @@ html:not(.dark) .vp-doc div[class*='language-'] {
 
 .vp-doc tr:nth-child(2n) {
   background: color-mix(in srgb, var(--sm-text) 2.5%, transparent);
-}
-
-/* DefaultGestures table: don't inherit markdown table chrome */
-.vp-doc .gesture-table table,
-.vp-doc .gesture-table tr,
-.vp-doc .gesture-table th,
-.vp-doc .gesture-table td {
-  border: none !important;
-  background: transparent;
-}
-
-.vp-doc .gesture-table th,
-.vp-doc .gesture-table td {
-  border-bottom: 1px solid var(--sm-border) !important;
-  padding: 0.55rem 1rem !important;
-}
-
-.vp-doc .gesture-table th {
-  background: color-mix(in srgb, var(--sm-accent) 12%, var(--sm-bg-elevated)) !important;
-  color: var(--sm-accent) !important;
-}
-
-.vp-doc .gesture-table tr:nth-child(2n) {
-  background: transparent !important;
-}
-
-.vp-doc .gesture-table tr:last-child td {
-  border-bottom: none !important;
-}
-
-.vp-doc .gesture-table .stroke-cell {
-  padding: 0.45rem 0.65rem !important;
-  text-align: center;
-}
-
-.vp-doc .gesture-table {
-  margin: 1.5rem 0 2rem;
 }
 
 .vp-doc blockquote {
@@ -634,11 +743,20 @@ html:not(.dark) .vp-doc div[class*='language-'] {
   border-width: 1px;
 }
 
-/* ——— Home ——— */
-
+/* ——— Home shell ——— */
 .VPHome {
   margin-bottom: 0 !important;
   padding-bottom: 0 !important;
+}
+
+/*
+ * Desktop only: VPNav is position:fixed from 960px.
+ * Below that, nav is in normal flow — do not add extra pad.
+ */
+@media (min-width: 960px) {
+  .VPContent {
+    padding-top: var(--vp-nav-height, 64px) !important;
+  }
 }
 
 .VPHome .VPHomeHero,
@@ -648,59 +766,134 @@ html:not(.dark) .vp-doc div[class*='language-'] {
 }
 
 .sm-home {
-  max-width: 1100px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 3rem;
+  /* Nav offset comes from .VPContent; keep only content padding */
+  padding: 1.25rem 1.25rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  box-sizing: border-box;
 }
 
 @media (min-width: 960px) {
   .sm-home {
-    padding: 3.5rem 2rem 4rem;
+    padding: 1.5rem 1.75rem 4.5rem;
   }
 }
 
-/* ——— Buttons (Warp-clean, reliable rings) ——— */
+.sm-home section + section,
+.sm-home > * + * {
+  scroll-margin-top: 5rem;
+}
 
+/* Section rhythm — airy but not empty */
+.sm-section {
+  margin: 0;
+  padding: 2.75rem 0;
+}
+
+@media (min-width: 960px) {
+  .sm-section {
+    padding: 3.75rem 0;
+  }
+}
+
+.sm-section__title {
+  margin: 0 0 0.75rem;
+  font-family: var(--sm-font-sans);
+  font-size: clamp(1.5rem, 3vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--sm-text);
+  text-wrap: balance;
+  line-height: 1.2;
+}
+
+.sm-section__lead {
+  margin: 0 0 2rem;
+  max-width: 36rem;
+  font-size: 1.02rem;
+  line-height: 1.65;
+  color: var(--sm-text-muted);
+  text-wrap: pretty;
+}
+
+/* ——— Double-Bezel shell ——— */
+.sm-bezel {
+  border-radius: var(--sm-radius-shell);
+  padding: 6px;
+  background: color-mix(in srgb, var(--sm-text) 4%, transparent);
+  box-shadow: inset 0 0 0 1px var(--sm-border);
+}
+
+.sm-bezel__core {
+  border-radius: var(--sm-radius-core);
+  overflow: hidden;
+  background: var(--sm-bg-elevated);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    var(--sm-shadow-sm);
+}
+
+html:not(.dark) .sm-bezel__core {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    var(--sm-shadow-sm);
+}
+
+/* ——— Island buttons (compact) ——— */
 .sm-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.72rem 1.3rem;
-  font-family: var(--sm-font-mono);
-  font-size: 13px;
+  gap: 0.4rem;
+  padding: 0.5rem 0.95rem 0.5rem 1.05rem;
+  min-height: 2.25rem;
+  font-family: var(--sm-font-sans);
+  font-size: 0.8125rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: -0.01em;
   line-height: 1.2;
-  border-radius: 10px;
+  white-space: nowrap;
+  border-radius: 999px;
   border: none !important;
   cursor: pointer;
   text-decoration: none !important;
   transition:
-    box-shadow 0.18s ease,
-    transform 0.15s ease,
-    background 0.15s ease,
-    color 0.15s ease;
+    box-shadow 0.25s var(--sm-ease),
+    transform 0.2s var(--sm-ease),
+    background 0.2s var(--sm-ease),
+    color 0.2s var(--sm-ease);
   box-sizing: border-box;
 }
 
 .sm-btn--primary {
   background: var(--sm-accent);
   color: #ffffff !important;
-  box-shadow: 0 6px 20px var(--sm-accent-glow);
+  box-shadow: var(--sm-shadow-accent);
 }
 
 .sm-btn--primary:hover {
-  background: var(--sm-accent-dim);
+  background: #4da3ff;
   color: #ffffff !important;
-  box-shadow: 0 8px 28px var(--sm-accent-glow);
+  box-shadow: 0 12px 32px rgba(56, 152, 248, 0.28);
   transform: translateY(-1px);
+}
+
+html:not(.dark) .sm-btn--primary:hover {
+  background: #2563eb;
+}
+
+.sm-btn--primary:active {
+  transform: scale(0.98);
 }
 
 .sm-btn--ghost {
   background: transparent;
   color: var(--sm-text) !important;
   box-shadow: inset 0 0 0 1px var(--sm-border);
+  padding-right: 1.05rem;
 }
 
 .sm-btn--ghost:hover {
@@ -710,23 +903,50 @@ html:not(.dark) .vp-doc div[class*='language-'] {
   transform: translateY(-1px);
 }
 
-/* ——— Search ——— */
+.sm-btn--ghost:active {
+  transform: scale(0.98);
+}
 
+.sm-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  transition: transform 0.25s var(--sm-ease);
+  flex-shrink: 0;
+}
+
+.sm-btn__icon :deep(svg) {
+  width: 12px;
+  height: 12px;
+}
+
+.sm-btn--primary:hover .sm-btn__icon {
+  transform: translateX(2px) translateY(-1px) scale(1.05);
+}
+
+.sm-btn:focus-visible {
+  outline: 2px solid var(--sm-accent);
+  outline-offset: 3px;
+}
+
+/* ——— Search / pager / outline ——— */
 .VPLocalSearchBox .shell {
   border: none !important;
   border-radius: var(--sm-radius) !important;
   box-shadow: var(--sm-ring-strong), var(--sm-shadow) !important;
 }
 
-/* ——— Pager ——— */
-
 .pager-link {
   border: none !important;
   border-radius: var(--sm-radius) !important;
   box-shadow: var(--sm-ring) !important;
   transition:
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    box-shadow 0.2s var(--sm-ease),
+    transform 0.2s var(--sm-ease);
 }
 
 .pager-link:hover {
@@ -734,20 +954,17 @@ html:not(.dark) .vp-doc div[class*='language-'] {
 }
 
 .pager-link .title {
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   color: var(--sm-accent) !important;
 }
 
-/* ——— Outline ——— */
-
 .VPDocAsideOutline .outline-title {
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-size: 11px;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-
-/* ——— Scrollbar ——— */
 
 .dark ::-webkit-scrollbar {
   width: 8px;
@@ -777,128 +994,41 @@ html:not(.dark) .vp-doc div[class*='language-'] {
   display: none !important;
 }
 
-/* Home CTA — “立即开始使用” */
-.sm-cta {
-  margin: 3rem 0 1rem;
-  padding: 2rem 1.5rem 2.15rem;
-  border: none;
-  border-radius: var(--sm-radius);
-  background: var(--sm-panel);
-  box-shadow: inset 0 0 0 1px var(--sm-border), var(--sm-shadow-sm);
-  backdrop-filter: blur(10px);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* Scroll reveal: never hide content (SEO / no-flash). Optional lift when observed. */
+.sm-reveal {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.55s var(--sm-ease),
+    transform 0.55s var(--sm-ease);
 }
 
-.sm-cta h2::before {
-  content: none !important;
+html.sm-motion .sm-reveal:not(.is-visible) {
+  opacity: 0.001;
+  transform: translateY(16px);
 }
 
-.sm-cta h2 {
-  border-top: none !important;
-  margin-top: 0 !important;
-  padding-top: 0 !important;
+html.sm-motion .sm-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.sm-cta__kicker {
-  margin: 0 0 0.5rem;
-  font-family: var(--sm-font-mono);
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--sm-accent);
+@media (prefers-reduced-motion: reduce) {
+  html.sm-motion .sm-reveal:not(.is-visible) {
+    opacity: 1;
+    transform: none;
+  }
+
+  .sm-btn,
+  .sm-btn__icon {
+    transition: none !important;
+  }
 }
 
-.sm-cta__title {
-  margin: 0 0 1.15rem;
-  font-family: var(--sm-font-mono);
-  font-size: 1.4rem;
-  color: var(--sm-text);
-  letter-spacing: -0.02em;
-}
-
-/* Three step cards: centered column inside CTA */
-.sm-cta__steps,
-.vp-doc .sm-cta__steps,
-.sm-home .sm-cta__steps {
-  width: min(32rem, 100%);
-  max-width: 32rem;
-  margin: 0 auto 1.5rem !important;
-  padding: 0 !important;
-  padding-inline-start: 0 !important;
-  list-style: none !important;
-  text-align: left;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  align-self: center;
-  gap: 0.65rem;
-  box-sizing: border-box;
-}
-
-.sm-cta__steps li,
-.vp-doc .sm-cta__steps li {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.75rem;
-  width: 100%;
-  min-height: 3rem;
-  margin: 0 !important;
-  padding: 0.7rem 1rem !important;
-  border-radius: 10px;
-  background: var(--sm-chrome);
-  box-shadow: inset 0 0 0 1px var(--sm-border);
-  color: var(--sm-text-muted);
-  font-size: 0.92rem;
-  line-height: 1.45;
-  list-style: none !important;
-  box-sizing: border-box;
-}
-
-.sm-cta__steps li::marker {
-  content: none;
-  display: none;
-}
-
-/* Explicit badge — true flex center for the digit */
-.sm-cta__num {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 7px;
-  font-family: var(--sm-font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  color: #ffffff;
-  background: var(--sm-accent);
-  text-align: center;
-}
-
-.sm-cta__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  text-align: left;
-}
-
-.sm-cta__steps strong {
-  color: var(--sm-text);
-  font-weight: 600;
-}
-
-.sm-cta__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
-  width: 100%;
+@media (prefers-reduced-transparency: reduce) {
+  .VPNavBar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--sm-bg) !important;
+  }
 }

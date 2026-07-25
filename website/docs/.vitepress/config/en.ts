@@ -5,7 +5,7 @@ export const enConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
   lang: 'en-US',
   title: 'StrokeMouse',
   description:
-    'Custom mouse gestures for macOS — hold a trigger button, draw a stroke, run shortcuts, window actions, and scripts.',
+    'Custom mouse gestures for macOS. Hold a trigger button, draw a stroke, run shortcuts, window actions, and scripts.',
   themeConfig: {
     nav: [
       { text: 'Home', link: '/en/' },

@@ -5,7 +5,7 @@ export const zhConfig: LocaleSpecificConfig<DefaultTheme.Config> = {
   lang: 'zh-CN',
   title: 'StrokeMouse',
   description:
-    'macOS 鼠标手势自定义工具 — 按住触发键绘制轨迹，匹配后执行快捷键、窗口操作与脚本。',
+    'macOS 鼠标手势自定义工具。按住触发键绘制轨迹，匹配后执行快捷键、窗口操作与脚本。',
   themeConfig: {
     nav: [
       { text: '首页', link: '/' },

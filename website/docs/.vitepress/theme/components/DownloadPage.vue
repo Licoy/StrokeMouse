@@ -152,7 +152,8 @@ const cards = computed(() => [
 <style scoped>
 .sm-download {
   position: relative;
-  padding: calc(var(--vp-nav-height, 64px) + 48px) 1.25rem 72px;
+  /* Nav offset is on .VPContent; only local section padding here */
+  padding: 2.5rem 1.25rem 4.5rem;
   min-height: 70vh;
 }
 
@@ -187,11 +188,12 @@ const cards = computed(() => [
 
 .sm-download__hero h1 {
   margin: 0;
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-size: clamp(2rem, 5vw, 2.75rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.035em;
   color: var(--sm-text);
+  text-wrap: balance;
 }
 
 .sm-download__lead {
@@ -215,10 +217,10 @@ const cards = computed(() => [
 .sm-download__plat {
   display: inline-flex;
   align-items: center;
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   text-decoration: none;
@@ -246,10 +248,10 @@ const cards = computed(() => [
 
 .sm-download__h2 {
   margin: 0 0 1rem;
-  font-family: var(--sm-font-mono);
+  font-family: var(--sm-font-sans);
   font-size: 0.8rem;
-  font-weight: 650;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--sm-text-faint);
 }
@@ -310,8 +312,8 @@ const cards = computed(() => [
 }
 
 .sm-download__card-title {
-  font-family: var(--sm-font-mono);
-  font-weight: 700;
+  font-family: var(--sm-font-sans);
+  font-weight: 600;
   font-size: 1rem;
   color: var(--sm-text);
   letter-spacing: -0.02em;
@@ -340,23 +342,16 @@ const cards = computed(() => [
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   margin-top: auto;
-  padding: 0.55rem 0.85rem;
-  border-radius: 8px;
-  font-family: var(--sm-font-mono);
-  font-size: 13px;
-  font-weight: 650;
-  color: #04140c;
-  background: var(--sm-accent);
-}
-
-.dark .sm-download__action {
-  color: #04140c;
-}
-
-html:not(.dark) .sm-download__action {
+  padding: 0.45rem 0.9rem;
+  min-height: 2.15rem;
+  border-radius: 999px;
+  font-family: var(--sm-font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: #ffffff;
+  background: var(--sm-accent);
 }
 
 .sm-download__action-icon {
