@@ -44,7 +44,7 @@ struct MenuBarView: View {
             }
         }
 
-        Button(L10n.string("about.github")) {
+        Button(L10n.string("menu.github")) {
             NSWorkspace.shared.open(Constants.githubURL)
         }
 

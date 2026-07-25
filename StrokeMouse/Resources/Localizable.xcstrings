@@ -97,6 +97,22 @@
         }
       }
     },
+    "menu.github": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Github（点个Star🌟）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Github（点个Star🌟）"
+          }
+        }
+      }
+    },
     "menu.quit": {
       "localizations": {
         "en": {
