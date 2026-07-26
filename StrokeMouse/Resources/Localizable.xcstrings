@@ -2209,7 +2209,6 @@
         }
       }
     },
-
     "about.reportIssue": {
       "localizations": {
         "en": {
@@ -2226,7 +2225,6 @@
         }
       }
     },
-
     "about.license": {
       "localizations": {
         "en": {
@@ -2879,6 +2877,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "点数"
+          }
+        }
+      }
+    },
+    "editor.saveNeedsPath": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Draw a gesture path on the left before saving."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先在左侧绘制手势轨迹后再保存。"
           }
         }
       }
@@ -3651,6 +3665,22 @@
         }
       }
     },
+    "action.shortcutStop": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止"
+          }
+        }
+      }
+    },
     "action.shortcutListening": {
       "localizations": {
         "en": {
@@ -3672,13 +3702,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Click Record, then press the shortcut. The field is not editable — only recording is supported."
+            "value": "Click the field or Record, then press the shortcut. Modifier-only shortcuts (e.g. ⌘⇧) are supported."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "点击「录制」后按下快捷键。显示名不可编辑，只能通过录制设置。"
+            "value": "点击输入框或「录制」后按下快捷键；支持仅修饰键组合（如 ⌘⇧）。"
           }
         }
       }
@@ -4968,13 +4998,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Press the shortcut and release all keys to finish. Press Esc by itself to cancel."
+            "value": "Keys show live as you press. Release all keys to finish; press again to correct; press Esc alone to cancel."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按下快捷键并松开全部按键后完成；单独按 Esc 取消。"
+            "value": "按键会实时显示；松开全部按键即完成；按错直接重按即可修正；单独按 Esc 取消。"
           }
         }
       }

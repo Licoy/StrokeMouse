@@ -44,105 +44,19 @@ struct GestureEditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Form {
-                Section(L10n.string("editor.basic")) {
-                    TextField(L10n.string("editor.name"), text: $profile.name)
-                    Toggle(L10n.string("editor.enabled"), isOn: $profile.isEnabled)
-                    Picker(L10n.string("editor.trigger"), selection: $profile.trigger.button) {
-                        ForEach(MouseTriggerButton.allCases) { button in
-                            Text(L10n.string(button.displayKey))
-                                .tag(button)
-                        }
-                    }
-                    Text(L10n.string("editor.triggerPerGestureHint"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section {
-                    GestureRecorderView(path: $pathPoints)
-                        .frame(minHeight: 220)
-                    Text(L10n.string("editor.freePathHelp"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text(L10n.string("editor.pattern"))
-                }
-
-                Section(L10n.string("editor.action")) {
-                    ActionPickerView(kind: $actionKind, action: $profile.action)
-                    if profile.action.requiresCapturedTarget {
-                        Text(L10n.string("editor.testActionNeedsTarget"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section(L10n.string("editor.target")) {
-                    Picker(
-                        L10n.string("editor.targetWindow"),
-                        selection: $profile.targetPolicy
-                    ) {
-                        ForEach(GestureTargetPolicy.allCases) { policy in
-                            Text(L10n.string(policy.displayKey))
-                                .tag(policy)
-                        }
-                    }
-                    Text(L10n.string(targetHelpKey))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    if profile.targetPolicy == .windowUnderPointer,
-                       actionKind == .shortcut
-                    {
-                        Label(
-                            L10n.string("editor.targetPointerShortcutWarning"),
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                    }
-                }
-
-                Section(L10n.string("editor.scope")) {
-                    AppScopeEditorView(isGlobal: $scopeIsGlobal, bundleIds: $scopeBundleIds)
-                }
-
-                Section(L10n.string("editor.notes")) {
-                    TextField(L10n.string("editor.notes"), text: $profile.notes, axis: .vertical)
-                        .lineLimit(2...4)
-                }
+            HStack(spacing: 0) {
+                patternPane
+                    .frame(width: 340)
+                Divider()
+                settingsForm
             }
-            .formStyle(.grouped)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             Divider()
 
-            HStack {
-                Button(L10n.string("common.cancel")) { onCancel() }
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                Button(L10n.string("common.testAction")) {
-                    Task { @MainActor in
-                        do {
-                            try await appState.actionExecutor.executeForTesting(profile.action)
-                        } catch {
-                            GestureToastController.shared.showActionError(
-                                error.localizedDescription
-                            )
-                        }
-                    }
-                }
-                .disabled(profile.action.requiresCapturedTarget)
-                Button(L10n.string("common.save")) {
-                    commitAndSave()
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(pathPoints.count < 2)
-            }
-            .padding()
+            footerBar
         }
-        .frame(minWidth: 560, minHeight: 560)
+        .frame(minWidth: 860, minHeight: 580)
         .onAppear {
             // Pause global capture/HUD so recording does not trigger gestures.
             appState.gestureEngine.pushSuppression()
@@ -150,6 +64,118 @@ struct GestureEditorView: View {
         .onDisappear {
             appState.gestureEngine.popSuppression()
         }
+    }
+
+    /// Left pane: how the gesture is triggered — mouse button + drawn path,
+    /// always visible while the rest of the form is edited.
+    private var patternPane: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.string("editor.pattern"))
+                .font(.headline)
+
+            GestureRecorderView(path: $pathPoints)
+                .frame(maxHeight: .infinity)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Picker(L10n.string("editor.trigger"), selection: $profile.trigger.button) {
+                    ForEach(MouseTriggerButton.allCases) { button in
+                        Text(L10n.string(button.displayKey))
+                            .tag(button)
+                    }
+                }
+                Text(L10n.string("editor.triggerPerGestureHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(16)
+    }
+
+    private var settingsForm: some View {
+        Form {
+            Section(L10n.string("editor.basic")) {
+                TextField(L10n.string("editor.name"), text: $profile.name)
+                Toggle(L10n.string("editor.enabled"), isOn: $profile.isEnabled)
+            }
+
+            Section(L10n.string("editor.action")) {
+                ActionPickerView(kind: $actionKind, action: $profile.action)
+                if profile.action.requiresCapturedTarget {
+                    Text(L10n.string("editor.testActionNeedsTarget"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section(L10n.string("editor.target")) {
+                Picker(
+                    L10n.string("editor.targetWindow"),
+                    selection: $profile.targetPolicy
+                ) {
+                    ForEach(GestureTargetPolicy.allCases) { policy in
+                        Text(L10n.string(policy.displayKey))
+                            .tag(policy)
+                    }
+                }
+                Text(L10n.string(targetHelpKey))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if profile.targetPolicy == .windowUnderPointer,
+                   actionKind == .shortcut
+                {
+                    Label(
+                        L10n.string("editor.targetPointerShortcutWarning"),
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                }
+            }
+
+            Section(L10n.string("editor.scope")) {
+                AppScopeEditorView(isGlobal: $scopeIsGlobal, bundleIds: $scopeBundleIds)
+            }
+
+            Section(L10n.string("editor.notes")) {
+                TextField(L10n.string("editor.notes"), text: $profile.notes, axis: .vertical)
+                    .lineLimit(2...4)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var footerBar: some View {
+        HStack {
+            Button(L10n.string("common.cancel")) { onCancel() }
+                .keyboardShortcut(.cancelAction)
+            if pathPoints.count < 2 {
+                Text(L10n.string("editor.saveNeedsPath"))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .padding(.leading, 8)
+            }
+            Spacer()
+            Button(L10n.string("common.testAction")) {
+                Task { @MainActor in
+                    do {
+                        try await appState.actionExecutor.executeForTesting(profile.action)
+                    } catch {
+                        GestureToastController.shared.showActionError(
+                            error.localizedDescription
+                        )
+                    }
+                }
+            }
+            .disabled(profile.action.requiresCapturedTarget)
+            Button(L10n.string("common.save")) {
+                commitAndSave()
+            }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut(.defaultAction)
+            .disabled(pathPoints.count < 2)
+        }
+        .padding()
     }
 
     private func commitAndSave() {

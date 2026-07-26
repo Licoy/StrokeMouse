@@ -42,11 +42,18 @@ struct ShortcutRecordingState {
     private var unsupportedModifierKeys: Set<UInt16> = []
     private var hasStartedRelease = false
     private var hasUnsupportedModifier = false
-    private var isInvalidAttempt = false
     private var isCancelling = false
     /// Snapshot taken on primary keyDown so a lost keyUp still yields a chord
     /// once every participating key has been released (safe to stop the tap).
     private var committedChord: ShortcutChord?
+
+    /// What would be captured right now — for live feedback while keys are held.
+    var previewChord: ShortcutChord? {
+        guard !hasUnsupportedModifier, !isCancelling else { return nil }
+        if let committedChord { return committedChord }
+        guard !modifierOrder.isEmpty else { return nil }
+        return ShortcutChord(modifiers: modifierOrder, keyCode: nil)
+    }
 
     mutating func handle(_ input: ShortcutRecordingInput) -> ShortcutRecordingResult {
         switch input {
@@ -157,10 +164,22 @@ struct ShortcutRecordingState {
     ) -> ShortcutRecordingResult {
         if isDown {
             guard let modifier else { return .listening }
+            let primaryStillHeld = primaryKeyCode.map(pressedKeyCodes.contains) ?? false
+            if primaryStillHeld {
+                // Late modifier while the primary key is held (fast typing race,
+                // or the user adding a modifier): fold it into the chord, keeping
+                // only modifiers that are still physically down.
+                pruneModifierOrderToHeld()
+                if !modifierOrder.contains(modifier) {
+                    modifierOrder.append(modifier)
+                }
+                pressedModifiers[keyCode] = modifier
+                commitChordIfPossible()
+                return .listening
+            }
             if primaryKeyCode != nil || hasStartedRelease {
-                isInvalidAttempt = true
-                isCancelling = false
-                committedChord = nil
+                // New press after a previous attempt: restart with what is held.
+                restartAttemptKeepingHeldKeys()
             }
             if !modifierOrder.contains(modifier) {
                 modifierOrder.append(modifier)
@@ -188,18 +207,34 @@ struct ShortcutRecordingState {
         // device-independent (and sometimes device-dependent) modifier bits.
         mergeModifiers(from: flags)
 
+        if hasStartedRelease || (primaryKeyCode != nil && primaryKeyCode != keyCode) {
+            // Last key wins: restart the attempt instead of dead-ending it.
+            restartAttemptKeepingHeldKeys()
+            mergeModifiers(from: flags)
+        }
+
         if Int(keyCode) == kVK_Escape, modifierOrder.isEmpty, primaryKeyCode == nil {
             isCancelling = true
-        }
-        if hasStartedRelease || (primaryKeyCode != nil && primaryKeyCode != keyCode) {
-            isInvalidAttempt = true
-            isCancelling = false
-            committedChord = nil
         }
         if primaryKeyCode == nil { primaryKeyCode = keyCode }
         pressedKeyCodes.insert(keyCode)
         commitChordIfPossible()
         return .listening
+    }
+
+    /// A fresh key press after keys were already going up starts a corrected
+    /// attempt: keep only the modifiers that are still physically held.
+    private mutating func restartAttemptKeepingHeldKeys() {
+        primaryKeyCode = nil
+        committedChord = nil
+        hasStartedRelease = false
+        isCancelling = false
+        pruneModifierOrderToHeld()
+    }
+
+    private mutating func pruneModifierOrderToHeld() {
+        let held = Set(pressedModifiers.values)
+        modifierOrder = modifierOrder.filter(held.contains)
     }
 
     private mutating func mergeModifiers(from flags: CGEventFlags) {
@@ -215,7 +250,7 @@ struct ShortcutRecordingState {
     /// Freeze the chord when the primary key goes down so system-reserved combos
     /// (⌃← / Spaces, ⌃↑ / Mission Control, …) still record if later edges are noisy.
     private mutating func commitChordIfPossible() {
-        guard !isCancelling, !isInvalidAttempt, !hasUnsupportedModifier else {
+        guard !isCancelling, !hasUnsupportedModifier else {
             committedChord = nil
             return
         }
@@ -236,10 +271,6 @@ struct ShortcutRecordingState {
         if isCancelling {
             self = ShortcutRecordingState()
             return .cancelled
-        }
-        if isInvalidAttempt {
-            self = ShortcutRecordingState()
-            return .listening
         }
         if let committedChord {
             self = ShortcutRecordingState()
@@ -318,6 +349,9 @@ final class ShortcutRecorderTap: @unchecked Sendable {
     var onCapture: ((ShortcutChord, String) -> Void)?
     var onCancel: (() -> Void)?
     var onUnsupportedModifier: (() -> Void)?
+    /// Called on main queue while keys are held with the chord being formed
+    /// (empty string when nothing relevant is held) — live feedback for the UI.
+    var onPreview: ((String) -> Void)?
 
     private var port: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -401,7 +435,11 @@ final class ShortcutRecorderTap: @unchecked Sendable {
         let result = recordingState.handle(input)
         switch result {
         case .listening:
-            break
+            let preview = recordingState.previewChord
+                .map { KeyCodeNames.shortcutDisplay(chord: $0) } ?? ""
+            DispatchQueue.main.async { [weak self] in
+                self?.onPreview?(preview)
+            }
         case .captured(let chord):
             let display = KeyCodeNames.shortcutDisplay(chord: chord)
             DispatchQueue.main.async { [weak self] in

@@ -20,6 +20,7 @@ struct ActionPickerView: View {
     /// Draft kept while the user is on a built-in so switching back to Custom restores it.
     @State private var customAppleScriptDraft = "display notification \"StrokeMouse\" with title \"Gesture\""
     @State private var isRecordingShortcut = false
+    @State private var shortcutLivePreview = ""
     @State private var didHydrate = false
     @State private var recorderFailed = false
     @State private var unsupportedShortcutModifier = false
@@ -90,27 +91,54 @@ struct ActionPickerView: View {
 
             case .shortcut:
                 HStack(spacing: 10) {
-                    // Read-only display (not editable).
-                    Text(shortcutDisplay.isEmpty ? L10n.string("action.shortcutEmpty") : shortcutDisplay)
-                        .font(.body.monospaced())
-                        .foregroundStyle(shortcutDisplay.isEmpty ? .secondary : .primary)
+                    // Click-to-record field with live key feedback.
+                    Button {
+                        if isRecordingShortcut {
+                            stopRecording()
+                        } else {
+                            startRecording()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isRecordingShortcut {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 7, height: 7)
+                                Text(shortcutLivePreview.isEmpty
+                                     ? L10n.string("action.shortcutListening")
+                                     : shortcutLivePreview)
+                                    .font(.body.monospaced())
+                                    .foregroundStyle(shortcutLivePreview.isEmpty ? .secondary : .primary)
+                            } else {
+                                Text(shortcutDisplay.isEmpty
+                                     ? L10n.string("action.shortcutEmpty")
+                                     : shortcutDisplay)
+                                    .font(.body.monospaced())
+                                    .foregroundStyle(shortcutDisplay.isEmpty ? .secondary : .primary)
+                            }
+                        }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(Color(nsColor: .controlBackgroundColor))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(
-                                    isRecordingShortcut ? Color.accentColor : Color.secondary.opacity(0.25),
-                                    lineWidth: isRecordingShortcut ? 1.5 : 1
-                                )
-                        )
+                        .contentShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(isRecordingShortcut
+                                  ? Color.accentColor.opacity(0.08)
+                                  : Color(nsColor: .controlBackgroundColor))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .strokeBorder(
+                                isRecordingShortcut ? Color.accentColor : Color.secondary.opacity(0.25),
+                                lineWidth: isRecordingShortcut ? 1.5 : 1
+                            )
+                    )
 
                     Button(isRecordingShortcut
-                           ? L10n.string("action.shortcutListening")
+                           ? L10n.string("action.shortcutStop")
                            : L10n.string("action.shortcutRecord")) {
                         if isRecordingShortcut {
                             stopRecording()
@@ -258,7 +286,11 @@ struct ActionPickerView: View {
     private func startRecording() {
         recorderFailed = false
         unsupportedShortcutModifier = false
+        shortcutLivePreview = ""
         let tap = ShortcutRecorderTap.shared
+        tap.onPreview = { display in
+            shortcutLivePreview = display
+        }
         tap.onCapture = { chord, display in
             keyCode = chord.legacyKeyCode
             modifiers = chord.legacyModifiers
@@ -288,7 +320,9 @@ struct ActionPickerView: View {
         ShortcutRecorderTap.shared.onCapture = nil
         ShortcutRecorderTap.shared.onCancel = nil
         ShortcutRecorderTap.shared.onUnsupportedModifier = nil
+        ShortcutRecorderTap.shared.onPreview = nil
         isRecordingShortcut = false
+        shortcutLivePreview = ""
     }
 
     private func hydrate(from action: GestureAction) {

@@ -369,7 +369,7 @@ final class ShortcutRecordingStateTests: XCTestCase {
         )
     }
 
-    func testNewPrimaryKeyAfterReleaseInvalidatesTheAttempt() {
+    func testNewPrimaryKeyAfterReleaseReplacesThePreviousOne() {
         var state = ShortcutRecordingState()
 
         XCTAssertEqual(
@@ -385,6 +385,7 @@ final class ShortcutRecordingStateTests: XCTestCase {
             .listening
         )
         XCTAssertEqual(state.handle(.keyUp(keyCode: UInt16(kVK_ANSI_Q))), .listening)
+        // Correction while Command is still held: the last key wins.
         XCTAssertEqual(
             state.handle(.keyDown(
                 keyCode: UInt16(kVK_ANSI_W),
@@ -396,20 +397,14 @@ final class ShortcutRecordingStateTests: XCTestCase {
         XCTAssertEqual(state.handle(.keyUp(keyCode: UInt16(kVK_ANSI_W))), .listening)
         XCTAssertEqual(
             state.handle(.flagsChanged(keyCode: UInt16(kVK_Command), flags: [])),
-            .listening
-        )
-
-        XCTAssertEqual(
-            state.handle(.flagsChanged(keyCode: UInt16(kVK_Option), flags: [.maskAlternate])),
-            .listening
-        )
-        XCTAssertEqual(
-            state.handle(.flagsChanged(keyCode: UInt16(kVK_Option), flags: [])),
-            .captured(ShortcutChord(modifiers: [.option], keyCode: nil))
+            .captured(ShortcutChord(
+                modifiers: [.command],
+                keyCode: UInt16(kVK_ANSI_W)
+            ))
         )
     }
 
-    func testSecondPrimaryKeyBeforeReleaseInvalidatesTheAttempt() {
+    func testSecondPrimaryKeyBeforeReleaseWinsOverTheFirst() {
         var state = ShortcutRecordingState()
 
         XCTAssertEqual(
@@ -436,16 +431,10 @@ final class ShortcutRecordingStateTests: XCTestCase {
         XCTAssertEqual(state.handle(.keyUp(keyCode: UInt16(kVK_ANSI_W))), .listening)
         XCTAssertEqual(
             state.handle(.flagsChanged(keyCode: UInt16(kVK_Command), flags: [])),
-            .listening
-        )
-
-        XCTAssertEqual(
-            state.handle(.flagsChanged(keyCode: UInt16(kVK_Option), flags: [.maskAlternate])),
-            .listening
-        )
-        XCTAssertEqual(
-            state.handle(.flagsChanged(keyCode: UInt16(kVK_Option), flags: [])),
-            .captured(ShortcutChord(modifiers: [.option], keyCode: nil))
+            .captured(ShortcutChord(
+                modifiers: [.command],
+                keyCode: UInt16(kVK_ANSI_W)
+            ))
         )
     }
 
@@ -598,9 +587,10 @@ final class ShortcutRecordingStateTests: XCTestCase {
         )
     }
 
-    func testPrimaryKeyMustBePressedAfterModifiers() {
+    func testModifierPressedWhilePrimaryKeyHeldJoinsTheChord() {
         var state = ShortcutRecordingState()
 
+        // Fast typing race: the letter lands before the modifier's flagsChanged.
         XCTAssertEqual(
             state.handle(.keyDown(
                 keyCode: UInt16(kVK_ANSI_Q),
@@ -617,7 +607,92 @@ final class ShortcutRecordingStateTests: XCTestCase {
             state.handle(.flagsChanged(keyCode: UInt16(kVK_Command), flags: [])),
             .listening
         )
-        XCTAssertEqual(state.handle(.keyUp(keyCode: UInt16(kVK_ANSI_Q))), .listening)
+        XCTAssertEqual(
+            state.handle(.keyUp(keyCode: UInt16(kVK_ANSI_Q))),
+            .captured(ShortcutChord(
+                modifiers: [.command],
+                keyCode: UInt16(kVK_ANSI_Q)
+            ))
+        )
+    }
+
+    func testLateModifierReplacesAlreadyReleasedModifiers() {
+        var state = ShortcutRecordingState()
+
+        XCTAssertEqual(
+            state.handle(.flagsChanged(keyCode: UInt16(kVK_Command), flags: [.maskCommand])),
+            .listening
+        )
+        XCTAssertEqual(
+            state.handle(.keyDown(
+                keyCode: UInt16(kVK_ANSI_Q),
+                isRepeat: false,
+                flags: [.maskCommand]
+            )),
+            .listening
+        )
+        // Command released while Q stays held, then Shift pressed instead.
+        XCTAssertEqual(
+            state.handle(.flagsChanged(keyCode: UInt16(kVK_Command), flags: [])),
+            .listening
+        )
+        XCTAssertEqual(
+            state.handle(.flagsChanged(keyCode: UInt16(kVK_Shift), flags: [.maskShift])),
+            .listening
+        )
+        XCTAssertEqual(
+            state.handle(.flagsChanged(keyCode: UInt16(kVK_Shift), flags: [])),
+            .listening
+        )
+        XCTAssertEqual(
+            state.handle(.keyUp(keyCode: UInt16(kVK_ANSI_Q))),
+            .captured(ShortcutChord(
+                modifiers: [.shift],
+                keyCode: UInt16(kVK_ANSI_Q)
+            ))
+        )
+    }
+
+    func testPreviewChordTracksHeldKeysLive() {
+        var state = ShortcutRecordingState()
+
+        XCTAssertNil(state.previewChord)
+        _ = state.handle(.flagsChanged(keyCode: UInt16(kVK_Command), flags: [.maskCommand]))
+        XCTAssertEqual(
+            state.previewChord,
+            ShortcutChord(modifiers: [.command], keyCode: nil)
+        )
+        _ = state.handle(.flagsChanged(
+            keyCode: UInt16(kVK_Shift),
+            flags: [.maskCommand, .maskShift]
+        ))
+        XCTAssertEqual(
+            state.previewChord,
+            ShortcutChord(modifiers: [.command, .shift], keyCode: nil)
+        )
+        _ = state.handle(.keyDown(
+            keyCode: UInt16(kVK_ANSI_A),
+            isRepeat: false,
+            flags: [.maskCommand, .maskShift]
+        ))
+        XCTAssertEqual(
+            state.previewChord,
+            ShortcutChord(
+                modifiers: [.command, .shift],
+                keyCode: UInt16(kVK_ANSI_A)
+            )
+        )
+    }
+
+    func testPreviewChordIsNilWhileCancelling() {
+        var state = ShortcutRecordingState()
+
+        _ = state.handle(.keyDown(
+            keyCode: UInt16(kVK_Escape),
+            isRepeat: false,
+            flags: []
+        ))
+        XCTAssertNil(state.previewChord)
     }
 
     func testControlPlusArrowKeysAreCaptured() {
