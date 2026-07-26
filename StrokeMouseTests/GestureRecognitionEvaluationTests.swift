@@ -255,6 +255,52 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
         )
     }
 
+    func testRepeatedEvaluationWithTemplateCacheIsDeterministic() {
+        let profiles = [
+            GestureProfile(name: "Up", pattern: .freePath(PathTemplates.up)),
+            GestureProfile(name: "Down", pattern: .freePath(PathTemplates.down)),
+            GestureProfile(
+                name: "Peak",
+                pattern: .freePath(GestureRecognitionTestSupport.recordedNarrowPeak.map(CodablePoint.init))
+            ),
+        ]
+        let path = (0..<40).map { CGPoint(x: 200, y: 100 + CGFloat($0) * 8) }
+
+        let first = GestureRecognitionEvaluator.evaluate(
+            path: path,
+            profiles: profiles,
+            button: .right,
+            policy: .standard(minimumPathLength: 0)
+        )
+        let second = GestureRecognitionEvaluator.evaluate(
+            path: path,
+            profiles: profiles,
+            button: .right,
+            policy: .standard(minimumPathLength: 0)
+        )
+
+        XCTAssertEqual(first.decision, second.decision)
+        XCTAssertEqual(first.candidates.map(\.score), second.candidates.map(\.score))
+        XCTAssertEqual(first.candidates.map(\.shapeScore), second.candidates.map(\.shapeScore))
+    }
+
+    func testTemplateCacheInvalidatesWhenTemplatePointsChange() {
+        let id = UUID()
+        let up = PathTemplates.up.map(\.cgPoint)
+        let down = PathTemplates.down.map(\.cgPoint)
+
+        let first = GestureTemplateCache.shared.prepared(id: id, points: up)
+        XCTAssertEqual(first.points, up)
+
+        let edited = GestureTemplateCache.shared.prepared(id: id, points: down)
+        XCTAssertEqual(edited.points, down)
+        XCTAssertEqual(edited.shapeSamples, TemplateMatcher.prepare(down).shapeSamples)
+
+        let cached = GestureTemplateCache.shared.prepared(id: id, points: down)
+        XCTAssertEqual(cached.points, down)
+        XCTAssertEqual(cached.shapeSamples, edited.shapeSamples)
+    }
+
     func testStructuralMismatchIsAvailableForDiagnostics() {
         let template = GestureRecognitionTestSupport.recordedNarrowPeak
         let profile = GestureProfile(

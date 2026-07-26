@@ -67,6 +67,64 @@ enum UnistrokeGeometry {
         }
     }
 
+    /// `rotate` followed by `normalize` fused into a single buffer, with the
+    /// rotation center hoisted so repeated calls over the same points (the
+    /// ±rotation-tolerance search) skip per-call centroid and bbox passes.
+    static func rotatedNormalized(
+        _ points: [CGPoint],
+        around center: CGPoint,
+        radians: CGFloat,
+        uniform: Bool
+    ) -> [CGPoint]? {
+        guard !points.isEmpty else { return nil }
+        let cosine = cos(radians)
+        let sine = sin(radians)
+
+        var rotated = [CGPoint]()
+        rotated.reserveCapacity(points.count)
+        var minX = CGFloat.greatestFiniteMagnitude
+        var maxX = -CGFloat.greatestFiniteMagnitude
+        var minY = CGFloat.greatestFiniteMagnitude
+        var maxY = -CGFloat.greatestFiniteMagnitude
+        for point in points {
+            let x = point.x - center.x
+            let y = point.y - center.y
+            let rotatedPoint = CGPoint(
+                x: x * cosine - y * sine + center.x,
+                y: x * sine + y * cosine + center.y
+            )
+            rotated.append(rotatedPoint)
+            minX = min(minX, rotatedPoint.x)
+            maxX = max(maxX, rotatedPoint.x)
+            minY = min(minY, rotatedPoint.y)
+            maxY = max(maxY, rotatedPoint.y)
+        }
+
+        let width = maxX - minX
+        let height = maxY - minY
+        let major = max(width, height)
+        guard major > 1e-8 else { return nil }
+        let scaleX = uniform ? major : max(width, 1e-8)
+        let scaleY = uniform ? major : max(height, 1e-8)
+
+        var sumX: CGFloat = 0
+        var sumY: CGFloat = 0
+        for index in rotated.indices {
+            let scaled = CGPoint(x: rotated[index].x / scaleX, y: rotated[index].y / scaleY)
+            rotated[index] = scaled
+            sumX += scaled.x
+            sumY += scaled.y
+        }
+        let count = CGFloat(rotated.count)
+        let centerX = sumX / count
+        let centerY = sumY / count
+        for index in rotated.indices {
+            rotated[index].x -= centerX
+            rotated[index].y -= centerY
+        }
+        return rotated
+    }
+
     static func trimmingTerminalFraction(_ points: [CGPoint], _ fraction: CGFloat) -> [CGPoint] {
         guard fraction > 1e-8, fraction < 1, points.count >= 2 else { return points }
         let target = PathSimplifier.pathLength(points) * (1 - fraction)
@@ -93,7 +151,7 @@ enum UnistrokeGeometry {
         return result
     }
 
-    private static func centroid(_ points: [CGPoint]) -> CGPoint {
+    static func centroid(_ points: [CGPoint]) -> CGPoint {
         guard !points.isEmpty else { return .zero }
         let sum = points.reduce(CGPoint.zero) { partial, point in
             CGPoint(x: partial.x + point.x, y: partial.y + point.y)

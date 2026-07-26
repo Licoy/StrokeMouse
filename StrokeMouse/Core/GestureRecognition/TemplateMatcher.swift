@@ -31,6 +31,40 @@ enum TemplateMatcher {
         let diagnostics: Diagnostics?
     }
 
+    /// Precomputed per-path geometry (resampling + structural signature). The
+    /// stroke side is prepared once per recognition pass instead of once per
+    /// candidate template; template preparations can additionally be cached
+    /// across passes because templates rarely change.
+    struct PreparedPath {
+        let points: [CGPoint]
+        let sampleCount: Int
+        let shapeSamples: [CGPoint]?
+        let extraction: StrokeStructureExtraction
+        /// Template-side flag; derived purely from these points so it can be
+        /// precomputed regardless of which side the path ends up on.
+        let flexibleSingleTurn: Bool
+    }
+
+    static func prepare(
+        _ points: [CGPoint],
+        sampleCount: Int = Constants.freePathSampleCount
+    ) -> PreparedPath {
+        let extraction = StrokeStructureExtractor.extract(points)
+        let flexibleSingleTurn = extraction.signature.map { signature in
+            StrokeStructureMatcher.usesFlexibleSingleTurn(
+                points,
+                segments: signature.descriptors
+            )
+        } ?? false
+        return PreparedPath(
+            points: points,
+            sampleCount: sampleCount,
+            shapeSamples: UnistrokeGeometry.resampledPath(points, count: sampleCount),
+            extraction: extraction,
+            flexibleSingleTurn: flexibleSingleTurn
+        )
+    }
+
     private struct SimilarityEvaluation {
         let score: Double
         let distance: Double
@@ -60,8 +94,31 @@ enum TemplateMatcher {
         _ template: [CGPoint],
         sampleCount: Int = Constants.freePathSampleCount
     ) -> Evaluation {
-        let rawGeometry = orderedSimilarity(stroke, template, sampleCount: sampleCount)
-        let structure = StrokeStructureMatcher.evaluate(stroke, template)
+        evaluate(
+            stroke: prepare(stroke, sampleCount: sampleCount),
+            template: prepare(template, sampleCount: sampleCount),
+            sampleCount: sampleCount
+        )
+    }
+
+    /// Prepared-path variant that skips all redundant per-side precomputation.
+    static func evaluate(
+        stroke: PreparedPath,
+        template: PreparedPath,
+        sampleCount: Int = Constants.freePathSampleCount
+    ) -> Evaluation {
+        let rawGeometry = orderedSimilarity(
+            sampledStroke: shapeSamples(of: stroke, sampleCount: sampleCount),
+            sampledTemplate: shapeSamples(of: template, sampleCount: sampleCount),
+            sampleCount: sampleCount
+        )
+        let structure = StrokeStructureMatcher.evaluate(
+            stroke.points,
+            template.points,
+            strokeExtraction: stroke.extraction,
+            templateExtraction: template.extraction,
+            templateFlexibleSingleTurn: template.flexibleSingleTurn
+        )
         guard let cores = structure.cores else {
             return Evaluation(
                 score: 0,
@@ -118,15 +175,36 @@ enum TemplateMatcher {
         orderedSimilarity(stroke, template, sampleCount: sampleCount).score
     }
 
+    private static func shapeSamples(
+        of prepared: PreparedPath,
+        sampleCount: Int
+    ) -> [CGPoint]? {
+        prepared.sampleCount == sampleCount
+            ? prepared.shapeSamples
+            : UnistrokeGeometry.resampledPath(prepared.points, count: sampleCount)
+    }
+
     private static func orderedSimilarity(
         _ stroke: [CGPoint],
         _ template: [CGPoint],
         sampleCount: Int,
         distanceScale: Double = scoreDistanceScale
     ) -> SimilarityEvaluation {
-        guard sampleCount > 1,
-              let sampledStroke = UnistrokeGeometry.resampledPath(stroke, count: sampleCount),
-              let sampledTemplate = UnistrokeGeometry.resampledPath(template, count: sampleCount)
+        orderedSimilarity(
+            sampledStroke: UnistrokeGeometry.resampledPath(stroke, count: sampleCount),
+            sampledTemplate: UnistrokeGeometry.resampledPath(template, count: sampleCount),
+            sampleCount: sampleCount,
+            distanceScale: distanceScale
+        )
+    }
+
+    private static func orderedSimilarity(
+        sampledStroke: [CGPoint]?,
+        sampledTemplate: [CGPoint]?,
+        sampleCount: Int,
+        distanceScale: Double = scoreDistanceScale
+    ) -> SimilarityEvaluation {
+        guard sampleCount > 1, let sampledStroke, let sampledTemplate
         else { return SimilarityEvaluation(score: 0, distance: .infinity, rotationDegrees: 0) }
 
         let uniformScale = UnistrokeGeometry.isNearOneDimensional(
@@ -143,17 +221,23 @@ enum TemplateMatcher {
             return SimilarityEvaluation(score: 0, distance: .infinity, rotationDegrees: 0)
         }
 
+        let rotationCenter = UnistrokeGeometry.centroid(sampledStroke)
         var bestDistance = Double.infinity
         var bestRotation = 0
         for degrees in -rotationToleranceDegrees...rotationToleranceDegrees {
-            let rotated = UnistrokeGeometry.rotate(
+            guard let candidate = UnistrokeGeometry.rotatedNormalized(
                 sampledStroke,
-                radians: CGFloat(degrees) * .pi / 180
-            )
-            guard let candidate = UnistrokeGeometry.normalize(rotated, uniform: uniformScale) else {
+                around: rotationCenter,
+                radians: CGFloat(degrees) * .pi / 180,
+                uniform: uniformScale
+            ) else {
                 continue
             }
-            let distance = orderedPointDistance(candidate, normalizedTemplate)
+            let distance = orderedPointDistance(
+                candidate,
+                normalizedTemplate,
+                abandonAverageAbove: bestDistance
+            )
             if distance < bestDistance {
                 bestDistance = distance
                 bestRotation = degrees
@@ -258,10 +342,19 @@ enum TemplateMatcher {
         )
     }
 
-    private static func orderedPointDistance(_ a: [CGPoint], _ b: [CGPoint]) -> Double {
+    /// Average pairwise distance. Once the running total proves the average
+    /// cannot beat `abandonAverageAbove`, the remaining pairs are skipped.
+    private static func orderedPointDistance(
+        _ a: [CGPoint],
+        _ b: [CGPoint],
+        abandonAverageAbove limit: Double = .infinity
+    ) -> Double {
         guard a.count == b.count, !a.isEmpty else { return .infinity }
-        let total = zip(a, b).reduce(0.0) { partial, pair in
-            partial + hypot(Double(pair.0.x - pair.1.x), Double(pair.0.y - pair.1.y))
+        let abandonTotal = limit.isFinite ? limit * Double(a.count) : .infinity
+        var total = 0.0
+        for index in a.indices {
+            total += hypot(Double(a[index].x - b[index].x), Double(a[index].y - b[index].y))
+            if total > abandonTotal { return .infinity }
         }
         return total / Double(a.count)
     }

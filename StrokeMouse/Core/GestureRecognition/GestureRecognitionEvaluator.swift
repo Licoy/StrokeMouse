@@ -1,6 +1,42 @@
 import CoreGraphics
 import Foundation
 
+/// Memoizes template preparation (resampling + structural extraction) per
+/// profile. Preparation is a pure function of the template points, so entries
+/// only need points-equality validation; edited templates re-prepare in place.
+final class GestureTemplateCache: @unchecked Sendable {
+    static let shared = GestureTemplateCache()
+
+    private struct Entry {
+        let points: [CGPoint]
+        let prepared: TemplateMatcher.PreparedPath
+    }
+
+    private let lock = NSLock()
+    private var entries: [UUID: Entry] = [:]
+    /// Well above any realistic profile count; wholesale reset on overflow
+    /// keeps stale profile ids from accumulating forever.
+    private let capacity = 128
+
+    func prepared(id: UUID, points: [CGPoint]) -> TemplateMatcher.PreparedPath {
+        lock.lock()
+        if let entry = entries[id], entry.points == points {
+            lock.unlock()
+            return entry.prepared
+        }
+        lock.unlock()
+
+        let prepared = TemplateMatcher.prepare(points)
+        lock.lock()
+        if entries[id] == nil, entries.count >= capacity {
+            entries.removeAll(keepingCapacity: true)
+        }
+        entries[id] = Entry(points: points, prepared: prepared)
+        lock.unlock()
+        return prepared
+    }
+}
+
 enum GestureEvaluationDecision: String, Codable, Sendable {
     case accepted
     case invalidPath
@@ -90,11 +126,18 @@ enum GestureRecognitionEvaluator {
             return result(.tooShort, button: button, policy: policy, pathLength: length)
         }
 
+        let preparedStroke = TemplateMatcher.prepare(path)
         let candidates = profiles.compactMap { profile -> GestureCandidateEvaluation? in
             guard profile.isEnabled, profile.trigger.button == button,
                   let template = templatePoints(for: profile)
             else { return nil }
-            let match = TemplateMatcher.evaluate(path, template)
+            let match = TemplateMatcher.evaluate(
+                stroke: preparedStroke,
+                template: GestureTemplateCache.shared.prepared(
+                    id: profile.id,
+                    points: template
+                )
+            )
             return GestureCandidateEvaluation(
                 profile: profile,
                 score: match.score,

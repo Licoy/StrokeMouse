@@ -204,10 +204,10 @@ final class GestureEngine {
         case .buttonDown(let button, let quartzLocation):
             beginStroke(button: button, quartzLocation: quartzLocation)
 
-        case .buttonUp(let button, _):
+        case .buttonUp(let button, let quartzLocation):
             // Ignore up from a different button than the active stroke.
             if let active = activeButton, active != button { return }
-            endStroke()
+            endStroke(quartzLocation: quartzLocation)
         }
     }
 
@@ -218,7 +218,9 @@ final class GestureEngine {
             profiles: configStore.enabledGestures(button: button),
             at: quartzLocation
         )
-        let point = Self.appKitMouseLocation()
+        // The event's own coordinates are exact at press time; the polled
+        // location can lag behind on a fast stroke start.
+        let point = Self.appKitLocation(fromQuartz: quartzLocation)
         strokeOrigin = point
         currentPath = [point]
         isDrawing = false
@@ -245,9 +247,10 @@ final class GestureEngine {
         updateHUD()
     }
 
-    private func endStroke() {
-        // Capture the release position in case a fast stroke ends before the next timer tick.
-        appendSample(Self.appKitMouseLocation())
+    private func endStroke(quartzLocation: CGPoint) {
+        // Close the path at the exact release position; a fast stroke can end
+        // before the next timer tick and the pointer may drift afterwards.
+        appendSample(Self.appKitLocation(fromQuartz: quartzLocation))
         stopSampling()
         let path = currentPath
         let button = activeButton
@@ -281,8 +284,9 @@ final class GestureEngine {
 
     private func startSampling() {
         stopSampling()
-        // High-frequency sampling while trigger is held.
-        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+        // High-frequency sampling while trigger is held. 120Hz keeps sharp
+        // corners on fast flicks without touching the event tap mask.
+        let timer = Timer(timeInterval: 1.0 / 120.0, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 guard let self, self.activeButton != nil else { return }
                 self.appendSample(Self.appKitMouseLocation())
@@ -371,5 +375,21 @@ final class GestureEngine {
     /// AppKit global mouse location (origin bottom-left).
     private static func appKitMouseLocation() -> CGPoint {
         NSEvent.mouseLocation
+    }
+
+    /// Convert a Quartz global point (origin top-left of the zero screen) to
+    /// AppKit global coordinates (origin bottom-left of the zero screen).
+    nonisolated static func appKitLocation(
+        fromQuartz point: CGPoint,
+        zeroScreenMaxY: CGFloat
+    ) -> CGPoint {
+        CGPoint(x: point.x, y: zeroScreenMaxY - point.y)
+    }
+
+    private static func appKitLocation(fromQuartz point: CGPoint) -> CGPoint {
+        guard let zeroScreen = NSScreen.screens.first else {
+            return appKitMouseLocation()
+        }
+        return appKitLocation(fromQuartz: point, zeroScreenMaxY: zeroScreen.frame.maxY)
     }
 }

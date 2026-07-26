@@ -206,6 +206,67 @@ final class TemplateMatcherTests: XCTestCase {
         XCTAssertEqual(dirs.first, .up)
     }
 
+    func testRotatedNormalizedMatchesRotateThenNormalize() {
+        let paths: [[CGPoint]] = [
+            GestureRecognitionTestSupport.recordedNarrowPeak,
+            GestureRecognitionTestSupport.complexVertices,
+            (0..<40).map { CGPoint(x: 100 + CGFloat($0) * 5, y: 200 + sin(CGFloat($0) / 3) * 40) },
+            [CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 2)],
+        ]
+        for points in paths {
+            let center = UnistrokeGeometry.centroid(points)
+            for degrees in stride(from: -12, through: 12, by: 3) {
+                for uniform in [true, false] {
+                    let radians = CGFloat(degrees) * .pi / 180
+                    let legacy = UnistrokeGeometry.normalize(
+                        UnistrokeGeometry.rotate(points, radians: radians),
+                        uniform: uniform
+                    )
+                    let fused = UnistrokeGeometry.rotatedNormalized(
+                        points,
+                        around: center,
+                        radians: radians,
+                        uniform: uniform
+                    )
+                    XCTAssertEqual(legacy == nil, fused == nil)
+                    guard let legacy, let fused else { continue }
+                    XCTAssertEqual(legacy.count, fused.count)
+                    for (expected, actual) in zip(legacy, fused) {
+                        XCTAssertEqual(expected.x, actual.x, accuracy: 1e-9)
+                        XCTAssertEqual(expected.y, actual.y, accuracy: 1e-9)
+                    }
+                }
+            }
+        }
+    }
+
+    func testPreparedEvaluationMatchesSelfContainedEvaluation() {
+        let strokes: [[CGPoint]] = [
+            GestureRecognitionTestSupport.recordedNarrowPeak,
+            (0..<40).map { CGPoint(x: 200, y: 100 + CGFloat($0) * 8) },
+            (0..<20).map { CGPoint(x: 300, y: 400 - CGFloat($0) * 8) }
+                + (0..<20).map { CGPoint(x: 300 - CGFloat($0) * 8, y: 240) },
+        ]
+        let templates = [
+            PathTemplates.up.map(\.cgPoint),
+            PathTemplates.downLeft.map(\.cgPoint),
+            PathTemplates.peak.map(\.cgPoint),
+        ]
+        for stroke in strokes {
+            let preparedStroke = TemplateMatcher.prepare(stroke)
+            for template in templates {
+                let direct = TemplateMatcher.evaluate(stroke, template)
+                let prepared = TemplateMatcher.evaluate(
+                    stroke: preparedStroke,
+                    template: TemplateMatcher.prepare(template)
+                )
+                XCTAssertEqual(direct.score, prepared.score)
+                XCTAssertEqual(direct.shapeScore, prepared.shapeScore)
+                XCTAssertEqual(direct.structuralMismatch, prepared.structuralMismatch)
+            }
+        }
+    }
+
     private struct PeakVariation {
         let width: CGFloat
         let height: CGFloat

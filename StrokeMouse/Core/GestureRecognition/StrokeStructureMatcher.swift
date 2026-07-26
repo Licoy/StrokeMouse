@@ -55,9 +55,18 @@ enum StrokeStructureMatcher {
         evaluate(stroke, template).cores
     }
 
-    static func evaluate(_ stroke: [CGPoint], _ template: [CGPoint]) -> Evaluation {
-        let strokeExtraction = StrokeStructureExtractor.extract(stroke)
-        let templateExtraction = StrokeStructureExtractor.extract(template)
+    /// The optional precomputed inputs let callers reuse one stroke extraction
+    /// across many templates and cache template-side work; passing nil keeps
+    /// the self-contained behavior.
+    static func evaluate(
+        _ stroke: [CGPoint],
+        _ template: [CGPoint],
+        strokeExtraction: StrokeStructureExtraction? = nil,
+        templateExtraction: StrokeStructureExtraction? = nil,
+        templateFlexibleSingleTurn: Bool? = nil
+    ) -> Evaluation {
+        let strokeExtraction = strokeExtraction ?? StrokeStructureExtractor.extract(stroke)
+        let templateExtraction = templateExtraction ?? StrokeStructureExtractor.extract(template)
         guard let strokeSignature = strokeExtraction.signature else {
             return Evaluation(
                 cores: nil,
@@ -78,7 +87,7 @@ enum StrokeStructureMatcher {
                 usesFlexibleSingleTurn: false
             )
         }
-        let flexibleSingleTurn = usesFlexibleSingleTurn(
+        let flexibleSingleTurn = templateFlexibleSingleTurn ?? usesFlexibleSingleTurn(
             template,
             segments: templateSignature.descriptors
         )

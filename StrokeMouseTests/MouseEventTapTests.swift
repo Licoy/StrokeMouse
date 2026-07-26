@@ -129,6 +129,20 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertEqual(observedEventCount, 0)
     }
 
+    func testQuartzLocationConvertsToAppKitCoordinates() {
+        let converted = GestureEngine.appKitLocation(
+            fromQuartz: CGPoint(x: 10, y: 30),
+            zeroScreenMaxY: 1080
+        )
+        XCTAssertEqual(converted, CGPoint(x: 10, y: 1050))
+
+        let origin = GestureEngine.appKitLocation(
+            fromQuartz: .zero,
+            zeroScreenMaxY: 900
+        )
+        XCTAssertEqual(origin, CGPoint(x: 0, y: 900))
+    }
+
     private func maskContains(_ mask: CGEventMask, _ type: CGEventType) -> Bool {
         mask & CGEventMask(1 << type.rawValue) != 0
     }
