@@ -30,6 +30,9 @@ struct GestureInputEditorView: View {
     @Binding var input: GestureInput
     @Binding var pathPoints: [CodablePoint]
 
+    /// Shared label column so option controls share one left edge.
+    private let directLabelColumnWidth: CGFloat = 88
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Picker(
@@ -102,53 +105,51 @@ struct GestureInputEditorView: View {
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
 
-        Picker(
-            L10n.string("editor.direct.category"),
-            selection: directCategory
-        ) {
-            ForEach(DirectGestureCategory.allCases) { category in
-                Text(L10n.string(category.titleKey)).tag(category)
+        VStack(alignment: .leading, spacing: 10) {
+            labeledSegmentedPicker(
+                title: L10n.string("editor.direct.category"),
+                selection: directCategory
+            ) {
+                ForEach(DirectGestureCategory.allCases) { category in
+                    Text(L10n.string(category.titleKey)).tag(category)
+                }
             }
-        }
-        .pickerStyle(.segmented)
 
-        switch gesture {
-        case .tap:
-            standardFingerPicker
-            Picker(
-                L10n.string("editor.direct.tapCount"),
-                selection: tapCount
-            ) {
-                ForEach(TapCount.allCases) { count in
-                    Text(L10n.string("trackpad.tap.\(count.rawValue)"))
-                        .tag(count)
+            switch gesture {
+            case .tap:
+                standardFingerPicker
+                labeledSegmentedPicker(
+                    title: L10n.string("editor.direct.tapCount"),
+                    selection: tapCount
+                ) {
+                    ForEach(TapCount.allCases) { count in
+                        Text(L10n.string("trackpad.tap.\(count.rawValue)"))
+                            .tag(count)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-        case .swipe:
-            standardFingerPicker
-            Picker(
-                L10n.string("editor.direct.direction"),
-                selection: swipeDirection
-            ) {
-                ForEach(CardinalDirection.allCases) { direction in
-                    Text(L10n.string("trackpad.swipe.\(direction.rawValue)"))
-                        .tag(direction)
+            case .swipe:
+                standardFingerPicker
+                labeledSegmentedPicker(
+                    title: L10n.string("editor.direct.direction"),
+                    selection: swipeDirection
+                ) {
+                    ForEach(CardinalDirection.allCases) { direction in
+                        Text(L10n.string("trackpad.swipe.\(direction.rawValue)"))
+                            .tag(direction)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-        case .pinch, .rotate:
-            transformFingerPicker
-            Picker(
-                L10n.string("editor.direct.transformKind"),
-                selection: transformKind
-            ) {
-                ForEach(DirectTransformKind.allCases) { kind in
-                    Text(L10n.string(kind.titleKey)).tag(kind)
+            case .pinch, .rotate:
+                transformFingerPicker
+                labeledSegmentedPicker(
+                    title: L10n.string("editor.direct.transformKind"),
+                    selection: transformKind
+                ) {
+                    ForEach(DirectTransformKind.allCases) { kind in
+                        Text(L10n.string(kind.titleKey)).tag(kind)
+                    }
                 }
+                transformDirectionPicker
             }
-            .pickerStyle(.segmented)
-            transformDirectionPicker
         }
 
         Label(
@@ -157,38 +158,37 @@ struct GestureInputEditorView: View {
         )
         .font(.caption)
         .foregroundStyle(.orange)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var standardFingerPicker: some View {
-        Picker(
-            L10n.string("editor.direct.fingers"),
+        labeledSegmentedPicker(
+            title: L10n.string("editor.direct.fingers"),
             selection: standardFingers
         ) {
             ForEach(StandardFingerCount.allCases) { count in
                 Text("\(count.rawValue)").tag(count)
             }
         }
-        .pickerStyle(.segmented)
     }
 
     private var transformFingerPicker: some View {
-        Picker(
-            L10n.string("editor.direct.fingers"),
+        labeledSegmentedPicker(
+            title: L10n.string("editor.direct.fingers"),
             selection: transformFingers
         ) {
             ForEach(TransformFingerCount.allCases) { count in
                 Text("\(count.rawValue)").tag(count)
             }
         }
-        .pickerStyle(.segmented)
     }
 
     @ViewBuilder
     private var transformDirectionPicker: some View {
         switch input {
         case .trackpad(.pinch):
-            Picker(
-                L10n.string("editor.direct.direction"),
+            labeledSegmentedPicker(
+                title: L10n.string("editor.direct.direction"),
                 selection: pinchDirection
             ) {
                 ForEach(PinchDirection.allCases) { direction in
@@ -196,10 +196,9 @@ struct GestureInputEditorView: View {
                         .tag(direction)
                 }
             }
-            .pickerStyle(.segmented)
         case .trackpad(.rotate):
-            Picker(
-                L10n.string("editor.direct.direction"),
+            labeledSegmentedPicker(
+                title: L10n.string("editor.direct.direction"),
                 selection: rotationDirection
             ) {
                 ForEach(RotationDirection.allCases) { direction in
@@ -207,10 +206,28 @@ struct GestureInputEditorView: View {
                         .tag(direction)
                 }
             }
-            .pickerStyle(.segmented)
         default:
             EmptyView()
         }
+    }
+
+    private func labeledSegmentedPicker<SelectionValue: Hashable, Content: View>(
+        title: String,
+        selection: Binding<SelectionValue>,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .multilineTextAlignment(.leading)
+                .frame(width: directLabelColumnWidth, alignment: .leading)
+            Picker(title, selection: selection) {
+                content()
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var inputKind: Binding<GestureEditorInputKind> {

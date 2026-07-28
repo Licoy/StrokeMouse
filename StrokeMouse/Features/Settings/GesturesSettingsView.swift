@@ -736,14 +736,6 @@ struct GesturesSettingsView: View {
 
             Spacer(minLength: 8)
 
-            Toggle(
-                L10n.string("trackpad.directEnabled"),
-                isOn: directTrackpadEnabledBinding
-            )
-            .toggleStyle(.switch)
-            .controlSize(.small)
-            .help(L10n.string("trackpad.directEnabledHelp"))
-
             Button(L10n.string("gestures.test")) {
                 guard confirmTrackpadDiagnosticsIfNeeded() else {
                     return
@@ -892,33 +884,6 @@ struct GesturesSettingsView: View {
             }
         }
         appState.configStore.setEnabled(ids: ids, enabled: enabled)
-    }
-
-    private var directTrackpadEnabledBinding: Binding<Bool> {
-        Binding(
-            get: {
-                UserDefaults.standard.bool(
-                    forKey: PreferenceKey.directTrackpadEnabled
-                )
-            },
-            set: { enabled in
-                if enabled {
-                    let direct = appState.configStore.gestures.filter {
-                        guard $0.isEnabled, case .trackpad = $0.input else {
-                            return false
-                        }
-                        return true
-                    }
-                    guard confirmExperimentalTrackpadIfNeeded(
-                        direct,
-                        includesDisabled: false
-                    ) else {
-                        return
-                    }
-                }
-                appState.setDirectTrackpadEnabled(enabled)
-            }
-        )
     }
 
     private func confirmExperimentalTrackpadIfNeeded(

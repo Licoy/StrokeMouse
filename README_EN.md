@@ -9,7 +9,7 @@
   </p>
 </div>
 
-Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mouse button or one modifier key, or use experimental direct multi-touch gestures, then run shortcuts, open apps, window commands, media keys, Shell / AppleScript, and more. Gestures can be **global or app-scoped**, configs are **importable/exportable**, and everything runs locally from the menu bar.
+Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mouse button, draw with one modifier key (Trackpad Draw), or use experimental multi-finger Touch Gestures, then run shortcuts, open apps, window commands, media keys, Shell / AppleScript, and more. Gestures can be **global or app-scoped**, configs are **importable/exportable**, and everything runs locally from the menu bar.
 
 ## Screenshots
 
@@ -30,9 +30,9 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Menu bar app**: enable/disable gestures, open settings, quit; icon tints by status (normal / paused / needs permission); optional **hide menu bar icon** (confirm if Dock is also hidden; reopen via Dock or relaunch to open settings)
 - **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
 - **Mouse drawing**: each gesture can independently use the right, middle, or a side button; only buttons referenced by enabled profiles are monitored
-- **Modifier-key drawing**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
-- **Experimental direct touch**: the built-in trackpad supports 34 gesture classes—three- to five-finger taps, double taps, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
-- **Trackpad master switch**: disable direct touch without deleting configured gestures; private-backend failures degrade only the trackpad channel, leaving mouse and modifier drawing available
+- **Trackpad Draw**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
+- **Experimental Touch Gestures**: the built-in trackpad supports 34 gesture classes—three- to five-finger taps, double taps, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
+- **Touch Gestures master switch**: disable Touch Gestures without deleting configured gestures; private-backend failures degrade only the trackpad channel, leaving mouse and Trackpad Draw available
 - **Per-gesture target**: choose the frontmost app or the app under the pointer at trigger-down; when a regular window exists, its exact window is frozen too, and app-scope checks and target-aware actions always reuse that target
 - **Free-path recognition**: arc-length resampling + 1D/2D normalization + limited rotation; significant-turn structure gates; live stroke HUD while holding the trigger
 - **App scope**: global, or pick apps by icon from installed applications (search / browse `.app`)
@@ -55,13 +55,13 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 
 On first launch or **Settings → Permissions**, use in-app **Guide Me**: open System Settings and drag StrokeMouse into the list. Without trust the engine will not pretend to listen.
 
-### Experimental direct touch
+### Experimental Touch Gestures
 
-Direct touch loads Apple's undocumented `MultitouchSupport` at runtime through `dlopen` / `dlsym`; the private framework is not statically linked. It may stop working after a macOS update. A missing framework, symbol, device, or startup failure is shown as a trackpad-channel failure while mouse and modifier drawing continue to work—there is no simulated fallback or silent retry.
+Touch Gestures load Apple's undocumented `MultitouchSupport` at runtime through `dlopen` / `dlsym`; the private framework is not statically linked. It may stop working after a macOS update. A missing framework, symbol, device, or startup failure is shown as a trackpad-channel failure while mouse and Trackpad Draw continue to work—there is no simulated fallback or silent retry.
 
-StrokeMouse does not intercept native trackpad events, so a macOS system gesture may occur alongside the bound action. Raw touch trajectories are neither stored nor logged. The first attempt to enable, save, or import enabled direct-touch profiles shows an experimental-risk confirmation. The master switch can later pause direct touch without deleting those profiles.
+StrokeMouse does not intercept native trackpad events, so a macOS system gesture may occur alongside the bound action. Raw touch trajectories are neither stored nor logged. The first attempt to enable, save, or import enabled Touch Gesture profiles shows an experimental-risk confirmation. The master switch can later pause Touch Gestures without deleting those profiles.
 
-The 34 supported direct-touch gesture classes are:
+The 34 supported Touch Gesture classes are:
 
 | Family | Fingers | Variants | Count |
 |--------|---------|----------|-------|
@@ -127,12 +127,12 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 1. Launch the app; a mouse icon appears in the menu bar  
 2. Grant **Accessibility**, then enable gestures from the menu bar  
 3. Open **Settings → Gestures** to review defaults or create new ones  
-4. Choose an input: draw while holding a mouse trigger, draw while holding one modifier key, or perform a configured direct-touch gesture
+4. Choose an input: draw while holding a mouse trigger, Trackpad Draw while holding one modifier key, or perform a configured Touch Gesture
 5. On a successful match, the bound action runs  
 
 > **Short click vs gesture**: trigger down/up is temporarily captured by the engine. If you release before the minimum stroke distance, a normal click is replayed so the context menu still works. Once drawing starts, drag still moves the system cursor and stroke HUD, but the frontmost app does not receive a paired down/up—so no context menu appears or is selected. Left click and buttons not configured as triggers are always passed through.
 
-> **Modifier drawing**: modifier monitoring is listen-only and never consumes keyboard events; a short path runs no action. The path follows the system pointer, so either a trackpad or mouse can move it. StrokeMouse does not suppress the modifier's normal effect in the active app.
+> **Trackpad Draw**: modifier monitoring is listen-only and never consumes keyboard events; a short path runs no action. The path follows the system pointer, so either a trackpad or mouse can move it. StrokeMouse does not suppress the modifier's normal effect in the active app.
 
 > Shortcuts activate the frozen app first and also bring its exact window forward when one was captured, which may switch focus or Spaces. Locations without a regular window, such as the Finder desktop, can still run shortcuts and **Hide App**; Close, Minimize, Zoom, Full Screen, and Center still require an exact window. A short click never activates the target.
 
@@ -163,7 +163,7 @@ Day to day, multi-select under **Settings → Gestures** to export / import JSON
 - Swift / SwiftUI (macOS 14+)
 - Lightweight MVVM + Service
 - `CGEventTap` for global mouse / modifier events
-- Runtime `dlopen` / `dlsym` loading of `MultitouchSupport` for experimental direct touch (no static link)
+- Runtime `dlopen` / `dlsym` loading of `MultitouchSupport` for experimental Touch Gestures (no static link)
 - JSON config persistence
 - [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) for login launch
 - [Sparkle](https://github.com/sparkle-project/Sparkle) for signed in-app updates

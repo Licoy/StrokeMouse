@@ -636,7 +636,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择触发键后使用鼠标左键绘制。这里使用正式匹配算法，但绝不会执行动作，也不受应用范围限制。"
+            "value": "选择触发键后使用鼠标左键绘制，这里使用正式匹配算法，但绝不会执行动作，也不受应用范围限制。"
           }
         }
       }
@@ -1436,7 +1436,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "立即生效。设置窗口会保持打开，并刷新为所选语言。"
+            "value": "立即生效，设置窗口会保持打开，并刷新为所选语言。"
           }
         }
       }
@@ -1772,7 +1772,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "用于监听鼠标按键，以及注入快捷键 / 窗口操作。若系统开关已打开但此处仍显示未授权：请在「隐私与安全性 → 辅助功能」中移除 StrokeMouse，完全退出应用后重新打开，再重新打开开关（更换签名证书后常见）。"
+            "value": "用于监听鼠标按键，以及注入快捷键 / 窗口操作；若系统开关已打开但此处仍显示未授权，请在「隐私与安全性 → 辅助功能」中移除 StrokeMouse，完全退出应用后重新打开，再重新打开开关（更换签名证书后常见）。"
           }
         }
       }
@@ -1836,7 +1836,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "当 AppleScript 动作控制其他 App 时需要。系统会按应用弹窗请求。"
+            "value": "当 AppleScript 动作控制其他 App 时需要，系统会按应用弹窗请求。"
           }
         }
       }
@@ -2300,7 +2300,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "StrokeMouse 需要「辅助功能」权限才能监听鼠标按键并执行手势。我们会打开系统设置，并显示悬浮辅助面板，方便你把应用拖入列表。"
+            "value": "StrokeMouse 需要「辅助功能」权限才能监听鼠标按键并执行手势，我们会打开系统设置，并显示悬浮辅助面板，方便你把应用拖入列表。"
           }
         }
       }
@@ -2460,7 +2460,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每个手势有自己的触发键（默认右键）。按住 → 画出轨迹 → 松开执行。"
+            "value": "每个手势有自己的触发键（默认右键），按住 → 画出轨迹 → 松开执行。"
           }
         }
       }
@@ -2556,7 +2556,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "随时可在设置中调整手势。开始绘制吧！"
+            "value": "随时可在设置中调整手势，开始绘制吧！"
           }
         }
       }
@@ -2572,7 +2572,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "未授予辅助功能前手势无法运行。可从菜单栏或「权限」页完成授权。"
+            "value": "未授予辅助功能前手势无法运行，可从菜单栏或「权限」页完成授权。"
           }
         }
       }
@@ -2844,7 +2844,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在画布中绘制模板轨迹。匹配使用归一化 + 重采样/DTW 打分。"
+            "value": "在画布中绘制模板轨迹，匹配使用归一化 + 重采样/DTW 打分。"
           }
         }
       }
@@ -3052,7 +3052,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此动作需要在手势开始时捕获目标上下文。请保存后用真实手势测试。"
+            "value": "此动作需要在手势开始时捕获目标上下文，请保存后用真实手势测试。"
           }
         }
       }
@@ -3100,7 +3100,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未选择应用。添加至少一个应用后，该手势才会生效。"
+            "value": "尚未选择应用，添加至少一个应用后，该手势才会生效。"
           }
         }
       }
@@ -3724,7 +3724,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未选择应用。选择一个应用后，匹配到手势时将打开它。"
+            "value": "尚未选择应用，选择一个应用后，匹配到手势时将打开它。"
           }
         }
       }
@@ -4892,7 +4892,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "触发键在每条手势中单独设置（默认右键）。短按仍弹出系统菜单；拖过最小滑动距离才视为手势。"
+            "value": "触发键在每条手势中单独设置（默认右键）；短按仍弹出系统菜单；拖过最小滑动距离才视为手势。"
           }
         }
       }
@@ -4924,7 +4924,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住此按键绘制轨迹，松开后执行动作。不同手势可使用不同触发键。"
+            "value": "按住此按键绘制轨迹，松开后执行动作；不同手势可使用不同触发键。"
           }
         }
       }
@@ -5020,7 +5020,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法启动键盘捕获。请授予辅助功能权限后重试。"
+            "value": "无法启动键盘捕获，请授予辅助功能权限后重试。"
           }
         }
       }
@@ -5212,7 +5212,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "开发模式或非 .app 运行环境无法检查更新。请使用已签名的发布版 .app。"
+            "value": "开发模式或非 .app 运行环境无法检查更新，请使用已签名的发布版 .app。"
           }
         }
       }
@@ -5228,7 +5228,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "尚未配置 Sparkle 公钥。完成开源发版签名配置后即可使用。"
+            "value": "尚未配置 Sparkle 公钥，完成开源发版签名配置后即可使用。"
           }
         }
       }
@@ -5244,7 +5244,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "更新服务无法启动。请重新启动 StrokeMouse 后再试。"
+            "value": "更新服务无法启动，请重新启动 StrokeMouse 后再试。"
           }
         }
       }
@@ -5548,7 +5548,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "隐藏菜单栏图标后，可通过 Dock、启动台或聚焦搜索再次打开 StrokeMouse 进入设置。若同时隐藏 Dock 图标，请使用聚焦搜索或启动台打开。退出请到「通用」设置，或在设置窗口前台时按 ⌘Q。"
+            "value": "隐藏菜单栏图标后，可通过 Dock、启动台或聚焦搜索再次打开 StrokeMouse 进入设置；若同时隐藏 Dock 图标，请使用聚焦搜索或启动台打开；退出请到「通用」设置，或在设置窗口前台时按 ⌘Q。"
           }
         }
       }
@@ -5628,7 +5628,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "StrokeMouse 将在后台继续运行，且没有 Dock 与菜单栏图标。请通过聚焦搜索或启动台再次打开以进入设置；退出请到「通用」设置（或在设置打开时按 ⌘Q）。"
+            "value": "StrokeMouse 将在后台继续运行，且没有 Dock 与菜单栏图标；请通过聚焦搜索或启动台再次打开以进入设置；退出请到「通用」设置（或在设置打开时按 ⌘Q）。"
           }
         }
       }
@@ -5772,7 +5772,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "为此应用添加手势。在此新建的手势会默认绑定该应用。"
+            "value": "为此应用添加手势，在此新建的手势会默认绑定该应用。"
           }
         }
       }
@@ -5849,17 +5849,17 @@
     "trackpad.rotate.counterclockwise": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Rotate Counterclockwise"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"逆时针旋转"}}}},
     "trackpad.gesture.summary": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%d fingers · %@"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%d 指 · %@"}}}},
     "trackpad.experimentalWarning": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Experimental: uses a private system framework and cannot suppress macOS gestures. System actions may happen at the same time."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"实验性功能：使用系统私有框架，且无法拦截 macOS 原生手势；系统动作可能同时发生。"}}}},
-    "trackpad.directEnabled": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Direct Trackpad"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"直接触控"}}}},
-    "trackpad.directEnabledHelp": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Turn direct multi-finger recognition on or off without deleting profiles."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"开启或关闭多指直接识别，不会删除手势配置。"}}}},
-    "trackpad.consent.title": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Enable Experimental Trackpad Gestures?"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"启用实验性触控板手势？"}}}},
-    "trackpad.consent.message": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Direct gestures use Apple's private MultitouchSupport framework. They may stop working after a macOS update and cannot prevent built-in system gestures from also running. If this channel fails, mouse gestures remain available."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"直接触控使用 Apple 私有的 MultitouchSupport 框架，可能在 macOS 更新后失效，也无法阻止系统自带手势同时运行。即使该通道失败，鼠标手势仍会继续可用。"}}}},
+    "trackpad.directEnabled": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势"}}}},
+    "trackpad.directEnabledHelp": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Turn multi-finger touch recognition on or off without deleting profiles."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"开启或关闭多指触控识别，不会删除手势配置。"}}}},
+    "trackpad.consent.title": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Enable Experimental Touch Gestures?"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"启用实验性触控手势？"}}}},
+    "trackpad.consent.message": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch gestures use Apple's private MultitouchSupport framework. They may stop working after a macOS update and cannot prevent built-in system gestures from also running. If this channel fails, mouse gestures remain available."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势使用 Apple 私有的 MultitouchSupport 框架，可能在 macOS 更新后失效，也无法阻止系统自带手势同时运行；即使该通道失败，鼠标手势仍会继续可用。"}}}},
     "trackpad.consent.accept": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Accept and Continue"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"接受并继续"}}}},
     "editor.inputSource": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Input"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"输入方式"}}}},
     "editor.input.mouseDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Mouse Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"鼠标绘制"}}}},
-    "editor.input.modifierDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Key + Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"修饰键绘制"}}}},
-    "editor.input.directTrackpad": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Direct Touch"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"直接触控"}}}},
+    "editor.input.modifierDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板绘制"}}}},
+    "editor.input.directTrackpad": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势"}}}},
     "editor.modifierKey": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Modifier Key"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"修饰按键"}}}},
-    "editor.modifierDrawHint": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold exactly this one modifier and move the pointer. Keyboard events are never consumed; a mouse can technically move the same path."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"仅按住该修饰键并移动指针。键盘事件不会被吞掉；技术上鼠标也可以移动同一条轨迹。"}}}},
+    "editor.modifierDrawHint": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold exactly this one modifier and move the pointer. Keyboard events are never consumed; a mouse can technically move the same path."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"仅按住该修饰键并移动指针，键盘事件不会被吞掉；技术上鼠标也可以移动同一条轨迹。"}}}},
     "editor.direct.category": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Gesture Family"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"手势分类"}}}},
     "editor.direct.category.swipe": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Swipe"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"滑动"}}}},
     "editor.direct.category.tap": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Tap"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"轻触"}}}},
@@ -5872,8 +5872,8 @@
     "editor.direct.transform.rotate": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Rotate"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"旋转"}}}},
     "gestures.add.drawn": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Drawn Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"绘制手势"}}}},
     "gestures.add.mouseDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Mouse Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"鼠标绘制"}}}},
-    "gestures.add.modifierDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Modifier-Key Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"修饰键绘制"}}}},
-    "gestures.add.direct": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Direct Trackpad"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"直接触控"}}}},
+    "gestures.add.modifierDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板绘制"}}}},
+    "gestures.add.direct": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势"}}}},
     "gestures.add.presets": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Common Presets"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"常用预设"}}}},
     "gestures.saveFailedTitle": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Could Not Save Gesture"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"无法保存手势"}}}},
     "trackpad.preset.rotateCCWVolumeDown": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Two-Finger Counterclockwise · Volume Down"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"两指逆时针 · 降低音量"}}}},
@@ -5889,8 +5889,8 @@
     "trackpad.preset.fivePinchHide": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Five-Finger Pinch · Hide Window"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"五指捏合 · 隐藏窗口"}}}},
     "trackpad.preset.fiveSpreadFullscreen": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Five-Finger Spread · Full Screen"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"五指张开 · 进入全屏"}}}},
     "permissions.channel.mouse": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Mouse Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"鼠标绘制"}}}},
-    "permissions.channel.modifier": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Modifier Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"修饰键绘制"}}}},
-    "permissions.channel.multitouch": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Direct Trackpad"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"直接触控"}}}},
+    "permissions.channel.modifier": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板绘制"}}}},
+    "permissions.channel.multitouch": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势"}}}},
     "permissions.channel.notRequested": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Not needed"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"当前不需要"}}}},
     "permissions.channel.stopped": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Stopped"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已停止"}}}},
     "permissions.channel.listening": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Listening"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"监听中"}}}},
@@ -5941,14 +5941,14 @@
     "gestures.configRecovery.restore": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Back Up and Restore"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"备份并恢复"}}}},
     "gestures.configRecovery.reveal": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Reveal Original"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"显示原文件"}}}},
     "gestures.configRecovery.restoredTitle": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Configuration Restored"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"配置已恢复"}}}},
-    "gestures.configRecovery.restoredMessage": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Defaults were restored. The original bytes are preserved at:\n%@"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已恢复默认配置。原文件字节已保存在：\n%@"}}}},
+    "gestures.configRecovery.restoredMessage": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Defaults were restored. The original bytes are preserved at:\n%@"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"已恢复默认配置，原文件字节已保存在：\n%@"}}}},
     "gestures.configRecovery.notRequired": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"The configuration no longer requires recovery."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"当前配置已不需要恢复。"}}}},
     "gestures.configRecovery.failedTitle": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Could Not Recover Configuration"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"无法恢复配置"}}}},
     "gestures.importPrivilegedTitle": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Import High-Privilege Actions?"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"导入高权限动作？"}}}},
-    "gestures.importPrivilegedMessage": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%d imported gestures contain shell commands or AppleScript and can run with your user permissions when triggered. Review the named gestures before continuing."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"有 %d 条待导入手势包含 Shell 命令或 AppleScript，触发后会以你的用户权限运行。继续前请核对以下手势名称。"}}}},
+    "gestures.importPrivilegedMessage": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%d imported gestures contain shell commands or AppleScript and can run with your user permissions when triggered. Review the named gestures before continuing."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"有 %d 条待导入手势包含 Shell 命令或 AppleScript，触发后会以你的用户权限运行；继续前请核对以下手势名称。"}}}},
     "gestures.importPrivilegedConfirm": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Import Anyway"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"仍然导入"}}}},
     "gestureTest.trackpadConsentMessage": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad diagnostics temporarily starts the experimental private MultitouchSupport channel. This does not record permanent consent, enable profiles, or execute actions."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板诊断会临时启动实验性的私有 MultitouchSupport 通道，但不会记录永久同意、启用配置或执行动作。"}}}},
-    "gestureTest.trackpadDisabled": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Direct trackpad input is off. Turn on the Direct Trackpad switch to inspect touch recognition."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"直接触控已关闭。请先开启“直接触控”开关再检查触控识别。"}}}}
+    "gestureTest.trackpadDisabled": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch gestures are off. Turn on the Touch Gestures switch to inspect touch recognition."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势已关闭，请先开启“触控手势”开关再检查触控识别。"}}}}
   },
   "version": "1.0"
 }

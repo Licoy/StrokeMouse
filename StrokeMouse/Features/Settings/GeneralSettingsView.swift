@@ -52,6 +52,14 @@ struct GeneralSettingsView: View {
                         appState.setGesturesEnabled(newValue)
                     }
 
+                Toggle(
+                    L10n.string("trackpad.directEnabled"),
+                    isOn: directTrackpadEnabledBinding
+                )
+                Text(L10n.string("trackpad.directEnabledHelp"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 LabeledContent(L10n.string("general.runtimeStatus")) {
                     Text(runtimeStatusText)
                         .foregroundStyle(.secondary)
@@ -294,6 +302,50 @@ struct GeneralSettingsView: View {
         } message: {
             Text(L10n.string("general.doubleHideMessage"))
         }
+    }
+
+    private var directTrackpadEnabledBinding: Binding<Bool> {
+        Binding(
+            get: {
+                UserDefaults.standard.bool(
+                    forKey: PreferenceKey.directTrackpadEnabled
+                )
+            },
+            set: { enabled in
+                if enabled {
+                    let hasEnabledTrackpad = appState.configStore.gestures.contains {
+                        guard $0.isEnabled, case .trackpad = $0.input else {
+                            return false
+                        }
+                        return true
+                    }
+                    if hasEnabledTrackpad,
+                       !UserDefaults.standard.bool(
+                           forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
+                       )
+                    {
+                        let alert = NSAlert()
+                        alert.alertStyle = .warning
+                        alert.messageText = L10n.string("trackpad.consent.title")
+                        alert.informativeText = L10n.string(
+                            "trackpad.consent.message"
+                        )
+                        alert.addButton(
+                            withTitle: L10n.string("trackpad.consent.accept")
+                        )
+                        alert.addButton(withTitle: L10n.string("common.cancel"))
+                        guard alert.runModal() == .alertFirstButtonReturn else {
+                            return
+                        }
+                        UserDefaults.standard.set(
+                            true,
+                            forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
+                        )
+                    }
+                }
+                appState.setDirectTrackpadEnabled(enabled)
+            }
+        )
     }
 
     private func confirmDoubleHide() {
