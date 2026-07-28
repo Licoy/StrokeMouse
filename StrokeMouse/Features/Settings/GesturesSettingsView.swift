@@ -524,31 +524,43 @@ struct GesturesSettingsView: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            HStack(spacing: 10) {
+            // Hide segmented titles: showing them as leading labels squeezes into a
+            // 1-glyph vertical strip ("状/态") at the default settings width.
+            // Keep this a single-pass HStack — no ViewThatFits (expensive remeasure).
+            HStack(spacing: 8) {
                 TextField(L10n.string("gestures.searchPlaceholder"), text: $searchText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 280)
+                    .frame(maxWidth: 200)
 
-                Picker(L10n.string("gestures.filter.enabledState"), selection: $enabledFilter) {
+                Picker(selection: $enabledFilter) {
                     ForEach(GestureEnabledFilter.allCases) { filter in
                         Text(L10n.string(filter.titleKey)).tag(filter)
                     }
+                } label: {
+                    EmptyView()
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 280)
+                .labelsHidden()
+                .accessibilityLabel(L10n.string("gestures.filter.enabledState"))
+                .help(L10n.string("gestures.filter.enabledState"))
+                .frame(maxWidth: 240)
+                .layoutPriority(1)
 
-                Picker(
-                    L10n.string("gestures.filter.input"),
-                    selection: $inputFilter
-                ) {
+                Picker(selection: $inputFilter) {
                     ForEach(GestureInputCategory.allCases) { filter in
                         Text(L10n.string(filter.titleKey)).tag(filter)
                     }
+                } label: {
+                    EmptyView()
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 240)
+                .labelsHidden()
+                .accessibilityLabel(L10n.string("gestures.filter.input"))
+                .help(L10n.string("gestures.filter.input"))
+                .frame(maxWidth: 200)
+                .layoutPriority(1)
 
-                Spacer()
+                Spacer(minLength: 4)
 
                 Text(
                     String(
@@ -558,12 +570,14 @@ struct GesturesSettingsView: View {
                         displayedGestures.count
                     )
                 )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .lineLimit(1)
             }
         }
-        .padding()
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     private var detailTitle: String {
@@ -684,8 +698,12 @@ struct GesturesSettingsView: View {
     // MARK: - Footer
 
     private var footerBar: some View {
-        HStack(spacing: 8) {
-            Button(allDisplayedSelected ? L10n.string("gestures.deselectAll") : L10n.string("gestures.selectAll")) {
+        HStack(spacing: 6) {
+            Button(
+                allDisplayedSelected
+                    ? L10n.string("gestures.deselectAll")
+                    : L10n.string("gestures.selectAll")
+            ) {
                 toggleSelectAllDisplayed()
             }
             .disabled(displayedGestures.isEmpty)
@@ -716,7 +734,7 @@ struct GesturesSettingsView: View {
             .foregroundStyle(.red)
             .disabled(selection.isEmpty)
 
-            Spacer()
+            Spacer(minLength: 8)
 
             Toggle(
                 L10n.string("trackpad.directEnabled"),
@@ -739,6 +757,8 @@ struct GesturesSettingsView: View {
                 sidebarSelection = .global
             }
         }
+        .controlSize(.small)
+        .lineLimit(1)
         .padding(.horizontal, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(chromeSurfaceColor)

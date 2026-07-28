@@ -96,8 +96,46 @@ if [[ ! -d "$ROOT/StrokeMouse.xcodeproj" ]]; then
   exit 1
 fi
 
-mkdir -p "$DERIVED" "$OUTPUT_DIR"
+mkdir -p "$DERIVED" "$OUTPUT_DIR" "$DERIVED/SourcePackages"
+DERIVED="$(cd "$DERIVED" && pwd -P)"
+SOURCE_PACKAGES="$(cd "$DERIVED/SourcePackages" && pwd -P)"
 OUTPUT_APP="$OUTPUT_DIR/$APP_NAME"
+
+# SwiftPM persists absolute XCFramework paths. Derived Data copied or moved
+# between checkouts must discard that metadata before package resolution.
+swiftpm_state_matches_cache() {
+  local state="$1"
+  local source_packages="$2"
+  local artifact_count
+  local artifact_path
+  local index
+
+  [[ ! -e "$state" ]] && return 0
+
+  artifact_count="$(/usr/bin/plutil -extract object.artifacts raw -o - "$state" 2>/dev/null)" \
+    || return 1
+  [[ "$artifact_count" =~ ^[0-9]+$ ]] || return 1
+
+  for ((index = 0; index < artifact_count; index++)); do
+    artifact_path="$(/usr/bin/plutil \
+      -extract "object.artifacts.$index.path" raw -o - "$state" 2>/dev/null)" \
+      || return 1
+    [[ "$artifact_path" == "$source_packages/artifacts/"* ]] || return 1
+    [[ -e "$artifact_path" ]] || return 1
+  done
+}
+
+repair_stale_swiftpm_state() {
+  local state="$SOURCE_PACKAGES/workspace-state.json"
+
+  swiftpm_state_matches_cache "$state" "$SOURCE_PACKAGES" && return
+
+  echo "==> Repairing stale SwiftPM workspace state"
+  echo "    cached package artifacts are invalid, missing, or from another checkout"
+  /bin/rm -f "$state"
+}
+
+repair_stale_swiftpm_state
 
 # Quit a running instance that was launched from the stable output path,
 # so we can replace the bundle without "app is in use" errors.
@@ -117,6 +155,7 @@ xcodebuild \
   -scheme StrokeMouse \
   -configuration "$CONFIGURATION" \
   -derivedDataPath "$DERIVED" \
+  -clonedSourcePackagesDirPath "$SOURCE_PACKAGES" \
   -destination "platform=macOS,arch=$(uname -m)" \
   CODE_SIGN_IDENTITY="$IDENTITY" \
   CODE_SIGN_STYLE=Manual \

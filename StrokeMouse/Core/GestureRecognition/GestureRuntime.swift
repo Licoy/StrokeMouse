@@ -372,7 +372,10 @@ final class GestureRuntime {
         sessionGate.updateContext(admissionContext(for: candidate))
         configuration = candidate
         state.configurationRevision = configuration.revision
-        DrawingStyle.showHUD = configuration.showsHUD
+        // Do not write DrawingStyle.showHUD from configuration: apply() is also
+        // used by tests / temporary runtime configs with showsHUD: false, and
+        // the setter persists to UserDefaults — that would silently turn off the
+        // user's "Show Gesture Trail" preference.
         reconcileChannels()
         return state
     }
