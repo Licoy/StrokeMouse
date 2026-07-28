@@ -46,6 +46,7 @@ targets:
         CURRENT_PROJECT_VERSION: "16"
         SPARKLE_PUBLIC_KEY: "__REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY__"
         INFOPLIST_FILE: StrokeMouse/Resources/Info.plist
+        SWIFT_OBJC_BRIDGING_HEADER: StrokeMouse/Core/Trackpad/MultitouchSupportBridge.h
         CODE_SIGN_ENTITLEMENTS: StrokeMouse/Supporting/StrokeMouse.entitlements
         CODE_SIGN_IDENTITY: "StrokeMouse Dev"
         CODE_SIGN_STYLE: Manual

@@ -235,9 +235,9 @@ final class MacGestureTargetCapturerTests: XCTestCase {
     }
 }
 
-@MainActor
 private final class RecordingGestureTargetCaptureSystemClient:
-    GestureTargetCaptureSystemClient
+    GestureTargetCaptureSystemClient,
+    @unchecked Sendable
 {
     let application: NSRunningApplication
     let hitElement: AXUIElement

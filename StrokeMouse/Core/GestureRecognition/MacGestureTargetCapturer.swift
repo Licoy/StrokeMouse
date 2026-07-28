@@ -2,8 +2,9 @@ import AppKit
 import ApplicationServices
 import Foundation
 
-@MainActor
-final class MacGestureTargetCapturer: GestureTargetCapturing {
+final class MacGestureTargetCapturer: GestureTargetCapturing,
+    @unchecked Sendable
+{
     private let system: any GestureTargetCaptureSystemClient
 
     init(system: (any GestureTargetCaptureSystemClient)? = nil) {

@@ -6,7 +6,6 @@ struct GestureTargetAXAttribute {
     let operation: GestureTargetAXOperation
 }
 
-@MainActor
 enum GestureTargetAXAccessor {
     static func copyElement(
         from element: AXUIElement,

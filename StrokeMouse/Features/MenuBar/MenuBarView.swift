@@ -8,9 +8,9 @@ struct MenuBarView: View {
         let _ = appState.languageEpoch
 
         Button {
-            appState.setGesturesEnabled(!appState.gestureEngine.isEnabled)
+            appState.setGesturesEnabled(!appState.gestureRuntime.isEnabled)
         } label: {
-            Text(appState.gestureEngine.isEnabled
+            Text(appState.gestureRuntime.isEnabled
                  ? L10n.string("menu.pauseGestures")
                  : L10n.string("menu.resumeGestures"))
         }
@@ -70,7 +70,7 @@ struct MenuBarView: View {
     }
 
     private var statusText: String {
-        let key = appState.gestureEngine.statusMessageKey
+        let key = appState.gestureRuntime.statusMessageKey
         return L10n.string(key)
     }
 }

@@ -11,8 +11,9 @@ final class AppState {
     let configStore: ConfigStore
     let permissionManager: PermissionManager
     let actionExecutor: ActionExecutor
-    let gestureEngine: GestureEngine
+    let gestureRuntime: GestureRuntime
     let updaterService: UpdaterService
+    private var gestureConfigurationRevision: UInt64 = 0
 
     var showOnboarding: Bool
     var settingsTab: SettingsTab = .gestures
@@ -40,31 +41,32 @@ final class AppState {
         let configStore = ConfigStore()
         let permissionManager = PermissionManager()
         let actionExecutor = ActionExecutor()
-        let gestureEngine = GestureEngine(
-            configStore: configStore,
+        let gestureRuntime = GestureRuntime(
+            permissionManager: permissionManager,
             actionExecutor: actionExecutor,
-            permissionManager: permissionManager
+            multitouchSourceFactory: {
+                MultitouchSupportAdapter()
+            }
         )
         let updaterService = UpdaterService()
 
         self.configStore = configStore
         self.permissionManager = permissionManager
         self.actionExecutor = actionExecutor
-        self.gestureEngine = gestureEngine
+        self.gestureRuntime = gestureRuntime
         self.updaterService = updaterService
         self.showOnboarding = !UserDefaults.standard.bool(forKey: PreferenceKey.hasCompletedOnboarding)
 
-        // System Settings grant is async; poll detects it and should start the engine.
-        permissionManager.onBecameTrusted = { [weak gestureEngine] in
-            gestureEngine?.startIfPossible()
-        }
-        permissionManager.onTrustChanged = { [weak self] _ in
+        // Permission polling drives both revocation teardown and restoration.
+        // Re-applying does not clear an unrelated latched multitouch failure.
+        permissionManager.onTrustChanged = { [weak self] isTrusted in
+            self?.gestureRuntime.accessibilityTrustDidChange(isTrusted)
             self?.refreshMenuBarIconStatus()
         }
 
-        // Per-gesture triggers: refresh watched mouse buttons whenever the catalog changes.
-        configStore.onGesturesChanged = { [weak gestureEngine] in
-            gestureEngine?.refreshWatchedButtons()
+        // ConfigStore notifies only after validation + durable persistence.
+        configStore.onGesturesChanged = { [weak self] in
+            self?.applyCurrentGestureConfiguration()
         }
 
         applyLaunchPreferences()
@@ -77,7 +79,7 @@ final class AppState {
         // can leave cursor delivery gated on a not-yet-ready process.
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            self.gestureEngine.startIfPossible()
+            self.applyCurrentGestureConfiguration()
             self.refreshMenuBarIconStatus()
         }
     }
@@ -115,7 +117,7 @@ final class AppState {
     func refreshMenuBarIconStatus() {
         menuBarIconStatus = MenuBarIconStatus.resolve(
             isAccessibilityTrusted: permissionManager.isAccessibilityTrusted,
-            isGesturesEnabled: gestureEngine.isEnabled
+            isGesturesEnabled: gestureRuntime.isEnabled
         )
     }
 
@@ -186,9 +188,10 @@ final class AppState {
         if defaults.object(forKey: PreferenceKey.language) == nil {
             defaults.set(LanguageOverride.system.rawValue, forKey: PreferenceKey.language)
         }
+        if defaults.object(forKey: PreferenceKey.directTrackpadEnabled) == nil {
+            defaults.set(true, forKey: PreferenceKey.directTrackpadEnabled)
+        }
 
-        let enabled = defaults.bool(forKey: PreferenceKey.gesturesEnabled)
-        let minDistance = CGFloat(defaults.double(forKey: PreferenceKey.minStrokeDistance))
         let storedMatchThreshold = defaults.object(
             forKey: PreferenceKey.matchThreshold
         ) as? Double
@@ -196,15 +199,8 @@ final class AppState {
             storedMatchThreshold
         )
 
-        // Do not start the event tap here — AppState.init schedules startIfPossible
-        // after the main run loop is spinning (see init).
-        gestureEngine.applyPreferences(
-            minDistance: minDistance > 0 ? minDistance : Constants.defaultMinStrokeDistance,
-            enabled: enabled,
-            startIfEnabled: false
-        )
-        gestureEngine.setMatchThreshold(matchThreshold)
-        defaults.set(gestureEngine.matchThreshold, forKey: PreferenceKey.matchThreshold)
+        defaults.set(matchThreshold, forKey: PreferenceKey.matchThreshold)
+        applyCurrentGestureConfiguration(enabledOverride: false)
         refreshMenuBarIconStatus()
 
         applyLanguage()
@@ -230,24 +226,77 @@ final class AppState {
 
     func setGesturesEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(enabled, forKey: PreferenceKey.gesturesEnabled)
-        gestureEngine.setEnabled(enabled)
+        applyCurrentGestureConfiguration()
         refreshMenuBarIconStatus()
     }
 
     func updateMinStrokeDistance(_ value: Double) {
         UserDefaults.standard.set(value, forKey: PreferenceKey.minStrokeDistance)
-        gestureEngine.applyPreferences(
-            minDistance: CGFloat(value),
-            enabled: UserDefaults.standard.bool(forKey: PreferenceKey.gesturesEnabled)
-        )
+        applyCurrentGestureConfiguration()
     }
 
     func updateMatchThreshold(_ value: Double) {
-        gestureEngine.setMatchThreshold(value)
+        let normalized = GestureRecognitionPolicy.normalizedMatchThreshold(value)
         UserDefaults.standard.set(
-            gestureEngine.matchThreshold,
+            normalized,
             forKey: PreferenceKey.matchThreshold
         )
+        applyCurrentGestureConfiguration()
+    }
+
+    func updateShowGestureHUD(_ enabled: Bool) {
+        DrawingStyle.showHUD = enabled
+        applyCurrentGestureConfiguration()
+    }
+
+    func setDirectTrackpadEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(
+            enabled,
+            forKey: PreferenceKey.directTrackpadEnabled
+        )
+        applyCurrentGestureConfiguration()
+    }
+
+    func retryGestureInputs() {
+        permissionManager.refresh()
+        gestureRuntime.retryFailedInputs()
+        refreshMenuBarIconStatus()
+    }
+
+    func applyCurrentGestureConfiguration(
+        enabledOverride: Bool? = nil
+    ) {
+        gestureConfigurationRevision &+= 1
+        let defaults = UserDefaults.standard
+        let storedDistance = defaults.double(
+            forKey: PreferenceKey.minStrokeDistance
+        )
+        let configuration = GestureRuntimeConfiguration(
+            revision: gestureConfigurationRevision,
+            isEnabled: enabledOverride
+                ?? defaults.bool(forKey: PreferenceKey.gesturesEnabled),
+            profiles: configStore.gestures,
+            minimumStrokeDistance: storedDistance > 0
+                ? CGFloat(storedDistance)
+                : Constants.defaultMinStrokeDistance,
+            pathMatchThreshold: GestureRecognitionPolicy
+                .normalizedMatchThreshold(
+                    defaults.object(
+                        forKey: PreferenceKey.matchThreshold
+                    ) as? Double
+                ),
+            showsHUD: DrawingStyle.showHUD,
+            directTrackpadEnabled: defaults.bool(
+                forKey: PreferenceKey.directTrackpadEnabled
+            )
+        )
+        do {
+            try gestureRuntime.apply(configuration)
+        } catch {
+            assertionFailure(
+                "Persisted gesture configuration was rejected: \(error)"
+            )
+        }
     }
 
     func applyAppearance() {
@@ -300,7 +349,7 @@ final class AppState {
         showOnboarding = false
         permissionManager.refresh()
         if permissionManager.isAccessibilityTrusted {
-            gestureEngine.restart()
+            retryGestureInputs()
         }
         // If still untrusted, leave engine idle — menu bar / permissions tab guide the user.
     }

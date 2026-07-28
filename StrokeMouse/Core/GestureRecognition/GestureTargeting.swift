@@ -115,7 +115,10 @@ enum GestureTargetResolution {
     }
 }
 
-struct GestureTargetSnapshot {
+/// Captured on the serialized input core, then consumed on the main actor.
+/// `NSRunningApplication` is thread-safe and the retained AX references are
+/// immutable identities until an action validates them again.
+struct GestureTargetSnapshot: @unchecked Sendable {
     let frontmostWindow: GestureTargetResolution
     let windowUnderPointer: GestureTargetResolution
 
@@ -154,8 +157,8 @@ enum GestureCandidateSelector {
     }
 }
 
-@MainActor
-protocol GestureTargetCapturing: AnyObject {
+/// Implementations are invoked only by GestureRuntime's serialized input core.
+protocol GestureTargetCapturing: AnyObject, Sendable {
     func capture(
         policies: Set<GestureTargetPolicy>,
         at quartzLocation: CGPoint

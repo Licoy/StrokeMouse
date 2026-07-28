@@ -7,6 +7,7 @@ struct GestureEditorView: View {
     @State private var scopeIsGlobal = true
     @State private var scopeBundleIds: [String] = []
     @State private var pathPoints: [CodablePoint]
+    @State private var captureSuppression: GestureCaptureSuppression?
 
     var onSave: (GestureProfile) -> Void
     var onCancel: () -> Void
@@ -19,7 +20,13 @@ struct GestureEditorView: View {
 
     init(profile: GestureProfile, onSave: @escaping (GestureProfile) -> Void, onCancel: @escaping () -> Void) {
         _profile = State(initialValue: profile)
-        _pathPoints = State(initialValue: profile.pattern.freePathPoints)
+        let points: [CodablePoint]
+        if case .drawn(let drawn) = profile.input {
+            points = drawn.points
+        } else {
+            points = []
+        }
+        _pathPoints = State(initialValue: points)
         _actionKind = State(initialValue: ActionKind.from(profile.action))
         switch profile.scope {
         case .global:
@@ -59,10 +66,14 @@ struct GestureEditorView: View {
         .frame(minWidth: 860, minHeight: 580)
         .onAppear {
             // Pause global capture/HUD so recording does not trigger gestures.
-            appState.gestureEngine.pushSuppression()
+            guard captureSuppression == nil else { return }
+            captureSuppression = appState.gestureRuntime.suppress(
+                reason: .gestureEditor
+            )
         }
         .onDisappear {
-            appState.gestureEngine.popSuppression()
+            captureSuppression?.release()
+            captureSuppression = nil
         }
     }
 
@@ -73,20 +84,11 @@ struct GestureEditorView: View {
             Text(L10n.string("editor.pattern"))
                 .font(.headline)
 
-            GestureRecorderView(path: $pathPoints)
-                .frame(maxHeight: .infinity)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Picker(L10n.string("editor.trigger"), selection: $profile.trigger.button) {
-                    ForEach(MouseTriggerButton.allCases) { button in
-                        Text(L10n.string(button.displayKey))
-                            .tag(button)
-                    }
-                }
-                Text(L10n.string("editor.triggerPerGestureHint"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            GestureInputEditorView(
+                input: $profile.input,
+                pathPoints: $pathPoints
+            )
+            .frame(maxHeight: .infinity)
         }
         .padding(16)
     }
@@ -149,7 +151,7 @@ struct GestureEditorView: View {
         HStack {
             Button(L10n.string("common.cancel")) { onCancel() }
                 .keyboardShortcut(.cancelAction)
-            if pathPoints.count < 2 {
+            if !canSave {
                 Text(L10n.string("editor.saveNeedsPath"))
                     .font(.caption)
                     .foregroundStyle(.orange)
@@ -173,19 +175,31 @@ struct GestureEditorView: View {
             }
             .buttonStyle(.borderedProminent)
             .keyboardShortcut(.defaultAction)
-            .disabled(pathPoints.count < 2)
+            .disabled(!canSave)
         }
         .padding()
     }
 
     private func commitAndSave() {
-        profile.pattern = .freePath(pathPoints)
+        if case .drawn(var drawn) = profile.input {
+            drawn.points = pathPoints
+            profile.input = .drawn(drawn)
+        }
         if scopeIsGlobal {
             profile.scope = .global
         } else {
             profile.scope = .apps(scopeBundleIds)
         }
         onSave(profile)
+    }
+
+    private var canSave: Bool {
+        switch profile.input {
+        case .drawn:
+            return pathPoints.count >= 2
+        case .trackpad:
+            return true
+        }
     }
 
     private var targetHelpKey: String {

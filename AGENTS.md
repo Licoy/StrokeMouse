@@ -4,7 +4,8 @@
 
 ## 一句话
 
-**StrokeMouse** 是 macOS 上的鼠标手势自定义应用：监听**每条手势配置的触发键** + 轨迹，匹配配置后执行动作。  
+**StrokeMouse** 是 macOS 上的鼠标与触控板手势自定义应用：统一处理鼠标绘制、单修饰键绘制和实验性多指直接触控，匹配配置后执行动作。
+
 Bundle ID：Release `com.strokemouse.app`；Debug `com.strokemouse.app.dev`（显示名 **StrokeMouse Dev**，与正式版在辅助功能中分开授权）。
 
 ## 技术栈
@@ -15,7 +16,7 @@ Bundle ID：Release `com.strokemouse.app`；Debug `com.strokemouse.app.dev`（�
 | UI | SwiftUI（`MenuBarExtra` + `Settings`） |
 | 架构 | 轻量 MVVM + Service（`@Observable` / `AppState`） |
 | 最低系统 | macOS 14 |
-| 事件 | `CGEventTap`（需 Accessibility） |
+| 事件 | `CGEventTap` + 动态加载 `MultitouchSupport`（直接触控为实验性能力） |
 | 配置 | Codable JSON → `Application Support/StrokeMouse/` |
 | i18n | `Localizable.xcstrings`（en + zh-Hans） |
 | 工程 | XcodeGen（`project.yml`） |
@@ -31,12 +32,13 @@ SwiftUI Views (Features/*)
         ↓
 AppState / View 局部状态
         ↓
-Services: GestureEngine, ActionExecutor, ConfigStore, PermissionManager
+Services: GestureRuntime, ActionExecutor, ConfigStore, PermissionManager
         ↓
-Platform: MouseEventTap, PathSimplifier, TemplateMatcher, AX / CGEvent helpers
+Platform: MouseEventTap, ModifierEventTap, MultitouchSupport bridge,
+          PathSimplifier, TemplateMatcher, AX / CGEvent helpers
 ```
 
-- **UI 不直接**创建 `CGEventTap` 或写配置文件；经 `AppState` / Service。
+- **UI 不直接**创建 `CGEventTap`、访问私有触控 API 或写配置文件；经 `AppState` / Service。
 - **识别算法**保持纯函数风格（`PathSimplifier` / `DirectionQuantizer` / `TemplateMatcher`），便于单测。
 - **动作执行**集中在 `ActionExecutor`，按 `GestureAction` 分发。
 
@@ -64,8 +66,9 @@ StrokeMouse/
     GestureEditor/            # 编辑 profile、录制轨迹、选动作
     Onboarding/               # 首次引导
   Core/
-    EventTap/MouseEventTap.swift
-    GestureRecognition/       # 简化、方向量化、模板匹配、Engine
+    EventTap/                  # 鼠标 filtering tap + 修饰键 listen-only tap
+    GestureRecognition/       # 统一 Runtime、路径匹配、触控分类与会话仲裁
+    Trackpad/                  # MultitouchSupport 动态 C bridge + Swift Adapter
     Actions/                  # 快捷键、媒体、窗口、脚本
     Config/                   # Models, Store, Defaults
     Permissions/PermissionManager.swift
@@ -121,7 +124,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 
 1. **用户可见文案**必须走 `String(localized:)` / String Catalog，同时提供 **en** 与 **zh-Hans**。
 2. 新配置字段加入 `ConfigModels` 时保持 `Codable` 向后兼容（缺省值 / 可选字段）。
-3. 主线程：UI 与 `@MainActor` Service（`ConfigStore`、`GestureEngine`、`AppState`）；耗时脚本用 `async` 后台。
+3. 主线程：UI 与 `@MainActor` Service（`ConfigStore`、`GestureRuntime`、`AppState`）；耗时脚本用 `async` 后台。
 4. 避免无关大重构；改动聚焦需求。
 5. 权限失败要可观测（菜单栏状态文案 / 权限页），不要静默失败。
 6. Shell / AppleScript 视为高权限能力，UI 需保留风险提示。
@@ -130,26 +133,34 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 
 - `MouseEventTap` 依赖 `AXIsProcessTrusted()`；未授权时不得假装在监听。
 - `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎。左键、未监控按钮和没有配对 down 的事件始终放行。
-- **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureEngine` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
+- **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
+- `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
 - Event tap 的 CFRunLoop source 跑在**专用线程**（非主线程），避免 UI/主线程卡顿拖死光标投递。
+- 直接触控只允许通过本地 C bridge `dlopen` / `dlsym` 解析 `MultitouchSupport`；禁止静态链接私有框架或引入第三方二进制。私有 callback 必须先复制成稳定值，再送入 Swift 串行队列；stop/unregister 后不得留下悬空 callback。
+- 直接触控不拦截 macOS 原生手势，系统动作可能同时发生。不得保存或记录原始触点轨迹；私有后端失败只将 multitouch 通道标为 failed/degraded，不能拖垮 mouse / modifier 通道，也不得模拟回退或静默重试。
 - Entitlements：`app-sandbox = false`，`automation.apple-events = true`。
 - 勿在日志中打印用户脚本全文到公开渠道。
 
 ## 手势识别要点
 
-1. **触发键在 `GestureProfile.trigger` 上**（默认右键）；引擎只监听已启用手势用到的按键集合  
-2. 对应按键按下 → 采样路径 → 位移超过 `minStrokeDistance` 才算有效  
-3. 松开 → 仅在同按键的候选中匹配：
+1. 输入统一保存在 `GestureProfile.input`：`.drawn` 包含鼠标或单修饰键 activation 与 points；`.trackpad` 包含手指数、family 和方向 / 次数
+2. 鼠标或修饰键按下 → 采样路径 → 位移超过 `minStrokeDistance` 才算有效；鼠标短按回放点击，修饰键短路径直接结束
+3. 绘制结束 → 仅在同 activation 的候选中匹配：
    - `freePath`：有序弧长重采样 + 1D/2D 归一化 + `±12°` 有限旋转匹配 ≥ 当前全局匹配阈值（默认 `freePathMatchThreshold`）
    - 显著段数 / 连续转角作为不可补偿的结构门控；不使用镜像、逆序或 near-miss 兜底
-4. 按每条 profile 的 `targetPolicy` 在 button-down 时冻结目标应用；若存在普通窗口则同时冻结精确窗口
-5. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；命中后的动作必须复用同一个目标，禁止重新定位或回退
+4. 直接触控支持 34 类：三至五指单击 / 双击 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝
+5. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零
+6. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；直接手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
 
 调参常量见 `Constants.swift`。
 
-## 明确不在一期范围
+## 触控板支持范围与限制
 
-- 触控板多指完整手势、BTT 级链式编排、云同步、MAS 沙盒上架、插件市场
+- 已支持鼠标绘制、Fn / Control / Option / Shift / Command 单键绘制，以及实验性直接触控总开关；关闭总开关不得删除 profile。
+- 34 类直接触控 = 三至五指单击 / 双击（6）+ 三至五指四向滑动（12）+ 二至五指捏合 / 张开（8）+ 二至五指顺逆时针旋转（8）。
+- 首版主要验收 Mac 内置触控板；外接 Magic Trackpad 仅 best-effort。
+- 不支持两指轻触 / 滑动、修饰键组合、特定手指身份、tipTap / tipSwipe、连续重复动作、用户可调分类阈值或拦截系统手势。
+- BTT 级链式编排、云同步、MAS 沙盒上架和插件市场仍不在当前范围。
 
 ## 提交与 PR
 

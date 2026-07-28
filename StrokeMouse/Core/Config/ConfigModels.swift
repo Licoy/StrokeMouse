@@ -36,10 +36,21 @@ enum MouseTriggerButton: String, Codable, CaseIterable, Identifiable, Sendable {
 
 struct GestureTrigger: Codable, Equatable, Sendable {
     var button: MouseTriggerButton
-    /// Reserved for future modifier-key requirements.
+    /// Retained for v1 compatibility. New modifier drawing uses `DrawActivation`.
     var requireFlags: UInt = 0
 
     static let `default` = GestureTrigger(button: .right)
+
+    init(button: MouseTriggerButton, requireFlags: UInt = 0) {
+        self.button = button
+        self.requireFlags = requireFlags
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        button = try container.decode(MouseTriggerButton.self, forKey: .button)
+        requireFlags = try container.decodeIfPresent(UInt.self, forKey: .requireFlags) ?? 0
+    }
 }
 
 // MARK: - Pattern
@@ -114,6 +125,228 @@ struct CodablePoint: Codable, Equatable, Sendable {
     }
 
     var cgPoint: CGPoint { CGPoint(x: x, y: y) }
+}
+
+// MARK: - Input
+
+enum GestureModifierKey: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case function
+    case control
+    case option
+    case shift
+    case command
+
+    var id: String { rawValue }
+}
+
+enum StandardFingerCount: Int, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case three = 3
+    case four = 4
+    case five = 5
+
+    var id: Int { rawValue }
+}
+
+enum TransformFingerCount: Int, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case two = 2
+    case three = 3
+    case four = 4
+    case five = 5
+
+    var id: Int { rawValue }
+}
+
+enum TapCount: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case single
+    case double
+
+    var id: String { rawValue }
+}
+
+enum CardinalDirection: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case up
+    case down
+    case left
+    case right
+
+    var id: String { rawValue }
+}
+
+enum PinchDirection: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case inward
+    case outward
+
+    var id: String { rawValue }
+}
+
+enum RotationDirection: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case clockwise
+    case counterclockwise
+
+    var id: String { rawValue }
+}
+
+enum DrawActivation: Codable, Equatable, Sendable {
+    case mouse(GestureTrigger)
+    case modifier(GestureModifierKey)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case trigger
+        case key
+    }
+
+    private enum Kind: String, Codable {
+        case mouse
+        case modifier
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(Kind.self, forKey: .type) {
+        case .mouse:
+            self = .mouse(try container.decode(GestureTrigger.self, forKey: .trigger))
+        case .modifier:
+            self = .modifier(try container.decode(GestureModifierKey.self, forKey: .key))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .mouse(let trigger):
+            try container.encode(Kind.mouse, forKey: .type)
+            try container.encode(trigger, forKey: .trigger)
+        case .modifier(let key):
+            try container.encode(Kind.modifier, forKey: .type)
+            try container.encode(key, forKey: .key)
+        }
+    }
+}
+
+struct DrawnGesture: Codable, Equatable, Sendable {
+    var activation: DrawActivation
+    var points: [CodablePoint]
+
+    init(activation: DrawActivation, points: [CodablePoint]) {
+        self.activation = activation
+        self.points = points
+    }
+}
+
+enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
+    case tap(StandardFingerCount, TapCount)
+    case swipe(StandardFingerCount, CardinalDirection)
+    case pinch(TransformFingerCount, PinchDirection)
+    case rotate(TransformFingerCount, RotationDirection)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case fingers
+        case tapCount
+        case direction
+    }
+
+    private enum Kind: String, Codable {
+        case tap
+        case swipe
+        case pinch
+        case rotate
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(Kind.self, forKey: .type) {
+        case .tap:
+            self = .tap(
+                try container.decode(StandardFingerCount.self, forKey: .fingers),
+                try container.decode(TapCount.self, forKey: .tapCount)
+            )
+        case .swipe:
+            self = .swipe(
+                try container.decode(StandardFingerCount.self, forKey: .fingers),
+                try container.decode(CardinalDirection.self, forKey: .direction)
+            )
+        case .pinch:
+            self = .pinch(
+                try container.decode(TransformFingerCount.self, forKey: .fingers),
+                try container.decode(PinchDirection.self, forKey: .direction)
+            )
+        case .rotate:
+            self = .rotate(
+                try container.decode(TransformFingerCount.self, forKey: .fingers),
+                try container.decode(RotationDirection.self, forKey: .direction)
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .tap(let fingers, let count):
+            try container.encode(Kind.tap, forKey: .type)
+            try container.encode(fingers, forKey: .fingers)
+            try container.encode(count, forKey: .tapCount)
+        case .swipe(let fingers, let direction):
+            try container.encode(Kind.swipe, forKey: .type)
+            try container.encode(fingers, forKey: .fingers)
+            try container.encode(direction, forKey: .direction)
+        case .pinch(let fingers, let direction):
+            try container.encode(Kind.pinch, forKey: .type)
+            try container.encode(fingers, forKey: .fingers)
+            try container.encode(direction, forKey: .direction)
+        case .rotate(let fingers, let direction):
+            try container.encode(Kind.rotate, forKey: .type)
+            try container.encode(fingers, forKey: .fingers)
+            try container.encode(direction, forKey: .direction)
+        }
+    }
+
+    var fingerCount: Int {
+        switch self {
+        case .tap(let fingers, _), .swipe(let fingers, _):
+            return fingers.rawValue
+        case .pinch(let fingers, _), .rotate(let fingers, _):
+            return fingers.rawValue
+        }
+    }
+}
+
+enum GestureInput: Codable, Equatable, Sendable {
+    case drawn(DrawnGesture)
+    case trackpad(DirectTrackpadGesture)
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case value
+    }
+
+    private enum Kind: String, Codable {
+        case drawn
+        case trackpad
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(Kind.self, forKey: .type) {
+        case .drawn:
+            self = .drawn(try container.decode(DrawnGesture.self, forKey: .value))
+        case .trackpad:
+            self = .trackpad(try container.decode(DirectTrackpadGesture.self, forKey: .value))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .drawn(let gesture):
+            try container.encode(Kind.drawn, forKey: .type)
+            try container.encode(gesture, forKey: .value)
+        case .trackpad(let gesture):
+            try container.encode(Kind.trackpad, forKey: .type)
+            try container.encode(gesture, forKey: .value)
+        }
+    }
 }
 
 // MARK: - Actions
@@ -363,15 +596,34 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
     var id: UUID
     var name: String
     var isEnabled: Bool
-    var trigger: GestureTrigger
-    var pattern: GesturePattern
+    var input: GestureInput
     var action: GestureAction
     var scope: AppScope
     var targetPolicy: GestureTargetPolicy
     var notes: String
 
-    /// The flat initializer mirrors persisted profile fields so editors, defaults, and import
-    /// tests can construct complete values directly; defaults preserve existing call sites.
+    init(
+        id: UUID = UUID(),
+        name: String,
+        isEnabled: Bool = true,
+        input: GestureInput,
+        action: GestureAction = .none,
+        scope: AppScope = .global,
+        targetPolicy: GestureTargetPolicy = .frontmostWindow,
+        notes: String = ""
+    ) {
+        self.id = id
+        self.name = name
+        self.isEnabled = isEnabled
+        self.input = input
+        self.action = action
+        self.scope = scope
+        self.targetPolicy = targetPolicy
+        self.notes = notes
+    }
+
+    /// Source-compatible construction for mouse-drawn profiles. Direction patterns are
+    /// converted at the boundary so v2 storage never writes the legacy representation.
     init(
         id: UUID = UUID(),
         name: String,
@@ -386,22 +638,24 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         self.id = id
         self.name = name
         self.isEnabled = isEnabled
-        self.trigger = trigger
-        self.pattern = pattern
+        input = .drawn(
+            DrawnGesture(
+                activation: .mouse(trigger),
+                points: pattern.freePathPoints
+            )
+        )
         self.action = action
         self.scope = scope
         self.targetPolicy = targetPolicy
         self.notes = notes
     }
 
-    /// Custom decode so older configs missing `trigger` default to right button.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
-        trigger = try container.decodeIfPresent(GestureTrigger.self, forKey: .trigger) ?? .default
-        pattern = try container.decode(GesturePattern.self, forKey: .pattern)
+        input = try container.decode(GestureInput.self, forKey: .input)
         action = try container.decodeIfPresent(GestureAction.self, forKey: .action) ?? .none
         scope = try container.decodeIfPresent(AppScope.self, forKey: .scope) ?? .global
         targetPolicy = try container.decodeIfPresent(GestureTargetPolicy.self, forKey: .targetPolicy)
@@ -409,12 +663,23 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
     }
 
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(input, forKey: .input)
+        try container.encode(action, forKey: .action)
+        try container.encode(scope, forKey: .scope)
+        try container.encode(targetPolicy, forKey: .targetPolicy)
+        try container.encode(notes, forKey: .notes)
+    }
+
     /// Content equality ignoring `id` (used for import duplicate detection).
     func isContentEqual(to other: GestureProfile) -> Bool {
         name == other.name
             && isEnabled == other.isEnabled
-            && trigger == other.trigger
-            && pattern == other.pattern
+            && input == other.input
             && action == other.action
             && scope == other.scope
             && targetPolicy == other.targetPolicy
@@ -422,7 +687,8 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, isEnabled, trigger, pattern, action, scope, targetPolicy, notes
+        case id, name, isEnabled, input
+        case action, scope, targetPolicy, notes
     }
 }
 

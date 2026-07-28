@@ -70,8 +70,9 @@ final class GestureTargetSessionTests: XCTestCase {
     }
 }
 
-@MainActor
-private final class SpyGestureTargetCapturer: GestureTargetCapturing {
+private final class SpyGestureTargetCapturer: GestureTargetCapturing,
+    @unchecked Sendable
+{
     struct Call {
         let policies: Set<GestureTargetPolicy>
         let location: CGPoint

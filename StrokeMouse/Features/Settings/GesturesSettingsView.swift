@@ -28,12 +28,14 @@ struct GesturesSettingsView: View {
     @State private var isShowingAddApp = false
     @State private var searchText = ""
     @State private var enabledFilter: GestureEnabledFilter = .all
+    @State private var inputFilter: GestureInputCategory = .all
     @State private var sortOrder = [KeyPathComparator(\GestureProfile.name)]
     @State private var alertMessage: AlertMessage?
     @State private var pendingDeleteIDs = Set<GestureProfile.ID>()
     @State private var isConfirmingDelete = false
     @State private var pendingRemoveAppBundleId: String?
     @State private var isConfirmingRemoveApp = false
+    @State private var isConfirmingConfigRecovery = false
     @State private var sidebarSelection: GestureSidebarItem = .global
     @State private var pinnedAppBundleIds: [String] = GesturesSettingsView.loadPinnedApps()
     @State private var isAddAppHovered = false
@@ -61,6 +63,9 @@ struct GesturesSettingsView: View {
         case .enabled: items = items.filter(\.isEnabled)
         case .disabled: items = items.filter { !$0.isEnabled }
         }
+        if inputFilter != .all {
+            items = items.filter { $0.input.category == inputFilter }
+        }
 
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !q.isEmpty {
@@ -68,7 +73,7 @@ struct GesturesSettingsView: View {
                 gesture.name.localizedCaseInsensitiveContains(q)
                     || gesture.action.detail.localizedCaseInsensitiveContains(q)
                     || gesture.notes.localizedCaseInsensitiveContains(q)
-                    || gesture.pattern.summary.localizedCaseInsensitiveContains(q)
+                    || gesture.input.displaySummary.localizedCaseInsensitiveContains(q)
                     || L10n.string(gesture.action.summaryKey).localizedCaseInsensitiveContains(q)
             }
         }
@@ -93,6 +98,10 @@ struct GesturesSettingsView: View {
         let _ = appState.languageEpoch
 
         VStack(spacing: 0) {
+            if appState.configStore.requiresRecovery {
+                configRecoveryBanner
+                Divider()
+            }
             HStack(spacing: 0) {
                 sidebarBody
                     .frame(width: sidebarWidth)
@@ -100,6 +109,7 @@ struct GesturesSettingsView: View {
                 detailBody
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .disabled(appState.configStore.requiresRecovery)
 
             // One full-width divider — cannot misalign between columns.
             Divider()
@@ -113,14 +123,28 @@ struct GesturesSettingsView: View {
             }
             .frame(height: bottomChromeHeight)
             .background(chromeSurfaceColor)
+            .disabled(appState.configStore.requiresRecovery)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(item: $editorProfile) { profile in
             GestureEditorView(profile: profile) { updated in
+                guard confirmExperimentalTrackpadIfNeeded(
+                    [updated],
+                    includesDisabled: true
+                ) else {
+                    return
+                }
                 if appState.configStore.gestures.contains(where: { $0.id == updated.id }) {
                     appState.configStore.update(updated)
                 } else {
                     appState.configStore.add(updated)
+                }
+                if let failure = appState.configStore.lastFailure {
+                    alertMessage = AlertMessage(
+                        title: L10n.string("gestures.saveFailedTitle"),
+                        detail: failure.localizedDescription
+                    )
+                    return
                 }
                 // Follow the gesture into its scope group after save.
                 selectSidebar(for: updated.scope)
@@ -189,11 +213,57 @@ struct GesturesSettingsView: View {
         } message: {
             Text(removeAppConfirmMessage)
         }
+        .confirmationDialog(
+            L10n.string("gestures.configRecovery.confirmTitle"),
+            isPresented: $isConfirmingConfigRecovery,
+            titleVisibility: .visible
+        ) {
+            Button(
+                L10n.string("gestures.configRecovery.restore"),
+                role: .destructive
+            ) {
+                recoverConfigWithDefaults()
+            }
+            Button(L10n.string("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(L10n.string("gestures.configRecovery.confirmMessage"))
+        }
         .onChange(of: appState.configStore.gestures) { _, _ in
             // Drop selection entries that no longer exist.
             let valid = Set(appState.configStore.gestures.map(\.id))
             selection = selection.intersection(valid)
         }
+    }
+
+    private var configRecoveryBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(L10n.string("gestures.configRecovery.title"))
+                    .font(.headline)
+                Text(
+                    appState.configStore.lastFailure?.localizedDescription
+                        ?? L10n.string(
+                            "config.failure.recoveryRequired"
+                        )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button(L10n.string("gestures.configRecovery.reveal")) {
+                NSWorkspace.shared.activateFileViewerSelecting([
+                    appState.configStore.configURL,
+                ])
+            }
+            Button(L10n.string("gestures.configRecovery.restore")) {
+                isConfirmingConfigRecovery = true
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.08))
     }
 
     private var deleteConfirmMessage: String {
@@ -342,6 +412,7 @@ struct GesturesSettingsView: View {
     private var emptyTitle: String {
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || enabledFilter != .all
+            || inputFilter != .all
         {
             return L10n.string("gestures.filterEmptyTitle")
         }
@@ -356,6 +427,7 @@ struct GesturesSettingsView: View {
     private var emptySubtitle: String {
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || enabledFilter != .all
+            || inputFilter != .all
         {
             return L10n.string("gestures.filterEmptySubtitle")
         }
@@ -370,6 +442,7 @@ struct GesturesSettingsView: View {
     private var emptySystemImage: String {
         if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || enabledFilter != .all
+            || inputFilter != .all
         {
             return "line.3.horizontal.decrease.circle"
         }
@@ -393,8 +466,58 @@ struct GesturesSettingsView: View {
                 } label: {
                     Label(L10n.string("gestures.import"), systemImage: "square.and.arrow.down")
                 }
-                Button {
-                    editorProfile = makeNewProfile()
+                Menu {
+                    Section(L10n.string("gestures.add.drawn")) {
+                        Button(L10n.string("gestures.add.mouseDraw")) {
+                            editorProfile = makeNewProfile(
+                                input: .drawn(DrawnGesture(
+                                    activation: .mouse(.default),
+                                    points: []
+                                ))
+                            )
+                        }
+                        Button(L10n.string("gestures.add.modifierDraw")) {
+                            editorProfile = makeNewProfile(
+                                input: .drawn(DrawnGesture(
+                                    activation: .modifier(.function),
+                                    points: []
+                                ))
+                            )
+                        }
+                    }
+                    Menu(L10n.string("gestures.add.direct")) {
+                        Button(L10n.string("editor.direct.category.swipe")) {
+                            editorProfile = makeNewProfile(
+                                input: .trackpad(.swipe(.three, .up))
+                            )
+                        }
+                        Button(L10n.string("editor.direct.category.tap")) {
+                            editorProfile = makeNewProfile(
+                                input: .trackpad(.tap(.three, .single))
+                            )
+                        }
+                        Button(L10n.string("editor.direct.transform.pinch")) {
+                            editorProfile = makeNewProfile(
+                                input: .trackpad(.pinch(.two, .outward))
+                            )
+                        }
+                        Button(L10n.string("editor.direct.transform.rotate")) {
+                            editorProfile = makeNewProfile(
+                                input: .trackpad(.rotate(.two, .clockwise))
+                            )
+                        }
+                    }
+                    Menu(L10n.string("gestures.add.presets")) {
+                        ForEach(TrackpadGesturePresetCatalog.balanced) { preset in
+                            Button(L10n.string(preset.nameKey)) {
+                                editorProfile = preset.profile(
+                                    scope: GestureSidebarCatalog.defaultScope(
+                                        for: sidebarSelection
+                                    )
+                                )
+                            }
+                        }
+                    }
                 } label: {
                     Label(L10n.string("gestures.add"), systemImage: "plus")
                 }
@@ -413,6 +536,17 @@ struct GesturesSettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 280)
+
+                Picker(
+                    L10n.string("gestures.filter.input"),
+                    selection: $inputFilter
+                ) {
+                    ForEach(GestureInputCategory.allCases) { filter in
+                        Text(L10n.string(filter.titleKey)).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 240)
 
                 Spacer()
 
@@ -466,7 +600,7 @@ struct GesturesSettingsView: View {
             TableColumn(L10n.string("gestures.col.enabled")) { gesture in
                 Toggle("", isOn: Binding(
                     get: { gesture.isEnabled },
-                    set: { appState.configStore.setEnabled(id: gesture.id, enabled: $0) }
+                    set: { setEnabled(gesture, enabled: $0) }
                 ))
                 .labelsHidden()
                 .toggleStyle(.checkbox)
@@ -475,8 +609,8 @@ struct GesturesSettingsView: View {
             .width(min: 52, ideal: 60, max: 70)
 
             TableColumn(L10n.string("gestures.col.pattern")) { gesture in
-                GestureMiniPreview(
-                    points: gesture.pattern.freePathPoints,
+                GestureInputMiniPreview(
+                    input: gesture.input,
                     isEnabled: gesture.isEnabled
                 )
                 .frame(width: 48, height: 28)
@@ -490,7 +624,7 @@ struct GesturesSettingsView: View {
             }
 
             TableColumn(L10n.string("gestures.col.trigger")) { gesture in
-                Text(L10n.string(gesture.trigger.button.displayKey))
+                Text(gesture.input.displaySummary)
                     .lineLimit(1)
                     .foregroundStyle(.secondary)
             }
@@ -524,7 +658,7 @@ struct GesturesSettingsView: View {
                 Divider()
 
                 Button(L10n.string("gestures.enableSelected")) {
-                    appState.configStore.setEnabled(ids: ids, enabled: true)
+                    setEnabled(ids, enabled: true)
                 }
                 Button(L10n.string("gestures.disableSelected")) {
                     appState.configStore.setEnabled(ids: ids, enabled: false)
@@ -562,7 +696,7 @@ struct GesturesSettingsView: View {
             .disabled(selection.count != 1)
 
             Button(L10n.string("gestures.enableSelected")) {
-                appState.configStore.setEnabled(ids: selection, enabled: true)
+                setEnabled(selection, enabled: true)
             }
             .disabled(selection.isEmpty)
 
@@ -584,7 +718,18 @@ struct GesturesSettingsView: View {
 
             Spacer()
 
+            Toggle(
+                L10n.string("trackpad.directEnabled"),
+                isOn: directTrackpadEnabledBinding
+            )
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .help(L10n.string("trackpad.directEnabledHelp"))
+
             Button(L10n.string("gestures.test")) {
+                guard confirmTrackpadDiagnosticsIfNeeded() else {
+                    return
+                }
                 isShowingGestureTest = true
             }
 
@@ -601,10 +746,10 @@ struct GesturesSettingsView: View {
 
     // MARK: - Sidebar helpers
 
-    private func makeNewProfile() -> GestureProfile {
+    private func makeNewProfile(input: GestureInput) -> GestureProfile {
         GestureProfile(
             name: L10n.string("gestures.newName"),
-            pattern: .freePath([]),
+            input: input,
             scope: GestureSidebarCatalog.defaultScope(for: sidebarSelection)
         )
     }
@@ -696,6 +841,117 @@ struct GesturesSettingsView: View {
         }
     }
 
+    private func setEnabled(
+        _ profile: GestureProfile,
+        enabled: Bool
+    ) {
+        if enabled,
+           !confirmExperimentalTrackpadIfNeeded(
+               [profile],
+               includesDisabled: true
+           )
+        {
+            return
+        }
+        appState.configStore.setEnabled(id: profile.id, enabled: enabled)
+    }
+
+    private func setEnabled(
+        _ ids: Set<GestureProfile.ID>,
+        enabled: Bool
+    ) {
+        if enabled {
+            let profiles = appState.configStore.gestures.filter {
+                ids.contains($0.id)
+            }
+            guard confirmExperimentalTrackpadIfNeeded(
+                profiles,
+                includesDisabled: true
+            ) else {
+                return
+            }
+        }
+        appState.configStore.setEnabled(ids: ids, enabled: enabled)
+    }
+
+    private var directTrackpadEnabledBinding: Binding<Bool> {
+        Binding(
+            get: {
+                UserDefaults.standard.bool(
+                    forKey: PreferenceKey.directTrackpadEnabled
+                )
+            },
+            set: { enabled in
+                if enabled {
+                    let direct = appState.configStore.gestures.filter {
+                        guard $0.isEnabled, case .trackpad = $0.input else {
+                            return false
+                        }
+                        return true
+                    }
+                    guard confirmExperimentalTrackpadIfNeeded(
+                        direct,
+                        includesDisabled: false
+                    ) else {
+                        return
+                    }
+                }
+                appState.setDirectTrackpadEnabled(enabled)
+            }
+        )
+    }
+
+    private func confirmExperimentalTrackpadIfNeeded(
+        _ profiles: [GestureProfile],
+        includesDisabled: Bool
+    ) -> Bool {
+        if UserDefaults.standard.bool(
+            forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
+        ) {
+            return true
+        }
+        let needsConfirmation = profiles.contains { profile in
+            guard case .trackpad = profile.input else { return false }
+            return includesDisabled || profile.isEnabled
+        }
+        guard needsConfirmation else { return true }
+
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = L10n.string("trackpad.consent.title")
+        alert.informativeText = L10n.string("trackpad.consent.message")
+        alert.addButton(withTitle: L10n.string("trackpad.consent.accept"))
+        alert.addButton(withTitle: L10n.string("common.cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return false
+        }
+        UserDefaults.standard.set(
+            true,
+            forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
+        )
+        return true
+    }
+
+    private func confirmTrackpadDiagnosticsIfNeeded() -> Bool {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: PreferenceKey.directTrackpadEnabled),
+              !defaults.bool(
+                  forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
+              )
+        else {
+            return true
+        }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = L10n.string("trackpad.consent.title")
+        alert.informativeText = L10n.string(
+            "gestureTest.trackpadConsentMessage"
+        )
+        alert.addButton(withTitle: L10n.string("common.continue"))
+        alert.addButton(withTitle: L10n.string("common.cancel"))
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
     private func editSingle(from ids: Set<GestureProfile.ID>) {
         guard ids.count == 1, let id = ids.first,
               let gesture = appState.configStore.gestures.first(where: { $0.id == id })
@@ -715,6 +971,40 @@ struct GesturesSettingsView: View {
         selection.subtract(ids)
     }
 
+    private func recoverConfigWithDefaults() {
+        do {
+            let backupURL = try appState.configStore
+                .recoverWithDefaults()
+            let detail: String
+            if let backupURL {
+                detail = String(
+                    format: L10n.string(
+                        "gestures.configRecovery.restoredMessage"
+                    ),
+                    locale: L10n.locale,
+                    backupURL.path
+                )
+            } else {
+                detail = L10n.string(
+                    "gestures.configRecovery.notRequired"
+                )
+            }
+            alertMessage = AlertMessage(
+                title: L10n.string(
+                    "gestures.configRecovery.restoredTitle"
+                ),
+                detail: detail
+            )
+        } catch {
+            alertMessage = AlertMessage(
+                title: L10n.string(
+                    "gestures.configRecovery.failedTitle"
+                ),
+                detail: error.localizedDescription
+            )
+        }
+    }
+
     private func duplicateSelected(_ ids: Set<GestureProfile.ID>) {
         guard let id = ids.first,
               let gesture = appState.configStore.gestures.first(where: { $0.id == id })
@@ -722,6 +1012,12 @@ struct GesturesSettingsView: View {
         var copy = gesture
         copy.id = UUID()
         copy.name = gesture.name + " " + L10n.string("gestures.copySuffix")
+        guard confirmExperimentalTrackpadIfNeeded(
+            [copy],
+            includesDisabled: true
+        ) else {
+            return
+        }
         appState.configStore.add(copy)
         selection = [copy.id]
     }
@@ -755,6 +1051,17 @@ struct GesturesSettingsView: View {
                 )
                 return
             }
+            guard confirmExperimentalTrackpadIfNeeded(
+                profilesToImport,
+                includesDisabled: false
+            ) else {
+                return
+            }
+            guard confirmHighPrivilegeImportIfNeeded(
+                profilesToImport
+            ) else {
+                return
+            }
 
             let newIDs = try appState.configStore.importProfiles(profilesToImport)
             selection = Set(newIDs)
@@ -767,6 +1074,39 @@ struct GesturesSettingsView: View {
                 detail: importErrorDetail(error)
             )
         }
+    }
+
+    private func confirmHighPrivilegeImportIfNeeded(
+        _ profiles: [GestureProfile]
+    ) -> Bool {
+        let privileged = profiles.filter {
+            switch $0.action {
+            case .shell, .appleScript:
+                return true
+            default:
+                return false
+            }
+        }
+        guard !privileged.isEmpty else { return true }
+
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = L10n.string(
+            "gestures.importPrivilegedTitle"
+        )
+        let summary = String(
+            format: L10n.string(
+                "gestures.importPrivilegedMessage"
+            ),
+            locale: L10n.locale,
+            privileged.count
+        )
+        alert.informativeText = "\(summary)\n\n\(duplicateNameList(privileged))"
+        alert.addButton(withTitle: L10n.string(
+            "gestures.importPrivilegedConfirm"
+        ))
+        alert.addButton(withTitle: L10n.string("common.cancel"))
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     /// Returns chosen policy, or `nil` if the user cancelled.
@@ -982,6 +1322,40 @@ private struct GestureScopeCell: View {
 }
 
 // MARK: - Mini preview
+
+private struct GestureInputMiniPreview: View {
+    let input: GestureInput
+    let isEnabled: Bool
+
+    var body: some View {
+        switch input {
+        case .drawn(let drawn):
+            GestureMiniPreview(
+                points: drawn.points,
+                isEnabled: isEnabled
+            )
+        case .trackpad(let gesture):
+            ZStack {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                Image(systemName: gesture.systemImage)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(
+                        isEnabled ? Color.accentColor : Color.secondary
+                    )
+                Text("\(gesture.fingerCount)")
+                    .font(.system(size: 8, weight: .bold))
+                    .padding(2)
+                    .background(.regularMaterial, in: Circle())
+                    .offset(x: 15, y: -8)
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(.quaternary, lineWidth: 1)
+            )
+        }
+    }
+}
 
 private struct GestureMiniPreview: View {
     let points: [CodablePoint]

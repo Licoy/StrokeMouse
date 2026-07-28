@@ -2,8 +2,7 @@ import AppKit
 import ApplicationServices
 import Foundation
 
-@MainActor
-protocol GestureTargetCaptureSystemClient: AnyObject {
+protocol GestureTargetCaptureSystemClient: AnyObject, Sendable {
     var frontmostApplication: NSRunningApplication? { get }
 
     func runningApplication(processIdentifier: pid_t) -> NSRunningApplication?
@@ -22,8 +21,10 @@ protocol GestureTargetCaptureSystemClient: AnyObject {
     ) throws -> pid_t
 }
 
-@MainActor
-final class MacGestureTargetCaptureSystemClient: GestureTargetCaptureSystemClient {
+final class MacGestureTargetCaptureSystemClient:
+    GestureTargetCaptureSystemClient,
+    @unchecked Sendable
+{
     var frontmostApplication: NSRunningApplication? {
         NSWorkspace.shared.frontmostApplication
     }

@@ -10,9 +10,11 @@ struct GestureTestView: View {
     @State private var evaluation: GestureRecognitionEvaluation?
     @State private var rawPointCount = 0
     @State private var sessionID = UUID()
-    @State private var isSuppressingGlobalRecognition = false
+    @State private var diagnosticSession: GestureDiagnosticSession?
     @State private var didSaveLog = false
     @State private var logError: String?
+    @AppStorage(PreferenceKey.directTrackpadEnabled)
+    private var directTrackpadEnabled = true
 
     private let logStore = GestureTestLogStore()
 
@@ -22,8 +24,11 @@ struct GestureTestView: View {
             Divider()
             HStack(alignment: .top, spacing: 16) {
                 drawingPanel
-                resultPanel
-                    .frame(width: 330)
+                VStack(spacing: 12) {
+                    resultPanel
+                    trackpadResultPanel
+                }
+                .frame(width: 330)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
@@ -51,7 +56,10 @@ struct GestureTestView: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Label(L10n.string("gestureTest.globalPaused"), systemImage: "pause.circle.fill")
+                Label(
+                    L10n.string("gestureTest.diagnosticsActive"),
+                    systemImage: "waveform.path.ecg"
+                )
                     .font(.callout.weight(.medium))
                     .foregroundStyle(.orange)
             }
@@ -106,6 +114,59 @@ struct GestureTestView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } label: {
             Text(L10n.string("gestureTest.results"))
+                .font(.headline)
+        }
+    }
+
+    private var trackpadResultPanel: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                TrackpadTouchPreview(
+                    contacts: appState.gestureRuntime.currentTouches
+                )
+                .frame(height: 104)
+
+                if let metrics = appState.gestureRuntime.lastTrackpadMetrics {
+                    Text(
+                        String(
+                            format: L10n.string("gestureTest.trackpadMetrics"),
+                            locale: L10n.locale,
+                            metrics.fingerCount,
+                            metrics.translationX,
+                            metrics.translationY,
+                            metrics.scale,
+                            metrics.rotationRadians * 180 / .pi
+                        )
+                    )
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                }
+
+                if !directTrackpadEnabled {
+                    Text(L10n.string(
+                        "gestureTest.trackpadDisabled"
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                } else if let outcome = appState.gestureRuntime
+                    .lastTrackpadOutcome
+                {
+                    Label(
+                        trackpadOutcomeText(outcome),
+                        systemImage: trackpadOutcomeSymbol(outcome)
+                    )
+                    .font(.caption)
+                } else {
+                    Text(L10n.string("gestureTest.trackpadWaiting"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Text(L10n.string("gestureTest.rawTouchesNotStored"))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        } label: {
+            Text(L10n.string("gestureTest.trackpadTitle"))
                 .font(.headline)
         }
     }
@@ -228,23 +289,31 @@ struct GestureTestView: View {
     }
 
     private func beginSession() {
-        guard !isSuppressingGlobalRecognition else { return }
-        if let firstEnabled = appState.configStore.gestures.first(where: \.isEnabled) {
-            selectedButton = firstEnabled.trigger.button
+        guard diagnosticSession == nil else { return }
+        if let firstEnabled = appState.configStore.gestures.first(where: {
+            guard $0.isEnabled,
+                  case .drawn(let drawn) = $0.input,
+                  case .mouse = drawn.activation
+            else {
+                return false
+            }
+            return true
+        }), case .drawn(let drawn) = firstEnabled.input,
+            case .mouse(let trigger) = drawn.activation
+        {
+            selectedButton = trigger.button
         }
-        appState.gestureEngine.pushSuppression()
-        isSuppressingGlobalRecognition = true
+        diagnosticSession = appState.gestureRuntime.beginDiagnostics()
     }
 
     private func endSession() {
-        guard isSuppressingGlobalRecognition else { return }
-        appState.gestureEngine.popSuppression()
-        isSuppressingGlobalRecognition = false
+        diagnosticSession?.end()
+        diagnosticSession = nil
     }
 
     private func evaluateAndLog(_ rawPath: [CGPoint]) {
         rawPointCount = rawPath.count
-        let result = appState.gestureEngine.evaluateForTesting(
+        let result = appState.gestureRuntime.evaluateForTesting(
             path: rawPath,
             button: selectedButton
         )
@@ -260,6 +329,97 @@ struct GestureTestView: View {
             logError = nil
         } catch {
             logError = error.localizedDescription
+        }
+    }
+
+    private func trackpadOutcomeText(
+        _ outcome: GestureRuntimeOutcome
+    ) -> String {
+        switch outcome {
+        case .matched(let profileID, _):
+            return appState.configStore.gestures.first {
+                $0.id == profileID
+            }?.name ?? L10n.string("gestureTest.trackpadMatched")
+        case .noMatch:
+            return L10n.string("gestureTest.trackpadNoMatch")
+        case .conflict(let ids):
+            return String(
+                format: L10n.string("gestureTest.trackpadConflict"),
+                locale: L10n.locale,
+                ids.count
+            )
+        case .rejected(let reason):
+            return L10n.string(reason.displayKey)
+        case .cancelled:
+            return L10n.string("gestureTest.trackpadCancelled")
+        case .actionFailed(let detail):
+            return detail
+        }
+    }
+
+    private func trackpadOutcomeSymbol(
+        _ outcome: GestureRuntimeOutcome
+    ) -> String {
+        switch outcome {
+        case .matched: return "checkmark.circle.fill"
+        case .noMatch, .cancelled: return "minus.circle"
+        case .conflict, .rejected, .actionFailed:
+            return "exclamationmark.triangle.fill"
+        }
+    }
+}
+
+private struct TrackpadTouchPreview: View {
+    let contacts: [TrackpadTouchContact]
+
+    var body: some View {
+        Canvas { context, size in
+            let background = Path(
+                roundedRect: CGRect(origin: .zero, size: size),
+                cornerRadius: 10
+            )
+            context.fill(
+                background,
+                with: .color(Color.secondary.opacity(0.10))
+            )
+            for contact in contacts where contact.phase.isActive {
+                let point = CGPoint(
+                    x: min(size.width - 10, max(10, contact.position.x * size.width)),
+                    y: min(size.height - 10, max(10, (1 - contact.position.y) * size.height))
+                )
+                let circle = Path(
+                    ellipseIn: CGRect(
+                        x: point.x - 8,
+                        y: point.y - 8,
+                        width: 16,
+                        height: 16
+                    )
+                )
+                context.fill(circle, with: .color(.accentColor.opacity(0.75)))
+                context.draw(
+                    Text("\(contact.id)")
+                        .font(.system(size: 7, weight: .bold))
+                        .foregroundStyle(.white),
+                    at: point
+                )
+            }
+        }
+    }
+}
+
+private extension TrackpadGestureRejection {
+    var displayKey: String {
+        switch self {
+        case .invalidFrame: return "gestureTest.reject.invalidFrame"
+        case .interrupted: return "gestureTest.reject.interrupted"
+        case .contactSetChanged: return "gestureTest.reject.contactSetChanged"
+        case .landingSpreadExceeded:
+            return "gestureTest.reject.landingSpreadExceeded"
+        case .formingTimedOut: return "gestureTest.reject.formingTimedOut"
+        case .releaseTimedOut: return "gestureTest.reject.releaseTimedOut"
+        case .durationExceeded: return "gestureTest.reject.durationExceeded"
+        case .unsupported: return "gestureTest.reject.unsupported"
+        case .ambiguous: return "gestureTest.reject.ambiguous"
         }
     }
 }

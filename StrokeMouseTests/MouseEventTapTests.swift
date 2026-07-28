@@ -31,7 +31,7 @@ final class MouseEventTapTests: XCTestCase {
         tap.watchedButtons = [.right]
         var observedKinds: [String] = []
         var observedEventCount = 0
-        tap.onEvent = { event in
+        tap.onEvent = { event, _ in
             observedEventCount += 1
             if case .buttonDown = event {
                 observedKinds.append("down")
@@ -56,7 +56,7 @@ final class MouseEventTapTests: XCTestCase {
         let tap = MouseEventTap()
         tap.watchedButtons = [.middle]
         var observedEventCount = 0
-        tap.onEvent = { _ in observedEventCount += 1 }
+        tap.onEvent = { _, _ in observedEventCount += 1 }
 
         let down = try makeMouseEvent(type: .otherMouseDown, button: .center)
         let drag = try makeMouseEvent(type: .otherMouseDragged, button: .center)
@@ -85,7 +85,7 @@ final class MouseEventTapTests: XCTestCase {
         let tap = MouseEventTap()
         tap.watchedButtons = [.middle]
         var observedEventCount = 0
-        tap.onEvent = { _ in observedEventCount += 1 }
+        tap.onEvent = { _, _ in observedEventCount += 1 }
 
         let down = try makeMouseEvent(type: .rightMouseDown, button: .right)
         let drag = try makeMouseEvent(type: .rightMouseDragged, button: .right)
@@ -105,11 +105,25 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertNotNil(tap.handle(type: .rightMouseUp, event: up))
     }
 
+    func testRejectedSessionClaimPassesDownAndUpThroughUnchanged() throws {
+        let tap = MouseEventTap()
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _ in false }
+        var observedEventCount = 0
+        tap.onEvent = { _, _ in observedEventCount += 1 }
+        let down = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let up = try makeMouseEvent(type: .rightMouseUp, button: .right)
+
+        XCTAssertNotNil(tap.handle(type: .rightMouseDown, event: down))
+        XCTAssertNotNil(tap.handle(type: .rightMouseUp, event: up))
+        XCTAssertEqual(observedEventCount, 0)
+    }
+
     func testTaggedReplayEventsPassThroughWithoutBeingObserved() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
         var observedEventCount = 0
-        tap.onEvent = { _ in observedEventCount += 1 }
+        tap.onEvent = { _, _ in observedEventCount += 1 }
 
         let events = try XCTUnwrap(MouseEventTap.makeReplayEvents(
             button: .right,
@@ -129,14 +143,92 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertEqual(observedEventCount, 0)
     }
 
+    func testTapDisableInterruptsCaptureAndWaitsForPhysicalButtonUp()
+        throws
+    {
+        let tap = MouseEventTap(buttonStateProvider: { _ in true })
+        tap.watchedButtons = [.right]
+        var observed: [(kind: String, generation: UInt64)] = []
+        tap.onEvent = { event, generation in
+            let kind: String
+            switch event {
+            case .buttonDown: kind = "down"
+            case .buttonUp: kind = "up"
+            case .interrupted: kind = "interrupted"
+            case .drained: kind = "drained"
+            }
+            observed.append((kind, generation))
+        }
+
+        let down = try makeMouseEvent(
+            type: .rightMouseDown,
+            button: .right
+        )
+        let up = try makeMouseEvent(
+            type: .rightMouseUp,
+            button: .right
+        )
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: down))
+        XCTAssertNotNil(tap.handle(
+            type: .tapDisabledByTimeout,
+            event: down
+        ))
+        XCTAssertFalse(tap.isCurrentEventGeneration(0))
+        XCTAssertTrue(tap.isCurrentEventGeneration(1))
+
+        // The matching up must pass through and only drain the interrupted
+        // physical press. A fresh press can then begin a new sequence.
+        XCTAssertNotNil(tap.handle(type: .rightMouseUp, event: up))
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: down))
+        XCTAssertNil(tap.handle(type: .rightMouseUp, event: up))
+
+        XCTAssertEqual(observed.map(\.kind), [
+            "down",
+            "interrupted",
+            "drained",
+            "down",
+            "up",
+        ])
+        XCTAssertEqual(observed.map(\.generation), [0, 1, 1, 1, 1])
+    }
+
+    func testTapDisableImmediatelyDrainsButtonAlreadyReleased()
+        throws
+    {
+        let tap = MouseEventTap(buttonStateProvider: { _ in false })
+        tap.watchedButtons = [.right]
+        var observed: [String] = []
+        tap.onEvent = { event, _ in
+            switch event {
+            case .buttonDown: observed.append("down")
+            case .buttonUp: observed.append("up")
+            case .interrupted: observed.append("interrupted")
+            case .drained: observed.append("drained")
+            }
+        }
+        let down = try makeMouseEvent(
+            type: .rightMouseDown,
+            button: .right
+        )
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: down))
+        XCTAssertNotNil(tap.handle(
+            type: .tapDisabledByTimeout,
+            event: down
+        ))
+
+        XCTAssertEqual(observed, ["down", "interrupted", "drained"])
+    }
+
     func testQuartzLocationConvertsToAppKitCoordinates() {
-        let converted = GestureEngine.appKitLocation(
+        let converted = GestureRuntime.appKitLocation(
             fromQuartz: CGPoint(x: 10, y: 30),
             zeroScreenMaxY: 1080
         )
         XCTAssertEqual(converted, CGPoint(x: 10, y: 1050))
 
-        let origin = GestureEngine.appKitLocation(
+        let origin = GestureRuntime.appKitLocation(
             fromQuartz: .zero,
             zeroScreenMaxY: 900
         )
@@ -147,7 +239,10 @@ final class MouseEventTapTests: XCTestCase {
         mask & CGEventMask(1 << type.rawValue) != 0
     }
 
-    private func makeMouseEvent(type: CGEventType, button: CGMouseButton) throws -> CGEvent {
+    private func makeMouseEvent(
+        type: CGEventType,
+        button: CGMouseButton
+    ) throws -> CGEvent {
         try XCTUnwrap(CGEvent(
             mouseEventSource: nil,
             mouseType: type,

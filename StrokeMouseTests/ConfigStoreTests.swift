@@ -3,6 +3,54 @@ import XCTest
 
 @MainActor
 final class ConfigStoreTests: XCTestCase {
+    func testV2ProfileEncodingUsesTaggedInputWithoutLegacyFields() throws {
+        let profile = GestureProfile(
+            name: "Fn Drawing",
+            input: .drawn(
+                DrawnGesture(
+                    activation: .modifier(.function),
+                    points: [
+                        CodablePoint(x: 0, y: 0),
+                        CodablePoint(x: 1, y: 0),
+                    ]
+                )
+            )
+        )
+
+        let data = try JSONEncoder().encode(profile)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        XCTAssertNil(object["trigger"])
+        XCTAssertNil(object["pattern"])
+
+        let input = try XCTUnwrap(object["input"] as? [String: Any])
+        XCTAssertEqual(input["type"] as? String, "drawn")
+        let value = try XCTUnwrap(input["value"] as? [String: Any])
+        let activation = try XCTUnwrap(value["activation"] as? [String: Any])
+        XCTAssertEqual(activation["type"] as? String, "modifier")
+        XCTAssertEqual(activation["key"] as? String, "function")
+        XCTAssertEqual((value["points"] as? [[String: Any]])?.count, 2)
+    }
+
+    func testGestureProfileDirectDecodeRejectsLegacyFields() throws {
+        let data = Data(
+            """
+            {
+              "id": "F6702898-C292-48C9-AE64-FF528BAFAC8A",
+              "name": "Legacy profile",
+              "trigger": {"button": "middle"},
+              "pattern": {"directions": {"_0": ["left", "down"]}}
+            }
+            """.utf8
+        )
+
+        XCTAssertThrowsError(try JSONDecoder().decode(
+            GestureProfile.self,
+            from: data
+        ))
+    }
+
     func testSaveAndLoadRoundTrip() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
@@ -20,13 +68,453 @@ final class ConfigStoreTests: XCTestCase {
         let reloaded = ConfigStore(configURL: url)
         XCTAssertEqual(reloaded.gestures.count, 1)
         XCTAssertEqual(reloaded.gestures.first?.name, "Test")
-        if case .freePath(let pts) = reloaded.gestures.first?.pattern {
+        if case .drawn(let drawn) = reloaded.gestures.first?.input {
+            let pts = drawn.points
             XCTAssertGreaterThanOrEqual(pts.count, 2)
         } else {
             XCTFail("Expected freePath pattern")
         }
 
         try? FileManager.default.removeItem(at: dir)
+    }
+
+    func testLoadingV1MigratesToV2AndPreservesOriginalBackup() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let legacyData = Data(
+            """
+            {
+              "version": 1,
+              "gestures": [{
+                "id": "C49B3DF7-5ED2-433C-AFA3-E44E3EFCA08B",
+                "name": "Legacy Directions",
+                "pattern": {"directions": {"_0": ["up", "right"]}},
+                "notes": "v1"
+              }]
+            }
+            """.utf8
+        )
+        try legacyData.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        XCTAssertNil(store.lastError)
+        XCTAssertEqual(store.gestures.map(\.name), ["Legacy Directions"])
+        if case .drawn(let drawn) = store.gestures.first?.input,
+           case .mouse(let trigger) = drawn.activation
+        {
+            XCTAssertEqual(trigger.button, .right)
+            let points = drawn.points
+            XCTAssertGreaterThanOrEqual(points.count, 2)
+        } else {
+            XCTFail("Expected migrated free-path points")
+        }
+
+        let backupURL = dir.appendingPathComponent("gestures.json.v1.bak")
+        XCTAssertEqual(try Data(contentsOf: backupURL), legacyData)
+
+        let migratedObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any]
+        )
+        XCTAssertEqual(migratedObject["version"] as? Int, 2)
+        let profiles = try XCTUnwrap(migratedObject["gestures"] as? [[String: Any]])
+        XCTAssertNotNil(profiles.first?["input"])
+        XCTAssertNil(profiles.first?["trigger"])
+        XCTAssertNil(profiles.first?["pattern"])
+    }
+
+    func testExistingV1BackupIsNeverOverwritten() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "StrokeMouseTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("gestures.json")
+        let backupURL = dir.appendingPathComponent("gestures.json.v1.bak")
+        let existingBackup = Data("existing-backup".utf8)
+        try existingBackup.write(to: backupURL)
+        try legacyConfigData().write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        XCTAssertNil(store.lastFailure)
+        XCTAssertEqual(try Data(contentsOf: backupURL), existingBackup)
+    }
+
+    func testMigrationReplaceFailureKeepsV1FileAndBackup() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "StrokeMouseTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("gestures.json")
+        let original = legacyConfigData()
+        try original.write(to: url)
+
+        let store = ConfigStore(
+            configURL: url,
+            replaceItem: { _, _ in
+                throw CocoaError(.fileWriteUnknown)
+            }
+        )
+
+        XCTAssertTrue(store.gestures.isEmpty)
+        guard case .persistenceFailed = store.lastFailure else {
+            return XCTFail("Expected replacement failure")
+        }
+        XCTAssertEqual(try Data(contentsOf: url), original)
+        XCTAssertEqual(
+            try Data(contentsOf: dir.appendingPathComponent(
+                "gestures.json.v1.bak"
+            )),
+            original
+        )
+    }
+
+    func testInvalidV2FileIsNotRewritten() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "StrokeMouseTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("gestures.json")
+        let invalid = GestureProfile(
+            name: "Invalid",
+            input: .drawn(DrawnGesture(
+                activation: .modifier(.function),
+                points: [CodablePoint(x: 0, y: 0)]
+            ))
+        )
+        let bytes = try JSONEncoder().encode(GestureConfigFile(
+            version: Constants.configVersion,
+            gestures: [invalid]
+        ))
+        try bytes.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        XCTAssertTrue(store.gestures.isEmpty)
+        guard case .invalidConfiguration = store.lastFailure else {
+            return XCTFail("Expected validation failure")
+        }
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+    }
+
+    func testV1MigrationPreservesProfileFieldsAndOrder() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let data = Data(
+            """
+            {
+              "version": 1,
+              "gestures": [{
+                "id": "62BB5B6B-D101-4A78-BABE-E4F8B39BB299",
+                "name": "First",
+                "isEnabled": false,
+                "trigger": {"button": "sideBack", "requireFlags": 123},
+                "pattern": {"freePath": {"_0": [{"x": 0, "y": 0}, {"x": 1, "y": 1}]}},
+                "action": {"openURL": {"_0": "https://example.com"}},
+                "scope": {"apps": {"_0": ["com.apple.Safari"]}},
+                "targetPolicy": "windowUnderPointer",
+                "notes": "preserved"
+              }, {
+                "id": "6553222D-63CD-4925-86F8-D3C3B9C3F298",
+                "name": "Second",
+                "pattern": {"freePath": {"_0": [{"x": 1, "y": 0}, {"x": 0, "y": 1}]}}
+              }]
+            }
+            """.utf8
+        )
+        try data.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+        let first = try XCTUnwrap(store.gestures.first)
+
+        XCTAssertEqual(store.gestures.map(\.name), ["First", "Second"])
+        XCTAssertFalse(first.isEnabled)
+        guard case .drawn(let drawn) = first.input,
+              case .mouse(let trigger) = drawn.activation
+        else {
+            return XCTFail("Expected migrated mouse-drawn input")
+        }
+        XCTAssertEqual(
+            trigger,
+            GestureTrigger(button: .sideBack, requireFlags: 123)
+        )
+        XCTAssertEqual(first.action, .openURL("https://example.com"))
+        XCTAssertEqual(first.scope, .apps(["com.apple.Safari"]))
+        XCTAssertEqual(first.targetPolicy, .windowUnderPointer)
+        XCTAssertEqual(first.notes, "preserved")
+    }
+
+    func testInvalidDrawnPointsDoNotChangeMemoryOrPersistedConfig() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let store = ConfigStore(configURL: url)
+        let beforeProfiles = store.gestures
+        let beforeData = try Data(contentsOf: url)
+        let invalid = GestureProfile(
+            name: "Too Short",
+            input: .drawn(
+                DrawnGesture(
+                    activation: .modifier(.function),
+                    points: [CodablePoint(x: 0, y: 0)]
+                )
+            )
+        )
+
+        store.replaceAll([invalid])
+
+        XCTAssertEqual(store.gestures, beforeProfiles)
+        XCTAssertEqual(try Data(contentsOf: url), beforeData)
+        guard case .invalidConfiguration = store.lastFailure else {
+            return XCTFail("Expected a typed invalid-configuration failure")
+        }
+    }
+
+    func testNonFiniteDrawnPointDoesNotChangeMemoryOrPersistedConfig() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let store = ConfigStore(configURL: url)
+        let beforeProfiles = store.gestures
+        let beforeData = try Data(contentsOf: url)
+        let invalid = GestureProfile(
+            name: "Non-finite",
+            input: .drawn(
+                DrawnGesture(
+                    activation: .modifier(.option),
+                    points: [
+                        CodablePoint(x: 0, y: 0),
+                        CodablePoint(x: .infinity, y: 1),
+                    ]
+                )
+            )
+        )
+
+        store.replaceAll([invalid])
+
+        XCTAssertEqual(store.gestures, beforeProfiles)
+        XCTAssertEqual(try Data(contentsOf: url), beforeData)
+        guard case .invalidConfiguration = store.lastFailure else {
+            return XCTFail("Expected a typed invalid-configuration failure")
+        }
+    }
+
+    func testAllThirtyFourTrackpadGesturesRoundTripInV2Config() throws {
+        var gestures: [DirectTrackpadGesture] = []
+        for fingers in StandardFingerCount.allCases {
+            gestures += TapCount.allCases.map { .tap(fingers, $0) }
+            gestures += CardinalDirection.allCases.map { .swipe(fingers, $0) }
+        }
+        for fingers in TransformFingerCount.allCases {
+            gestures += PinchDirection.allCases.map { .pinch(fingers, $0) }
+            gestures += RotationDirection.allCases.map { .rotate(fingers, $0) }
+        }
+        XCTAssertEqual(gestures.count, 34)
+
+        let profiles = gestures.enumerated().map { index, gesture in
+            GestureProfile(
+                name: "Trackpad \(index)",
+                input: .trackpad(gesture)
+            )
+        }
+        let source = GestureConfigFile(version: 2, gestures: profiles)
+        let data = try JSONEncoder().encode(source)
+        let decoded = try JSONDecoder().decode(GestureConfigFile.self, from: data)
+
+        XCTAssertEqual(decoded, source)
+    }
+
+    func testFutureVersionIsRejectedWithoutRewritingFile() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let data = Data(#"{"version":99,"gestures":[]}"#.utf8)
+        try data.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        XCTAssertTrue(store.gestures.isEmpty)
+        XCTAssertEqual(store.lastFailure, .unsupportedVersion(99))
+        XCTAssertEqual(try Data(contentsOf: url), data)
+    }
+
+    func testCorruptExistingFileIsNotReplacedByDefaults() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let data = Data("not-json".utf8)
+        try data.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        XCTAssertTrue(store.gestures.isEmpty)
+        guard case .decodeFailed = store.lastFailure else {
+            return XCTFail("Expected a typed decode failure")
+        }
+        XCTAssertTrue(store.requiresRecovery)
+        XCTAssertEqual(try Data(contentsOf: url), data)
+    }
+
+    func testV2RootRejectsLegacyProfileShapeWithoutRewritingFile() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "StrokeMouseTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("gestures.json")
+        let data = Data(
+            """
+            {
+              "version": 2,
+              "gestures": [{
+                "id": "F6702898-C292-48C9-AE64-FF528BAFAC8A",
+                "name": "Wrong schema",
+                "trigger": {"button": "middle"},
+                "pattern": {"directions": {"_0": ["left"]}}
+              }]
+            }
+            """.utf8
+        )
+        try data.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        guard case .decodeFailed = store.lastFailure else {
+            return XCTFail("Expected a typed decode failure")
+        }
+        XCTAssertTrue(store.requiresRecovery)
+        XCTAssertEqual(try Data(contentsOf: url), data)
+    }
+
+    func testRecoveryBlocksMutationAndPreservesOriginalBeforeReset()
+        throws
+    {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "StrokeMouseTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("gestures.json")
+        let corrupt = Data("not-json".utf8)
+        try corrupt.write(to: url)
+        let store = ConfigStore(configURL: url)
+
+        store.add(GestureProfile(
+            name: "Must not overwrite",
+            pattern: .freePath(PathTemplates.up)
+        ))
+
+        XCTAssertTrue(store.requiresRecovery)
+        XCTAssertEqual(try Data(contentsOf: url), corrupt)
+
+        let backupURL = try XCTUnwrap(
+            store.recoverWithDefaults()
+        )
+
+        XCTAssertEqual(try Data(contentsOf: backupURL), corrupt)
+        XCTAssertFalse(store.requiresRecovery)
+        XCTAssertFalse(store.gestures.isEmpty)
+        let recovered = try JSONDecoder().decode(
+            GestureConfigFile.self,
+            from: Data(contentsOf: url)
+        )
+        XCTAssertEqual(recovered.version, Constants.configVersion)
+        XCTAssertEqual(recovered.gestures, store.gestures)
+    }
+
+    func testDuplicateProfileIDsDoNotChangeMemoryOrPersistedConfig() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let url = dir.appendingPathComponent("gestures.json")
+        let store = ConfigStore(configURL: url)
+        let beforeProfiles = store.gestures
+        let beforeData = try Data(contentsOf: url)
+        let duplicate = GestureProfile(
+            name: "Duplicate",
+            pattern: .freePath(PathTemplates.up)
+        )
+
+        store.replaceAll([duplicate, duplicate])
+
+        XCTAssertEqual(store.gestures, beforeProfiles)
+        XCTAssertEqual(try Data(contentsOf: url), beforeData)
+        guard case .invalidConfiguration = store.lastFailure else {
+            return XCTFail("Expected a typed invalid-configuration failure")
+        }
+    }
+
+    func testPersistenceFailureDoesNotPublishCandidate() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        let configDirectory = root.appendingPathComponent("config", isDirectory: true)
+        try FileManager.default.createDirectory(at: configDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let store = ConfigStore(configURL: configDirectory.appendingPathComponent("gestures.json"))
+        let before = store.gestures
+        let movedDirectory = root.appendingPathComponent("moved-config", isDirectory: true)
+        try FileManager.default.moveItem(at: configDirectory, to: movedDirectory)
+        try Data("blocks-directory-creation".utf8).write(to: configDirectory)
+
+        store.replaceAll([
+            GestureProfile(name: "Candidate", pattern: .freePath(PathTemplates.left)),
+        ])
+
+        XCTAssertEqual(store.gestures, before)
+        guard case .persistenceFailed = store.lastFailure else {
+            return XCTFail("Expected a typed persistence failure")
+        }
     }
 
     func testLegacyProfileWithoutTargetPolicyDefaultsToFrontmostWindow() throws {
@@ -60,9 +548,19 @@ final class ConfigStoreTests: XCTestCase {
     }
 
     func testExistingDefaultGesturesKeepFrontmostTargetPolicy() {
-        XCTAssertTrue(
-            DefaultGestures.make().allSatisfy { $0.targetPolicy == .frontmostWindow }
-        )
+        let defaults = DefaultGestures.make()
+        XCTAssertEqual(defaults.count, 7)
+        XCTAssertTrue(defaults.allSatisfy {
+            $0.targetPolicy == .frontmostWindow
+        })
+        XCTAssertTrue(defaults.allSatisfy {
+            guard case .drawn(let drawn) = $0.input,
+                  case .mouse(let trigger) = drawn.activation
+            else {
+                return false
+            }
+            return trigger.button == .right
+        })
     }
 
     func testEnabledGesturesOnlyFiltersEnabledStateAndTrigger() {
@@ -294,11 +792,48 @@ final class ConfigStoreTests: XCTestCase {
         guard let imported = store.gestures.first else {
             return XCTFail("Expected imported gesture")
         }
-        if case .freePath(let points) = imported.pattern {
+        if case .drawn(let drawn) = imported.input {
+            let points = drawn.points
             XCTAssertGreaterThanOrEqual(points.count, 2)
         } else {
             XCTFail("Expected freePath after migration")
         }
+    }
+
+    func testImportPackageAcceptsActualV1Shape() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let store = ConfigStore(configURL: dir.appendingPathComponent("gestures.json"))
+        store.replaceAll([])
+        let data = Data(
+            """
+            {
+              "version": 1,
+              "gestures": [{
+                "id": "F6702898-C292-48C9-AE64-FF528BAFAC8A",
+                "name": "Imported v1",
+                "trigger": {"button": "middle"},
+                "pattern": {"directions": {"_0": ["left", "down"]}}
+              }]
+            }
+            """.utf8
+        )
+
+        let importedIDs = try store.importPackage(from: data)
+        let imported = try XCTUnwrap(
+            store.gestures.first { importedIDs.contains($0.id) }
+        )
+
+        guard case .drawn(let drawn) = imported.input,
+              case .mouse(let trigger) = drawn.activation
+        else {
+            return XCTFail("Expected a migrated mouse-drawn gesture")
+        }
+        XCTAssertEqual(trigger, GestureTrigger(button: .middle))
+        XCTAssertGreaterThanOrEqual(drawn.points.count, 2)
     }
 
     func testAnalyzeImportDetectsContentDuplicates() throws {
@@ -446,5 +981,20 @@ final class ConfigStoreTests: XCTestCase {
         var differentTarget = b
         differentTarget.targetPolicy = .windowUnderPointer
         XCTAssertFalse(a.isContentEqual(to: differentTarget))
+    }
+
+    private func legacyConfigData() -> Data {
+        Data(
+            """
+            {
+              "version": 1,
+              "gestures": [{
+                "id": "C49B3DF7-5ED2-433C-AFA3-E44E3EFCA08B",
+                "name": "Legacy",
+                "pattern": {"directions": {"_0": ["up"]}}
+              }]
+            }
+            """.utf8
+        )
     }
 }

@@ -2,6 +2,7 @@ import ApplicationServices
 import AppKit
 import CoreGraphics
 import Foundation
+import OSLog
 
 /// Active CGEventTap wrapper that reserves configured trigger-button gestures.
 ///
@@ -11,6 +12,19 @@ import Foundation
 /// - Run the tap on a dedicated CFRunLoop thread so main-thread UI work cannot stall
 ///   cursor delivery.
 final class MouseEventTap: @unchecked Sendable {
+    private final class CallbackContext {
+        weak var owner: MouseEventTap?
+
+        init(owner: MouseEventTap) {
+            self.owner = owner
+        }
+    }
+
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.strokemouse.app",
+        category: "MouseEventTap"
+    )
+
     struct Sample {
         let location: CGPoint
         let timestamp: TimeInterval
@@ -19,6 +33,8 @@ final class MouseEventTap: @unchecked Sendable {
     enum EventKind {
         case buttonDown(MouseTriggerButton, CGPoint)
         case buttonUp(MouseTriggerButton, CGPoint)
+        case interrupted(MouseTriggerButton, CGPoint)
+        case drained(MouseTriggerButton)
     }
 
     static let tapOptions: CGEventTapOptions = .defaultTap
@@ -51,7 +67,16 @@ final class MouseEventTap: @unchecked Sendable {
 
     private var watchedButtonsStorage: Set<MouseTriggerButton> = [.right]
     private var capturedButtons: Set<MouseTriggerButton> = []
+    private var blockedButtonsUntilUp: Set<MouseTriggerButton> = []
+    // True initially keeps the pure `handle` seam usable before a real tap is
+    // installed; no system callback can exist until `start()` succeeds.
+    private var acceptingEvents = true
+    private var eventGeneration: UInt64 = 0
+    private var onEventStorage: ((EventKind, UInt64) -> Void)?
+    private var shouldCaptureStorage: ((MouseTriggerButton) -> Bool)?
     private let stateLock = NSLock()
+    private let buttonStateProvider:
+        @Sendable (MouseTriggerButton) -> Bool
 
     private let controlQueue = DispatchQueue(label: "com.strokemouse.app.eventtap.control")
     private var port: CFMachPort?
@@ -59,13 +84,36 @@ final class MouseEventTap: @unchecked Sendable {
     private var runLoop: CFRunLoop?
     private var thread: Thread?
     private var isRunning = false
+    private var callbackContext: Unmanaged<CallbackContext>?
     /// Signaled when the tap thread leaves `CFRunLoopRun`.
     private var threadExitSemaphore: DispatchSemaphore?
 
-    var onEvent: ((EventKind) -> Void)?
+    var onEvent: ((EventKind, UInt64) -> Void)? {
+        get { stateLock.withLock { onEventStorage } }
+        set { stateLock.withLock { onEventStorage = newValue } }
+    }
+    /// Synchronous lightweight arbitration. A rejected down/up pair is passed
+    /// through untouched, which is required when another input source owns the session.
+    var shouldCapture: ((MouseTriggerButton) -> Bool)? {
+        get { stateLock.withLock { shouldCaptureStorage } }
+        set { stateLock.withLock { shouldCaptureStorage = newValue } }
+    }
 
     var isActive: Bool {
         controlQueue.sync { isRunning }
+    }
+
+    init(
+        buttonStateProvider: @escaping @Sendable (
+            MouseTriggerButton
+        ) -> Bool = { button in
+            CGEventSource.buttonState(
+                .combinedSessionState,
+                button: MouseEventTap.cgMouseButton(for: button)
+            )
+        }
+    ) {
+        self.buttonStateProvider = buttonStateProvider
     }
 
     func start() -> Bool {
@@ -73,7 +121,12 @@ final class MouseEventTap: @unchecked Sendable {
             guard !isRunning else { return true }
             guard AXIsProcessTrusted() else { return false }
 
-            waitForThreadExitLocked()
+            guard waitForThreadExitLocked() else { return false }
+            stateLock.withLock {
+                eventGeneration &+= 1
+                capturedButtons = []
+                blockedButtonsUntilUp = []
+            }
 
             let ready = DispatchSemaphore(value: 0)
             let exitSem = DispatchSemaphore(value: 0)
@@ -81,16 +134,18 @@ final class MouseEventTap: @unchecked Sendable {
             var installed = false
 
             let thread = Thread { [weak self] in
-                guard let self else {
+                guard self != nil else {
                     ready.signal()
                     exitSem.signal()
                     return
                 }
-                installed = self.installTapOnCurrentRunLoop()
+                if let self {
+                    installed = self.installTapOnCurrentRunLoop()
+                }
                 ready.signal()
                 if installed {
                     CFRunLoopRun()
-                    self.teardownTapOnCurrentRunLoop()
+                    self?.teardownTapOnCurrentRunLoop()
                 }
                 exitSem.signal()
             }
@@ -101,8 +156,11 @@ final class MouseEventTap: @unchecked Sendable {
 
             ready.wait()
             isRunning = installed
+            stateLock.withLock {
+                acceptingEvents = installed
+            }
             if !installed {
-                waitForThreadExitLocked()
+                _ = waitForThreadExitLocked()
             }
             return installed
         }
@@ -112,6 +170,12 @@ final class MouseEventTap: @unchecked Sendable {
         controlQueue.sync {
             guard isRunning || runLoop != nil || thread != nil else { return }
 
+            stateLock.withLock {
+                acceptingEvents = false
+                eventGeneration &+= 1
+                capturedButtons = []
+                blockedButtonsUntilUp = []
+            }
             // Disable first so WindowServer stops waiting on this filter.
             if let port {
                 CGEvent.tapEnable(tap: port, enable: false)
@@ -120,17 +184,22 @@ final class MouseEventTap: @unchecked Sendable {
                 CFRunLoopStop(runLoop)
             }
 
-            waitForThreadExitLocked()
+            let didExit = waitForThreadExitLocked()
+            guard didExit else {
+                isRunning = false
+                return
+            }
 
             port = nil
             runLoopSource = nil
             runLoop = nil
             thread = nil
             isRunning = false
-            stateLock.lock()
-            capturedButtons = []
-            stateLock.unlock()
         }
+    }
+
+    deinit {
+        stop()
     }
 
     /// Re-inject a normal click after a captured trigger press produced no gesture.
@@ -144,6 +213,12 @@ final class MouseEventTap: @unchecked Sendable {
             events.up.post(tap: .cghidEventTap)
         }
         return true
+    }
+
+    func isCurrentEventGeneration(_ generation: UInt64) -> Bool {
+        stateLock.withLock {
+            acceptingEvents && eventGeneration == generation
+        }
     }
 
     static func makeReplayEvents(
@@ -176,10 +251,45 @@ final class MouseEventTap: @unchecked Sendable {
     }
 
     func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
-        // Re-enable if system disables the tap under pressure.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let port {
-                CGEvent.tapEnable(tap: port, enable: true)
+            let interruptionBase: (
+                buttons: Set<MouseTriggerButton>,
+                generation: UInt64
+            )? = stateLock.withLock {
+                guard acceptingEvents else { return nil }
+                eventGeneration &+= 1
+                let interruptedButtons = capturedButtons
+                capturedButtons = []
+                if let port {
+                    CGEvent.tapEnable(tap: port, enable: true)
+                }
+                return (interruptedButtons, eventGeneration)
+            }
+            guard let interruptionBase else {
+                return Unmanaged.passUnretained(event)
+            }
+            // Sample only after re-enabling. A release before this sample is
+            // observed here; one after it is delivered as the queued up edge.
+            let stillPressed = Set(interruptionBase.buttons.filter {
+                buttonStateProvider($0)
+            })
+            let interruption: [EventKind]? = stateLock.withLock {
+                guard acceptingEvents,
+                      eventGeneration == interruptionBase.generation
+                else {
+                    return nil
+                }
+                blockedButtonsUntilUp.formUnion(stillPressed)
+                let alreadyReleased =
+                    interruptionBase.buttons.subtracting(stillPressed)
+                return interruptionBase.buttons.map {
+                    .interrupted($0, event.location)
+                } + alreadyReleased.map(EventKind.drained)
+            }
+            if let interruption {
+                for kind in interruption {
+                    onEvent?(kind, interruptionBase.generation)
+                }
             }
             return Unmanaged.passUnretained(event)
         }
@@ -192,28 +302,53 @@ final class MouseEventTap: @unchecked Sendable {
         let location = event.location
         let button = resolveButton(type: type, event: event)
         var kind: EventKind?
+        var deliveryGeneration: UInt64?
         var swallow = false
 
         stateLock.lock()
+        guard acceptingEvents else {
+            stateLock.unlock()
+            return Unmanaged.passUnretained(event)
+        }
         switch type {
         case .rightMouseDown, .otherMouseDown:
-            if let button, watchedButtonsStorage.contains(button) {
-                capturedButtons.insert(button)
-                kind = .buttonDown(button, location)
-                swallow = true
+            if let button,
+               watchedButtonsStorage.contains(button),
+               !blockedButtonsUntilUp.contains(button)
+            {
+                stateLock.unlock()
+                let claimed = shouldCapture?(button) ?? true
+                stateLock.lock()
+                if acceptingEvents,
+                   claimed,
+                   !blockedButtonsUntilUp.contains(button)
+                {
+                    capturedButtons.insert(button)
+                    kind = .buttonDown(button, location)
+                    deliveryGeneration = eventGeneration
+                    swallow = true
+                }
             }
         case .rightMouseUp, .otherMouseUp:
-            if let button, capturedButtons.remove(button) != nil {
-                kind = .buttonUp(button, location)
-                swallow = true
+            if let button {
+                if blockedButtonsUntilUp.remove(button) != nil {
+                    kind = .drained(button)
+                    deliveryGeneration = eventGeneration
+                    break
+                }
+                if capturedButtons.remove(button) != nil {
+                    kind = .buttonUp(button, location)
+                    deliveryGeneration = eventGeneration
+                    swallow = true
+                }
             }
         default:
             break
         }
         stateLock.unlock()
 
-        if let kind {
-            onEvent?(kind)
+        if let kind, let deliveryGeneration {
+            onEvent?(kind, deliveryGeneration)
         }
         if swallow {
             return nil
@@ -226,19 +361,27 @@ final class MouseEventTap: @unchecked Sendable {
     private func installTapOnCurrentRunLoop() -> Bool {
         let callback: CGEventTapCallBack = { _, type, event, refcon in
             guard let refcon else { return Unmanaged.passUnretained(event) }
-            let tap = Unmanaged<MouseEventTap>.fromOpaque(refcon).takeUnretainedValue()
+            let context = Unmanaged<CallbackContext>
+                .fromOpaque(refcon)
+                .takeUnretainedValue()
+            guard let tap = context.owner else {
+                return Unmanaged.passUnretained(event)
+            }
             return tap.handle(type: type, event: event)
         }
 
-        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+        let retainedContext = Unmanaged.passRetained(
+            CallbackContext(owner: self)
+        )
         guard let eventTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: Self.tapOptions,
             eventsOfInterest: Self.eventsOfInterestMask,
             callback: callback,
-            userInfo: userInfo
+            userInfo: retainedContext.toOpaque()
         ) else {
+            retainedContext.release()
             return false
         }
 
@@ -250,6 +393,7 @@ final class MouseEventTap: @unchecked Sendable {
         port = eventTap
         runLoopSource = source
         runLoop = current
+        callbackContext = retainedContext
         return true
     }
 
@@ -263,15 +407,25 @@ final class MouseEventTap: @unchecked Sendable {
         port = nil
         runLoopSource = nil
         runLoop = nil
+        let retainedContext = callbackContext
+        callbackContext = nil
+        retainedContext?.release()
     }
 
     /// Caller must be on `controlQueue`.
-    private func waitForThreadExitLocked() {
-        guard let threadExitSemaphore else { return }
+    private func waitForThreadExitLocked() -> Bool {
+        guard let threadExitSemaphore else { return true }
         // Bound wait so a stuck runloop cannot deadlock control forever.
-        _ = threadExitSemaphore.wait(timeout: .now() + 2.0)
+        guard threadExitSemaphore.wait(timeout: .now() + 2.0) == .success
+        else {
+            Self.logger.error(
+                "Mouse event-tap thread did not stop within 2 seconds"
+            )
+            return false
+        }
         self.threadExitSemaphore = nil
         thread = nil
+        return true
     }
 
     private func resolveButton(type: CGEventType, event: CGEvent) -> MouseTriggerButton? {
@@ -304,6 +458,21 @@ final class MouseEventTap: @unchecked Sendable {
             return (.otherMouseDown, .otherMouseUp, .center, 3)
         case .sideForward:
             return (.otherMouseDown, .otherMouseUp, .center, 4)
+        }
+    }
+
+    private static func cgMouseButton(
+        for button: MouseTriggerButton
+    ) -> CGMouseButton {
+        switch button {
+        case .right:
+            return .right
+        case .middle:
+            return .center
+        case .sideBack:
+            return CGMouseButton(rawValue: 3)!
+        case .sideForward:
+            return CGMouseButton(rawValue: 4)!
         }
     }
 }

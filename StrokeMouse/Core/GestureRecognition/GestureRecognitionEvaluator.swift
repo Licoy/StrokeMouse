@@ -114,6 +114,44 @@ enum GestureRecognitionEvaluator {
         button: MouseTriggerButton,
         policy: GestureRecognitionPolicy
     ) -> GestureRecognitionEvaluation {
+        evaluate(
+            path: path,
+            profiles: profiles,
+            reportingButton: button,
+            policy: policy
+        ) { profile in
+            guard case .drawn(let drawn) = profile.input,
+                  case .mouse(let trigger) = drawn.activation
+            else {
+                return false
+            }
+            return trigger.button == button
+        }
+    }
+
+    static func evaluateDrawn(
+        path: [CGPoint],
+        profiles: [GestureProfile],
+        policy: GestureRecognitionPolicy
+    ) -> GestureRecognitionEvaluation {
+        evaluate(
+            path: path,
+            profiles: profiles,
+            reportingButton: .right,
+            policy: policy
+        ) { profile in
+            if case .drawn = profile.input { return true }
+            return false
+        }
+    }
+
+    private static func evaluate(
+        path: [CGPoint],
+        profiles: [GestureProfile],
+        reportingButton button: MouseTriggerButton,
+        policy: GestureRecognitionPolicy,
+        includes: (GestureProfile) -> Bool
+    ) -> GestureRecognitionEvaluation {
         guard path.count >= 2,
               path.allSatisfy({ $0.x.isFinite && $0.y.isFinite })
         else { return result(.invalidPath, button: button, policy: policy) }
@@ -128,7 +166,7 @@ enum GestureRecognitionEvaluator {
 
         let preparedStroke = TemplateMatcher.prepare(path)
         let candidates = profiles.compactMap { profile -> GestureCandidateEvaluation? in
-            guard profile.isEnabled, profile.trigger.button == button,
+            guard profile.isEnabled, includes(profile),
                   let template = templatePoints(for: profile)
             else { return nil }
             let match = TemplateMatcher.evaluate(
@@ -187,13 +225,8 @@ enum GestureRecognitionEvaluator {
     }
 
     private static func templatePoints(for profile: GestureProfile) -> [CGPoint]? {
-        let points: [CGPoint]
-        switch profile.pattern {
-        case .freePath(let template):
-            points = template.map(\.cgPoint)
-        case .directions(let directions):
-            points = PathTemplates.fromDirections(directions)
-        }
+        guard case .drawn(let drawn) = profile.input else { return nil }
+        let points = drawn.points.map(\.cgPoint)
         return points.count >= 2 ? points : nil
     }
 

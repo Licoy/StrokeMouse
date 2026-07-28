@@ -39,7 +39,7 @@ struct GeneralSettingsView: View {
     private var langEpoch: UInt { appState.languageEpoch }
 
     private var runtimeStatusText: String {
-        L10n.string(appState.gestureEngine.statusMessageKey)
+        L10n.string(appState.gestureRuntime.statusMessageKey)
     }
 
     var body: some View {
@@ -92,7 +92,7 @@ struct GeneralSettingsView: View {
             Section {
                 Toggle(L10n.string("general.showHUD"), isOn: $showGestureHUD)
                     .onChange(of: showGestureHUD) { _, newValue in
-                        appState.gestureEngine.setHUDEnabled(newValue)
+                        appState.updateShowGestureHUD(newValue)
                     }
 
                 ColorPicker(L10n.string("general.lineColor"), selection: $lineColor, supportsOpacity: true)
@@ -339,7 +339,7 @@ struct GeneralSettingsView: View {
         startPointRadius = Double(Constants.defaultHUDStartPointRadius)
         lineColorHex = Constants.defaultHUDLineColorHex
         lineColor = DrawingStyle.lineSwiftUIColor
-        appState.gestureEngine.setHUDEnabled(true)
+        appState.updateShowGestureHUD(true)
     }
 }
 

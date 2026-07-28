@@ -120,7 +120,8 @@ struct GestureTestLogEntry: Codable, Sendable {
     private static func normalizedTemplatePath(
         for profile: GestureProfile
     ) -> [CodablePoint]? {
-        let points = profile.pattern.freePathPoints.map(\.cgPoint)
+        guard case .drawn(let drawn) = profile.input else { return nil }
+        let points = drawn.points.map(\.cgPoint)
         guard let sampled = UnistrokeGeometry.resampledPath(
             points,
             count: Constants.freePathSampleCount

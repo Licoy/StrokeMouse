@@ -7,8 +7,9 @@ enum Constants {
     /// Previous Application Support folder name (pre-rename migration).
     static let legacySupportDirectoryName = "BetterMouse"
     static let configFileName = "gestures.json"
+    static let legacyConfigBackupFileName = "gestures.json.v1.bak"
     static let gestureTestLogFileName = "gesture-test-log.jsonl"
-    static let configVersion = 1
+    static let configVersion = 2
 
     /// Public repository (About → GitHub).
     static let githubURL = URL(string: "https://github.com/Licoy/StrokeMouse")!
@@ -66,6 +67,8 @@ enum PreferenceKey {
     static let pinnedGestureAppBundleIds = "pinnedGestureAppBundleIds"
     static let hasCompletedOnboarding = "hasCompletedOnboarding"
     static let showGestureHUD = "showGestureHUD"
+    static let directTrackpadEnabled = "directTrackpadEnabled"
+    static let acceptedExperimentalTrackpadRisk = "acceptedExperimentalTrackpadRisk"
     static let hudLineColor = "hudLineColor"
     static let hudLineWidth = "hudLineWidth"
     static let hudShowStartPoint = "hudShowStartPoint"
