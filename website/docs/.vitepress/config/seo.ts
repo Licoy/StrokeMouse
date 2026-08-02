@@ -24,9 +24,9 @@ export const PAGE_SEO: Record<string, PageSeo> = {
   'index.md': {
     title: 'StrokeMouse',
     description:
-      'StrokeMouse 是 macOS 鼠标手势自定义工具。按住触发键绘制轨迹，匹配后执行快捷键、打开应用、窗口操作、媒体键与脚本。支持 Apple Silicon 与 Intel。',
+      'StrokeMouse 是 macOS 鼠标与触控板手势自定义工具。用鼠标键或单个修饰键绘制轨迹，也可使用实验性多指触控手势，匹配后执行快捷键、窗口操作、媒体键与脚本。',
     keywords:
-      'StrokeMouse,macOS 鼠标手势,鼠标手势,快捷键,Mission Control,辅助功能,CGEventTap,手势软件',
+      'StrokeMouse,macOS 鼠标手势,触控板绘制,触控手势,鼠标与触控板手势,快捷键,Mission Control,辅助功能',
     ogType: 'website',
   },
   'download.md': {
@@ -97,9 +97,9 @@ export const PAGE_SEO: Record<string, PageSeo> = {
   'en/index.md': {
     title: 'StrokeMouse',
     description:
-      'StrokeMouse is a macOS mouse gesture tool. Hold a trigger button, draw a stroke, and run shortcuts, apps, window actions, media keys, or scripts. Apple Silicon and Intel builds.',
+      'StrokeMouse is a macOS mouse and trackpad gesture tool. Draw with a mouse button or one modifier key, or use experimental multi-touch gestures, then run shortcuts, window actions, media keys, or scripts.',
     keywords:
-      'StrokeMouse,macOS mouse gestures,mouse gestures,shortcuts,Mission Control,Accessibility,CGEventTap',
+      'StrokeMouse,macOS mouse gestures,trackpad drawing,trackpad gestures,multi-touch gestures,shortcuts,Mission Control,Accessibility',
     ogType: 'website',
   },
   'en/download.md': {
@@ -170,16 +170,16 @@ export const PAGE_SEO: Record<string, PageSeo> = {
 const FALLBACK_ZH: PageSeo = {
   title: SITE_TITLE,
   description:
-    'StrokeMouse 是 macOS 鼠标手势自定义工具。按住触发键绘制轨迹，匹配后执行动作。',
-  keywords: 'StrokeMouse,macOS,鼠标手势',
+    'StrokeMouse 是 macOS 鼠标与触控板手势自定义工具。用鼠标键或单个修饰键绘制轨迹，匹配后执行动作。',
+  keywords: 'StrokeMouse,macOS,鼠标手势,触控板绘制,触控手势',
   ogType: 'website',
 }
 
 const FALLBACK_EN: PageSeo = {
   title: SITE_TITLE,
   description:
-    'StrokeMouse is a custom mouse gestures tool for macOS. Hold a trigger, draw a stroke, run actions.',
-  keywords: 'StrokeMouse,macOS,mouse gestures',
+    'StrokeMouse is a custom mouse and trackpad gesture tool for macOS. Draw with a mouse button or one modifier key, then run actions.',
+  keywords: 'StrokeMouse,macOS,mouse gestures,trackpad drawing,trackpad gestures',
   ogType: 'website',
 }
 
