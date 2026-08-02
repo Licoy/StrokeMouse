@@ -157,6 +157,30 @@ final class ModifierEventTapTests: XCTestCase {
         ])
     }
 
+    func testModifierCallbacksUseCurrentPointerInsteadOfKeyboardEventLocation()
+        throws
+    {
+        let pointerLocation = CGPoint(x: 321, y: 654)
+        let tap = ModifierEventTap(
+            physicalKeysProvider: { [] },
+            pointerLocationProvider: { pointerLocation }
+        )
+        tap.watchedKeys = [.function]
+        var observedLocation: CGPoint?
+        tap.onEvent = { _, location, _ in
+            observedLocation = location
+        }
+        let functionDown = try makeFlagsEvent([.maskSecondaryFn])
+        functionDown.location = CGPoint(x: 1, y: 2)
+
+        XCTAssertNotNil(tap.handle(
+            type: .flagsChanged,
+            event: functionDown
+        ))
+
+        XCTAssertEqual(observedLocation, pointerLocation)
+    }
+
     private func makeFlagsEvent(
         _ flags: CGEventFlags
     ) throws -> CGEvent {

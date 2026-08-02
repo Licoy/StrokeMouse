@@ -72,6 +72,23 @@ struct GestureInputEditorView: View {
             Text(L10n.string("editor.triggerPerGestureHint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Toggle(
+                L10n.string("editor.trackpadModifierSupport"),
+                isOn: trackpadModifierSupport
+            )
+            if drawn.trackpadModifierKey != nil {
+                Picker(
+                    L10n.string("editor.trackpadModifierKey"),
+                    selection: trackpadModifierKey
+                ) {
+                    ForEach(GestureModifierKey.allCases) { key in
+                        Text(L10n.string(key.displayKey)).tag(key)
+                    }
+                }
+                Text(L10n.string("editor.trackpadModifierHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         case .modifier:
             Picker(
                 L10n.string("editor.modifierKey"),
@@ -246,7 +263,8 @@ struct GestureInputEditorView: View {
                 case .mouseDraw:
                     input = .drawn(DrawnGesture(
                         activation: .mouse(.default),
-                        points: pathPoints
+                        points: pathPoints,
+                        trackpadModifierKey: nil
                     ))
                 case .modifierDraw:
                     input = .drawn(DrawnGesture(
@@ -269,9 +287,55 @@ struct GestureInputEditorView: View {
                 return trigger.button
             },
             set: { button in
+                guard case .drawn(let drawn) = input else { return }
                 input = .drawn(DrawnGesture(
                     activation: .mouse(GestureTrigger(button: button)),
-                    points: pathPoints
+                    points: pathPoints,
+                    trackpadModifierKey: drawn.trackpadModifierKey
+                ))
+            }
+        )
+    }
+
+    private var trackpadModifierSupport: Binding<Bool> {
+        Binding(
+            get: {
+                guard case .drawn(let drawn) = input,
+                      case .mouse = drawn.activation
+                else { return false }
+                return drawn.trackpadModifierKey != nil
+            },
+            set: { isEnabled in
+                guard case .drawn(let drawn) = input,
+                      case .mouse(let trigger) = drawn.activation
+                else { return }
+                input = .drawn(DrawnGesture(
+                    activation: .mouse(trigger),
+                    points: pathPoints,
+                    trackpadModifierKey: isEnabled
+                        ? (drawn.trackpadModifierKey ?? .function)
+                        : nil
+                ))
+            }
+        )
+    }
+
+    private var trackpadModifierKey: Binding<GestureModifierKey> {
+        Binding(
+            get: {
+                guard case .drawn(let drawn) = input,
+                      case .mouse = drawn.activation
+                else { return .function }
+                return drawn.trackpadModifierKey ?? .function
+            },
+            set: { key in
+                guard case .drawn(let drawn) = input,
+                      case .mouse(let trigger) = drawn.activation
+                else { return }
+                input = .drawn(DrawnGesture(
+                    activation: .mouse(trigger),
+                    points: pathPoints,
+                    trackpadModifierKey: key
                 ))
             }
         )

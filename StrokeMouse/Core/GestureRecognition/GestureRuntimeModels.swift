@@ -104,6 +104,13 @@ struct GestureActiveSessionSummary: Equatable, Sendable {
     let candidateCount: Int
 }
 
+struct GestureDrawDiagnostic {
+    let source: GestureInputSource
+    let path: [CGPoint]
+    let evaluation: GestureRecognitionEvaluation?
+    let outcome: GestureRuntimeOutcome
+}
+
 enum GestureRuntimeOutcome: Equatable, Sendable {
     case matched(profileID: UUID, score: Double?)
     case noMatch

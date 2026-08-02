@@ -3,6 +3,35 @@ import XCTest
 
 @MainActor
 final class ConfigStoreTests: XCTestCase {
+    func testMouseDrawTrackpadModifierSupportRoundTripsAndLegacyDefaultsOff()
+        throws
+    {
+        let shared = DrawnGesture(
+            activation: .mouse(.default),
+            points: PathTemplates.up,
+            trackpadModifierKey: .function
+        )
+        let encoded = try JSONEncoder().encode(shared)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        XCTAssertEqual(object["trackpadModifierKey"] as? String, "function")
+
+        let legacy = Data(
+            """
+            {
+              "activation": {
+                "type": "mouse",
+                "trigger": {"button": "right"}
+              },
+              "points": [{"x": 0, "y": 0}, {"x": 0, "y": 1}]
+            }
+            """.utf8
+        )
+        let decoded = try JSONDecoder().decode(DrawnGesture.self, from: legacy)
+        XCTAssertNil(decoded.trackpadModifierKey)
+    }
+
     func testV2ProfileEncodingUsesTaggedInputWithoutLegacyFields() throws {
         let profile = GestureProfile(
             name: "Fn Drawing",

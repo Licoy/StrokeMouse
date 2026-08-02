@@ -116,6 +116,9 @@ final class ModifierEventTap: @unchecked Sendable {
         ) -> Void)?
     private let physicalKeysProvider:
         @Sendable () -> Set<GestureModifierKey>
+    /// `flagsChanged` is a keyboard event, so its embedded location is not a
+    /// reliable pointer coordinate. Sample the live pointer for every edge.
+    private let pointerLocationProvider: @Sendable () -> CGPoint
     private let controlQueue = DispatchQueue(
         label: "com.strokemouse.app.modifier-eventtap.control"
     )
@@ -161,9 +164,19 @@ final class ModifierEventTap: @unchecked Sendable {
             ModifierEventTap.supportedKeys(
                 in: CGEventSource.flagsState(.combinedSessionState)
             )
+        },
+        pointerLocationProvider: @escaping @Sendable () -> CGPoint = {
+            guard let event = CGEvent(source: nil) else {
+                ModifierEventTap.logger.error(
+                    "Failed to sample the current pointer location"
+                )
+                return .zero
+            }
+            return event.location
         }
     ) {
         self.physicalKeysProvider = physicalKeysProvider
+        self.pointerLocationProvider = pointerLocationProvider
     }
 
     func start() -> Result<Void, ModifierEventTapError> {
@@ -286,10 +299,11 @@ final class ModifierEventTap: @unchecked Sendable {
                 return events
             }
             if let delivery {
+                let pointerLocation = pointerLocationProvider()
                 for interruptedEvent in delivery {
                     onEvent?(
                         interruptedEvent,
-                        event.location,
+                        pointerLocation,
                         interruptionGeneration
                     )
                 }
@@ -312,9 +326,10 @@ final class ModifierEventTap: @unchecked Sendable {
             return (event, eventGeneration)
         }
         if let delivery {
+            let pointerLocation = pointerLocationProvider()
             onEvent?(
                 delivery.event,
-                event.location,
+                pointerLocation,
                 delivery.generation
             )
         }

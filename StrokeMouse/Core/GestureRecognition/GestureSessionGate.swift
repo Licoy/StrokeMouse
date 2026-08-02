@@ -6,6 +6,32 @@ enum GestureInputSource: Equatable, Sendable {
     case multitouch
 }
 
+enum GestureInputMatcher {
+    static func matches(
+        source: GestureInputSource,
+        input: GestureInput
+    ) -> Bool {
+        switch (source, input) {
+        case (.mouse(let button), .drawn(let drawn)):
+            guard case .mouse(let trigger) = drawn.activation else {
+                return false
+            }
+            return button == trigger.button
+        case (.modifier(let key), .drawn(let drawn)):
+            switch drawn.activation {
+            case .modifier(let configured):
+                return key == configured
+            case .mouse:
+                return drawn.trackpadModifierKey == key
+            }
+        case (.multitouch, .trackpad):
+            return true
+        default:
+            return false
+        }
+    }
+}
+
 struct GestureInputAdmissionContext: Equatable, Sendable {
     let configuration: GestureRuntimeConfiguration
     let isDiagnostic: Bool
@@ -20,23 +46,20 @@ struct GestureInputAdmissionContext: Equatable, Sendable {
         switch source {
         case .mouse(let button):
             return configuration.profiles.contains { profile in
-                guard profile.isEnabled,
-                      case .drawn(let drawn) = profile.input,
-                      case .mouse(let trigger) = drawn.activation
-                else {
-                    return false
-                }
-                return trigger.button == button
+                profile.isEnabled
+                    && GestureInputMatcher.matches(
+                        source: .mouse(button),
+                        input: profile.input
+                    )
             }
         case .modifier(let key):
+            if isDiagnostic { return true }
             return configuration.profiles.contains { profile in
-                guard profile.isEnabled,
-                      case .drawn(let drawn) = profile.input,
-                      case .modifier(let configured) = drawn.activation
-                else {
-                    return false
-                }
-                return configured == key
+                profile.isEnabled
+                    && GestureInputMatcher.matches(
+                        source: .modifier(key),
+                        input: profile.input
+                    )
             }
         case .multitouch:
             guard configuration.directTrackpadEnabled else { return false }

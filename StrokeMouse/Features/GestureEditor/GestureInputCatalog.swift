@@ -24,6 +24,16 @@ extension GestureInput {
         case .drawn(let drawn):
             switch drawn.activation {
             case .mouse(let trigger):
+                if let key = drawn.trackpadModifierKey {
+                    return String(
+                        format: L10n.string(
+                            "input.mouseDraw.trackpadModifier.summary"
+                        ),
+                        locale: L10n.locale,
+                        L10n.string(trigger.button.displayKey),
+                        L10n.string(key.displayKey)
+                    )
+                }
                 return String(
                     format: L10n.string("input.mouseDraw.summary"),
                     locale: L10n.locale,

@@ -122,6 +122,7 @@ final class GestureRuntime {
     private(set) var state = GestureRuntimeState()
     private(set) var currentPath: [CGPoint] = []
     private(set) var currentTouches: [TrackpadTouchContact] = []
+    private(set) var lastDrawDiagnostic: GestureDrawDiagnostic?
     private(set) var lastTrackpadMetrics: TrackpadGestureMetrics?
     private(set) var lastTrackpadOutcome: GestureRuntimeOutcome?
     private(set) var lastMatch: GestureMatchResult?
@@ -414,6 +415,7 @@ final class GestureRuntime {
         ))
         diagnosticTokens.insert(token)
         currentTouches = []
+        lastDrawDiagnostic = nil
         lastTrackpadMetrics = nil
         lastTrackpadOutcome = nil
         state.lastOutcome = nil
@@ -603,12 +605,19 @@ final class GestureRuntime {
             switch profile.input {
             case .drawn(let drawn):
                 switch drawn.activation {
-                case .mouse(let trigger): buttons.insert(trigger.button)
+                case .mouse(let trigger):
+                    buttons.insert(trigger.button)
+                    if let key = drawn.trackpadModifierKey {
+                        modifiers.insert(key)
+                    }
                 case .modifier(let key): modifiers.insert(key)
                 }
             case .trackpad:
                 direct = true
             }
+        }
+        if !diagnosticTokens.isEmpty {
+            modifiers.formUnion(GestureModifierKey.allCases)
         }
         return (
             buttons,
@@ -945,13 +954,25 @@ final class GestureRuntime {
         }
         let frozenConfiguration = admission.context.configuration
         let candidates = frozenConfiguration.profiles.filter {
-            $0.isEnabled && Self.matches(source: source, input: $0.input)
+            $0.isEnabled
+                && GestureInputMatcher.matches(
+                    source: source,
+                    input: $0.input
+                )
         }
         let targeted = GestureCandidateSelector.prepare(
             profiles: candidates,
             snapshot: snapshot
         )
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
+        let mode: SessionMode = admission.context.isDiagnostic
+            || !diagnosticTokens.isEmpty
+            || !suppressionTokens.isEmpty
+            ? .diagnostic
+            : .normal
+        if mode == .diagnostic {
+            lastDrawDiagnostic = nil
+        }
         drawSession = DrawSession(
             source: source,
             revision: frozenConfiguration.revision,
@@ -961,12 +982,8 @@ final class GestureRuntime {
             recognitionPolicy: recognitionPolicy(
                 for: frozenConfiguration
             ),
-            showsHUD: frozenConfiguration.showsHUD,
-            mode: admission.context.isDiagnostic
-                || !diagnosticTokens.isEmpty
-                || !suppressionTokens.isEmpty
-                ? .diagnostic
-                : .normal,
+            showsHUD: frozenConfiguration.showsHUD && mode == .normal,
+            mode: mode,
             path: [point],
             isDrawing: false
         )
@@ -995,7 +1012,10 @@ final class GestureRuntime {
         drawSession = session
         currentPath = session.path
         isDrawing = session.isDrawing
-        if session.showsHUD, session.path.count >= 2 {
+        if session.showsHUD,
+           session.mode == .normal,
+           session.path.count >= 2
+        {
             GestureHUDController.shared.showPath(session.path)
         }
     }
@@ -1020,10 +1040,16 @@ final class GestureRuntime {
 
         defer { reconcileChannels() }
         guard !wasCancelled else {
-            state.lastOutcome = .cancelled
+            let outcome: GestureRuntimeOutcome = .cancelled
+            state.lastOutcome = outcome
+            publishDrawDiagnostic(
+                session: finished,
+                evaluation: nil,
+                outcome: outcome
+            )
             return
         }
-        if finished.isDrawing {
+        if finished.isDrawing || finished.mode == .diagnostic {
             recognizeDrawn(finished)
         } else if case .mouse(let button) = source,
                   let clickLocation = finished.clickQuartzLocation,
@@ -1048,7 +1074,13 @@ final class GestureRuntime {
                   $0.profile.id == accepted.profile.id
               })
         else {
-            state.lastOutcome = .noMatch
+            let outcome: GestureRuntimeOutcome = .noMatch
+            state.lastOutcome = outcome
+            publishDrawDiagnostic(
+                session: session,
+                evaluation: evaluation,
+                outcome: outcome
+            )
             if session.mode.showsToast {
                 if evaluation.decision == .tooShort {
                     GestureToastController.shared.showTooShort()
@@ -1064,28 +1096,28 @@ final class GestureRuntime {
             mode: session.mode,
             source: session.source
         )
+        publishDrawDiagnostic(
+            session: session,
+            evaluation: evaluation,
+            outcome: .matched(
+                profileID: selected.profile.id,
+                score: accepted.score
+            )
+        )
     }
 
-    nonisolated private static func matches(
-        source: GestureInputSource,
-        input: GestureInput
-    ) -> Bool {
-        switch (source, input) {
-        case (.mouse(let button), .drawn(let drawn)):
-            guard case .mouse(let trigger) = drawn.activation else {
-                return false
-            }
-            return button == trigger.button
-        case (.modifier(let key), .drawn(let drawn)):
-            guard case .modifier(let configured) = drawn.activation else {
-                return false
-            }
-            return key == configured
-        case (.multitouch, .trackpad):
-            return true
-        default:
-            return false
-        }
+    private func publishDrawDiagnostic(
+        session: DrawSession,
+        evaluation: GestureRecognitionEvaluation?,
+        outcome: GestureRuntimeOutcome
+    ) {
+        guard session.mode == .diagnostic else { return }
+        lastDrawDiagnostic = GestureDrawDiagnostic(
+            source: session.source,
+            path: session.path,
+            evaluation: evaluation,
+            outcome: outcome
+        )
     }
 
     nonisolated private static func captureTargetSnapshot(
@@ -1096,7 +1128,10 @@ final class GestureRuntime {
         let profiles = admission.context.configuration.profiles.filter {
             profile in
             guard profile.isEnabled else { return false }
-            return matches(source: admission.source, input: profile.input)
+            return GestureInputMatcher.matches(
+                source: admission.source,
+                input: profile.input
+            )
         }
         return capturer.capture(
             policies: Set(profiles.map(\.targetPolicy)),
@@ -1458,6 +1493,7 @@ final class GestureRuntime {
         if var session = drawSession {
             session.mode = .diagnostic
             drawSession = session
+            GestureHUDController.shared.hide()
         }
         if var session = directSession {
             session.mode = .diagnostic

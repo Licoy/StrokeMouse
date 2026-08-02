@@ -1,12 +1,22 @@
 import AppKit
 import SwiftUI
 
+private enum GestureTestInputMode: String, CaseIterable, Identifiable {
+    case mouseDraw
+    case modifierDraw
+    case directTrackpad
+
+    var id: String { rawValue }
+    var titleKey: String { "gestureTest.input.\(rawValue)" }
+}
+
 struct GestureTestView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
     @State private var previewPath: [CodablePoint] = []
     @State private var selectedButton: MouseTriggerButton = .right
+    @State private var inputMode: GestureTestInputMode = .mouseDraw
     @State private var evaluation: GestureRecognitionEvaluation?
     @State private var rawPointCount = 0
     @State private var sessionID = UUID()
@@ -17,27 +27,26 @@ struct GestureTestView: View {
     private var directTrackpadEnabled = true
 
     private let logStore = GestureTestLogStore()
+    private let optionLabelWidth: CGFloat = 76
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
             Divider()
-            HStack(alignment: .top, spacing: 16) {
-                drawingPanel
-                VStack(spacing: 12) {
-                    resultPanel
-                    trackpadResultPanel
-                }
-                .frame(width: 330)
-            }
+            testContent
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
-            logFooter
+            footer
         }
         .padding(20)
         .frame(minWidth: 860, idealWidth: 920, minHeight: 580, idealHeight: 640)
         .onAppear(perform: beginSession)
         .onDisappear(perform: endSession)
+        .onChange(of: inputMode) { _, _ in
+            previewPath = []
+            evaluation = nil
+            rawPointCount = 0
+        }
         .onChange(of: selectedButton) { _, _ in
             previewPath = []
             evaluation = nil
@@ -64,13 +73,85 @@ struct GestureTestView: View {
                     .foregroundStyle(.orange)
             }
 
-            Picker(L10n.string("gestureTest.trigger"), selection: $selectedButton) {
-                ForEach(MouseTriggerButton.allCases) { button in
-                    Text(L10n.string(button.displayKey)).tag(button)
+            labeledSegmentedPicker(
+                title: L10n.string("gestureTest.inputMode"),
+                selection: $inputMode,
+                maxControlWidth: 680
+            ) {
+                ForEach(GestureTestInputMode.allCases) { mode in
+                    Text(L10n.string(mode.titleKey)).tag(mode)
                 }
             }
+
+            switch inputMode {
+            case .mouseDraw:
+                labeledSegmentedPicker(
+                    title: L10n.string("gestureTest.trigger"),
+                    selection: $selectedButton,
+                    maxControlWidth: 560
+                ) {
+                    ForEach(MouseTriggerButton.allCases) { button in
+                        Text(L10n.string(button.displayKey)).tag(button)
+                    }
+                }
+            case .modifierDraw:
+                Label(
+                    L10n.string("gestureTest.modifierInstruction"),
+                    systemImage: "keyboard"
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            case .directTrackpad:
+                Label(
+                    L10n.string("gestureTest.directInstruction"),
+                    systemImage: "hand.tap"
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func labeledSegmentedPicker<
+        SelectionValue: Hashable,
+        Content: View
+    >(
+        title: String,
+        selection: Binding<SelectionValue>,
+        maxControlWidth: CGFloat,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Text(title)
+                .frame(width: optionLabelWidth, alignment: .leading)
+            Picker(title, selection: selection) {
+                content()
+            }
+            .labelsHidden()
             .pickerStyle(.segmented)
-            .frame(maxWidth: 560)
+            .frame(maxWidth: maxControlWidth, alignment: .leading)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var testContent: some View {
+        switch inputMode {
+        case .mouseDraw:
+            HStack(alignment: .top, spacing: 16) {
+                drawingPanel
+                resultPanel
+                    .frame(width: 330)
+            }
+        case .modifierDraw:
+            HStack(alignment: .top, spacing: 16) {
+                modifierDrawingPanel
+                resultPanel
+                    .frame(width: 330)
+            }
+        case .directTrackpad:
+            trackpadResultPanel
         }
     }
 
@@ -85,11 +166,48 @@ struct GestureTestView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var modifierDrawingPanel: some View {
+        let runtime = appState.gestureRuntime
+        let path = isModifierSource(
+            runtime.state.activeSession?.source
+        )
+            ? runtime.currentPath
+            : (modifierDrawDiagnostic?.path ?? [])
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.string("gestureTest.trackpadDrawCanvas"))
+                .font(.headline)
+            GesturePathPreview(path: path)
+                .frame(maxHeight: .infinity)
+
+            if let diagnostic = modifierDrawDiagnostic {
+                if let source = modifierSourceText(diagnostic.source) {
+                    Label(source, systemImage: "keyboard")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Label(
+                    trackpadOutcomeText(diagnostic.outcome),
+                    systemImage: trackpadOutcomeSymbol(diagnostic.outcome)
+                )
+                .font(.caption)
+            } else {
+                Text(L10n.string("gestureTest.trackpadDrawWaiting"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private var resultPanel: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
-                if let evaluation {
-                    decisionView(evaluation)
+                if let evaluation = activeDrawEvaluation {
+                    decisionView(
+                        evaluation,
+                        rawPointCount: activeDrawRawPointCount
+                    )
                     Divider()
                     if evaluation.candidates.isEmpty {
                         Text(L10n.string("gestureTest.noCandidates"))
@@ -115,6 +233,28 @@ struct GestureTestView: View {
         } label: {
             Text(L10n.string("gestureTest.results"))
                 .font(.headline)
+        }
+    }
+
+    private var activeDrawEvaluation: GestureRecognitionEvaluation? {
+        switch inputMode {
+        case .mouseDraw:
+            return evaluation
+        case .modifierDraw:
+            return modifierDrawDiagnostic?.evaluation
+        case .directTrackpad:
+            return nil
+        }
+    }
+
+    private var activeDrawRawPointCount: Int {
+        switch inputMode {
+        case .mouseDraw:
+            return rawPointCount
+        case .modifierDraw:
+            return modifierDrawDiagnostic?.path.count ?? 0
+        case .directTrackpad:
+            return 0
         }
     }
 
@@ -171,7 +311,10 @@ struct GestureTestView: View {
         }
     }
 
-    private func decisionView(_ result: GestureRecognitionEvaluation) -> some View {
+    private func decisionView(
+        _ result: GestureRecognitionEvaluation,
+        rawPointCount: Int
+    ) -> some View {
         let accepted = result.decision == .accepted
         return VStack(alignment: .leading, spacing: 4) {
             Label(
@@ -288,6 +431,24 @@ struct GestureTestView: View {
         }
     }
 
+    @ViewBuilder
+    private var footer: some View {
+        if inputMode == .mouseDraw {
+            logFooter
+        } else {
+            HStack(alignment: .center, spacing: 12) {
+                Text(L10n.string("gestureTest.rawTouchesNotStored"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button(L10n.string("gestureTest.close")) {
+                    dismiss()
+                }
+                .keyboardShortcut(.cancelAction)
+            }
+        }
+    }
+
     private func beginSession() {
         guard diagnosticSession == nil else { return }
         if let firstEnabled = appState.configStore.gestures.first(where: {
@@ -366,6 +527,84 @@ struct GestureTestView: View {
         case .conflict, .rejected, .actionFailed:
             return "exclamationmark.triangle.fill"
         }
+    }
+
+    private func modifierSourceText(
+        _ source: GestureInputSource
+    ) -> String? {
+        guard case .modifier(let key) = source else { return nil }
+        return String(
+            format: L10n.string("gestureTest.trackpadDrawSource"),
+            locale: L10n.locale,
+            L10n.string(key.displayKey)
+        )
+    }
+
+    private var modifierDrawDiagnostic: GestureDrawDiagnostic? {
+        guard let diagnostic = appState.gestureRuntime.lastDrawDiagnostic,
+              isModifierSource(diagnostic.source)
+        else {
+            return nil
+        }
+        return diagnostic
+    }
+
+    private func isModifierSource(_ source: GestureInputSource?) -> Bool {
+        guard let source else { return false }
+        if case .modifier = source { return true }
+        return false
+    }
+}
+
+private struct GesturePathPreview: View {
+    let path: [CGPoint]
+
+    var body: some View {
+        GeometryReader { geometry in
+            let displayPoints = GesturePreviewGeometry.aspectFit(
+                points: path,
+                in: geometry.size,
+                padding: 18
+            )
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(nsColor: .controlBackgroundColor))
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(.quaternary, lineWidth: 1)
+                Path { path in
+                    guard let first = displayPoints.first else { return }
+                    path.move(to: first)
+                    for point in displayPoints.dropFirst() {
+                        path.addLine(to: point)
+                    }
+                }
+                .stroke(
+                    DrawingStyle.lineSwiftUIColor,
+                    style: StrokeStyle(
+                        lineWidth: DrawingStyle.lineWidth,
+                        lineCap: .round,
+                        lineJoin: .round
+                    )
+                )
+                if let start = displayPoints.first {
+                    Circle()
+                        .fill(DrawingStyle.startSwiftUIColor)
+                        .frame(
+                            width: DrawingStyle.startPointRadius * 2,
+                            height: DrawingStyle.startPointRadius * 2
+                        )
+                        .position(start)
+                }
+                if displayPoints.isEmpty {
+                    Text(L10n.string("gestureTest.trackpadDrawWaiting"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(20)
+                }
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

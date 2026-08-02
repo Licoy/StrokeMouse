@@ -1213,6 +1213,199 @@ final class GestureRuntimeTests: XCTestCase {
         await drainMainActor()
     }
 
+    func testSharedMouseProfileEnablesItsModifierInput() async throws {
+        let source = RuntimeMultitouchSource()
+        let modifier = RuntimeModifierEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            modifierEventTap: modifier,
+            multitouchSourceFactory: { source }
+        )
+        let profile = GestureProfile(
+            name: "Shared",
+            input: .drawn(DrawnGesture(
+                activation: .mouse(.default),
+                points: PathTemplates.up,
+                trackpadModifierKey: .function
+            ))
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [profile]
+        ))
+
+        XCTAssertEqual(modifier.watchedKeys, Set([.function]))
+        modifier.press(.option)
+        await drainMainActor()
+        XCTAssertNil(runtime.state.activeSession)
+
+        modifier.press(.function)
+        await drainMainActor()
+        XCTAssertEqual(runtime.state.activeSession?.source, .modifier(.function))
+        XCTAssertEqual(runtime.state.activeSession?.candidateCount, 1)
+        modifier.release(.function)
+        await drainMainActor()
+    }
+
+    func testStandaloneModifierProfileCompletesSameRecognitionAsSharedMouseProfile()
+        async throws
+    {
+        let inputs: [GestureInput] = [
+            .drawn(DrawnGesture(
+                activation: .modifier(.function),
+                points: PathTemplates.up
+            )),
+            .drawn(DrawnGesture(
+                activation: .mouse(.default),
+                points: PathTemplates.up,
+                trackpadModifierKey: .function
+            )),
+        ]
+
+        for (index, input) in inputs.enumerated() {
+            let source = RuntimeMultitouchSource()
+            let modifier = RuntimeModifierEventSource()
+            let runtime = GestureRuntime(
+                permissionManager: RuntimePermissionProvider(trusted: true),
+                actionExecutor: ActionExecutor(),
+                targetCapturer: RuntimeTargetCapturer(),
+                modifierEventTap: modifier,
+                multitouchSourceFactory: { source }
+            )
+            let profile = GestureProfile(name: "Profile \(index)", input: input)
+            var matchedIDs: [UUID] = []
+            runtime.onMatch = { matchedIDs.append($0.profile.id) }
+            try runtime.apply(configuration(
+                revision: UInt64(index + 1),
+                enabled: true,
+                profiles: [profile]
+            ))
+
+            modifier.press(.function, at: CGPoint(x: 20, y: 300))
+            modifier.release(.function, at: CGPoint(x: 20, y: 100))
+            await drainMainActor()
+
+            XCTAssertEqual(matchedIDs, [profile.id])
+            guard case .matched(let profileID, _) = runtime.state.lastOutcome else {
+                return XCTFail("Expected a completed modifier-draw match")
+            }
+            XCTAssertEqual(profileID, profile.id)
+        }
+    }
+
+    func testDiagnosticModifierInputReportsNoMatchWithoutConfiguredProfile()
+        async throws
+    {
+        let source = RuntimeMultitouchSource()
+        let modifier = RuntimeModifierEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            modifierEventTap: modifier,
+            multitouchSourceFactory: { source }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: false,
+            profiles: []
+        ))
+        let diagnostic = runtime.beginDiagnostics()
+
+        XCTAssertEqual(
+            modifier.watchedKeys,
+            Set(GestureModifierKey.allCases)
+        )
+        modifier.press(.function)
+        await drainMainActor()
+        XCTAssertEqual(runtime.state.activeSession?.candidateCount, 0)
+        modifier.release(.function)
+        await drainMainActor()
+
+        XCTAssertEqual(
+            runtime.lastDrawDiagnostic?.source,
+            .modifier(.function)
+        )
+        XCTAssertEqual(runtime.lastDrawDiagnostic?.outcome, .noMatch)
+        diagnostic.end()
+    }
+
+    func testConfigurationApplyDuringDiagnosticsKeepsModifierAdmissionDiagnostic()
+        async throws
+    {
+        let source = RuntimeMultitouchSource()
+        let modifier = RuntimeModifierEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            modifierEventTap: modifier,
+            multitouchSourceFactory: { source }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: false,
+            profiles: []
+        ))
+        let diagnostic = runtime.beginDiagnostics()
+
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: false,
+            profiles: []
+        ))
+        modifier.press(.function)
+        await drainMainActor()
+
+        XCTAssertEqual(
+            runtime.state.activeSession?.source,
+            .modifier(.function)
+        )
+        XCTAssertEqual(runtime.state.activeSession?.candidateCount, 0)
+        modifier.release(.function)
+        await drainMainActor()
+        diagnostic.end()
+    }
+
+    func testNewModifierDiagnosticClearsPreviousPathBeforeMinimumDistance()
+        async throws
+    {
+        let source = RuntimeMultitouchSource()
+        let modifier = RuntimeModifierEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            modifierEventTap: modifier,
+            multitouchSourceFactory: { source }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: false,
+            profiles: []
+        ))
+        let diagnostic = runtime.beginDiagnostics()
+        let pointerLocation = try XCTUnwrap(CGEvent(source: nil)).location
+        modifier.press(.function, at: pointerLocation)
+        await drainMainActor()
+        modifier.release(.function, at: pointerLocation)
+        await drainMainActor()
+        XCTAssertNotNil(runtime.lastDrawDiagnostic)
+
+        modifier.press(.option, at: pointerLocation)
+        await drainMainActor()
+
+        XCTAssertNil(runtime.lastDrawDiagnostic)
+        XCTAssertEqual(runtime.currentPath.count, 1)
+        XCTAssertFalse(runtime.isDrawing)
+        modifier.release(.option, at: pointerLocation)
+        await drainMainActor()
+        diagnostic.end()
+    }
+
     func testInterruptedMouseCaptureWaitsForDrainBeforeReleasingGate()
         async throws
     {
@@ -1699,24 +1892,30 @@ private final class RuntimeModifierEventSource: ModifierGestureEventSource {
         isActive && eventGeneration == generation
     }
 
-    func press(_ key: GestureModifierKey) {
+    func press(
+        _ key: GestureModifierKey,
+        at location: CGPoint = .zero
+    ) {
         guard isActive,
               interruptedKey == nil,
               watchedKeys.contains(key)
         else {
             return
         }
-        onEvent?(.began(key), .zero, eventGeneration)
+        onEvent?(.began(key), location, eventGeneration)
     }
 
-    func release(_ key: GestureModifierKey) {
+    func release(
+        _ key: GestureModifierKey,
+        at location: CGPoint = .zero
+    ) {
         guard isActive else { return }
         if interruptedKey == key {
             interruptedKey = nil
-            onEvent?(.drained(key), .zero, eventGeneration)
+            onEvent?(.drained(key), location, eventGeneration)
             return
         }
-        onEvent?(.ended(key), .zero, eventGeneration)
+        onEvent?(.ended(key), location, eventGeneration)
     }
 
     func interrupt(_ key: GestureModifierKey) {

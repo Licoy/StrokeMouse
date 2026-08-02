@@ -630,13 +630,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose a trigger, then draw with the left mouse button. This uses the production matcher but never runs an action or applies app scope."
+            "value": "Choose an input mode to inspect production recognition. Diagnostics never runs actions or applies app scope."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择触发键后使用鼠标左键绘制，这里使用正式匹配算法，但绝不会执行动作，也不受应用范围限制。"
+            "value": "选择输入方式查看正式识别结果，诊断模式不会执行动作，也不受应用范围限制。"
           }
         }
       }
@@ -726,13 +726,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No enabled gestures use the selected trigger."
+            "value": "No enabled gesture candidates were found for this input."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "没有启用的手势使用所选触发键。"
+            "value": "没有找到适用于此输入的启用手势候选。"
           }
         }
       }
@@ -5831,6 +5831,7 @@
     "gestures.inputFilter.trackpad": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板"}}}},
     "gestures.filter.input": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Input"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"输入方式"}}}},
     "input.mouseDraw.summary": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%@绘制"}}}},
+    "input.mouseDraw.trackpadModifier.summary": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ draw · trackpad %@ support"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%@绘制 · 支持触控板%@"}}}},
     "input.modifierDraw.summary": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold %@ and draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"按住%@绘制"}}}},
     "modifier.function": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Fn"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"Fn"}}}},
     "modifier.control": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Control"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"Control"}}}},
@@ -5860,6 +5861,9 @@
     "editor.input.directTrackpad": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势"}}}},
     "editor.modifierKey": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Modifier Key"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"修饰按键"}}}},
     "editor.modifierDrawHint": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold exactly this one modifier and move the pointer. Keyboard events are never consumed; a mouse can technically move the same path."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"仅按住该修饰键并移动指针，键盘事件不会被吞掉；技术上鼠标也可以移动同一条轨迹。"}}}},
+    "editor.trackpadModifierSupport": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Modifier Trigger Support"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板修饰键触发支持"}}}},
+    "editor.trackpadModifierKey": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Modifier"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板修饰键"}}}},
+    "editor.trackpadModifierHint": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold exactly this one modifier and move the pointer to reuse the same drawing rule."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"仅按住一个修饰键并移动指针，即可复用同一条绘制规则。"}}}},
     "editor.direct.category": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Gesture Family"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"手势分类"}}}},
     "editor.direct.category.swipe": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Swipe"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"滑动"}}}},
     "editor.direct.category.tap": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Tap"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"轻触"}}}},
@@ -5906,6 +5910,15 @@
     "permissions.configRecovery": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Configuration Recovery"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"配置恢复"}}}},
     "permissions.revealConfig": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Reveal Configuration File"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"在访达中显示配置文件"}}}},
     "gestureTest.diagnosticsActive": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Diagnostics: actions disabled"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"诊断模式：动作已禁用"}}}},
+    "gestureTest.inputMode": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Test Input"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"测试输入"}}}},
+    "gestureTest.input.mouseDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Mouse Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"鼠标绘制"}}}},
+    "gestureTest.input.modifierDraw": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Draw"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板绘制"}}}},
+    "gestureTest.input.directTrackpad": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch Gestures"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控手势"}}}},
+    "gestureTest.modifierInstruction": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold exactly one modifier and move the pointer to test trackpad draw."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"按住一个修饰键并移动指针，测试触控板绘制。"}}}},
+    "gestureTest.directInstruction": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Use the physical trackpad to test multi-finger recognition."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"使用真实触控板测试多指识别。"}}}},
+    "gestureTest.trackpadDrawCanvas": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Draw Path"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板绘制轨迹"}}}},
+    "gestureTest.trackpadDrawWaiting": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Hold a modifier and move the pointer to draw a test path."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"按住修饰键并移动指针，绘制测试轨迹。"}}}},
+    "gestureTest.trackpadDrawSource": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%@ is the active modifier"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%@为当前修饰键"}}}},
     "gestureTest.trackpadTitle": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Trackpad Diagnostics"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触控板诊断"}}}},
     "gestureTest.trackpadMetrics": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"%d fingers  Δ(%.3f, %.3f)  scale %.2f  rotation %.1f°"}},"zh-Hans":{"stringUnit":{"state":"translated","value":"%d 指  位移(%.3f, %.3f)  缩放 %.2f  旋转 %.1f°"}}}},
     "gestureTest.trackpadWaiting": {"localizations":{"en":{"stringUnit":{"state":"translated","value":"Touch the trackpad to inspect recognition."}},"zh-Hans":{"stringUnit":{"state":"translated","value":"触摸触控板以查看识别结果。"}}}},

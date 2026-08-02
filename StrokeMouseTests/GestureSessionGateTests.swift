@@ -2,6 +2,27 @@ import XCTest
 @testable import StrokeMouse
 
 final class GestureSessionGateTests: XCTestCase {
+    func testSharedMouseDrawMatchesOnlyItsConfiguredModifier() {
+        let input = GestureInput.drawn(DrawnGesture(
+            activation: .mouse(.default),
+            points: PathTemplates.up,
+            trackpadModifierKey: .function
+        ))
+
+        XCTAssertTrue(GestureInputMatcher.matches(
+            source: .modifier(.function),
+            input: input
+        ))
+        XCTAssertFalse(GestureInputMatcher.matches(
+            source: .modifier(.option),
+            input: input
+        ))
+        XCTAssertTrue(GestureInputMatcher.matches(
+            source: .mouse(.right),
+            input: input
+        ))
+    }
+
     func testFirstInputWinsUntilItReleases() {
         let gate = makeGate()
 

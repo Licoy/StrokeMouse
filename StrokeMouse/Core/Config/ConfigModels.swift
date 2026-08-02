@@ -227,10 +227,18 @@ enum DrawActivation: Codable, Equatable, Sendable {
 struct DrawnGesture: Codable, Equatable, Sendable {
     var activation: DrawActivation
     var points: [CodablePoint]
+    /// Optional shared activation for mouse-drawn profiles. Missing legacy
+    /// values decode as `nil`, keeping existing profiles mouse-only.
+    var trackpadModifierKey: GestureModifierKey?
 
-    init(activation: DrawActivation, points: [CodablePoint]) {
+    init(
+        activation: DrawActivation,
+        points: [CodablePoint],
+        trackpadModifierKey: GestureModifierKey? = nil
+    ) {
         self.activation = activation
         self.points = points
+        self.trackpadModifierKey = trackpadModifierKey
     }
 }
 
