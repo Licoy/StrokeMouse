@@ -67,6 +67,7 @@ enum PreferenceKey {
     static let pinnedGestureAppBundleIds = "pinnedGestureAppBundleIds"
     static let hasCompletedOnboarding = "hasCompletedOnboarding"
     static let showGestureHUD = "showGestureHUD"
+    static let includeGestureHUDInCaptures = "includeGestureHUDInCaptures"
     static let directTrackpadEnabled = "directTrackpadEnabled"
     static let acceptedExperimentalTrackpadRisk = "acceptedExperimentalTrackpadRisk"
     static let hudLineColor = "hudLineColor"

@@ -105,6 +105,7 @@
 		C17AD4EA4BE6FA1A7CAC2DD2 /* ShortcutAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = FED9091D8ED32A1C4482A7B9 /* ShortcutAction.swift */; };
 		C5705C1D05286672AC505423 /* PermissionsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F650D208EF74E02DBE3D6370 /* PermissionsSettingsView.swift */; };
 		C73B963959ECDF8C29C7511E /* DrawingStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6DD3645A4D5B33AF8C3B83 /* DrawingStyle.swift */; };
+		D11A3170168D8AD975B9B642 /* DrawingStyleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C9C3C1F6C1ECD7F93858EA5 /* DrawingStyleTests.swift */; };
 		D291D46AD32BE5FA4DDAC557 /* GestureHUDController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EFEF2226F3465CF928289C0 /* GestureHUDController.swift */; };
 		D56C1EDF0A7A9A819C69673E /* ThinScroller.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D2CE5C0DBA0FAF5EFACD93 /* ThinScroller.swift */; };
 		D62E3810899D0262810ADAC5 /* ModifierEventTap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 067EB66E5A0730B45DD3CDC9 /* ModifierEventTap.swift */; };
@@ -187,6 +188,7 @@
 		49DAC66DC39F7BA1A4A25F47 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		4B6A6CB92C90661525BDA6D5 /* MultitouchSupportAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultitouchSupportAdapter.swift; sourceTree = "<group>"; };
 		4BA8FAE67C204CC720FCDDC3 /* AppInfoLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoLookup.swift; sourceTree = "<group>"; };
+		4C9C3C1F6C1ECD7F93858EA5 /* DrawingStyleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingStyleTests.swift; sourceTree = "<group>"; };
 		529A15D1DC718AD44CEB4E80 /* ConfigStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigStore.swift; sourceTree = "<group>"; };
 		54AFAC82E770FEAB174F83A2 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		54CA52355745A5A6D9B973A2 /* GestureRecognitionEvaluationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureRecognitionEvaluationTests.swift; sourceTree = "<group>"; };
@@ -490,6 +492,7 @@
 				3CBD29CCBDF8CF4D7E74B146 /* BrandIconProviderTests.swift */,
 				98D9162552C06A30E1C09BE2 /* ConfigStoreTests.swift */,
 				33561D1F5A6EBFDCA214257B /* DirectTrackpadGestureMatcherTests.swift */,
+				4C9C3C1F6C1ECD7F93858EA5 /* DrawingStyleTests.swift */,
 				6DFE7ABED11FF3DE10C7A885 /* GestureMatchAcceptanceTests.swift */,
 				3F9B2AA436B8CCF6AA8B824D /* GesturePreviewGeometryTests.swift */,
 				54CA52355745A5A6D9B973A2 /* GestureRecognitionEvaluationTests.swift */,
@@ -706,6 +709,7 @@
 				2D902E742A9EE33E7EEB9764 /* BrandIconProviderTests.swift in Sources */,
 				FBDA4146289AB98BC90DDFC7 /* ConfigStoreTests.swift in Sources */,
 				B331119296C88DF2C2D1B7BA /* DirectTrackpadGestureMatcherTests.swift in Sources */,
+				D11A3170168D8AD975B9B642 /* DrawingStyleTests.swift in Sources */,
 				08EF0DFAFB058FB916B6B7EC /* GestureMatchAcceptanceTests.swift in Sources */,
 				D9B76A9D12CB36947ADC7CF0 /* GesturePreviewGeometryTests.swift in Sources */,
 				8D995A28C1B846AA0A41FFDA /* GestureRecognitionEvaluationTests.swift in Sources */,

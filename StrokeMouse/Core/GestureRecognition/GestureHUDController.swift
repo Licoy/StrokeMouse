@@ -48,6 +48,13 @@ final class GestureHUDController {
         isVisible = false
     }
 
+    func setIncludedInCaptures(_ included: Bool) {
+        let sharingType: NSWindow.SharingType = included ? .readOnly : .none
+        for window in windows where window.sharingType != sharingType {
+            window.sharingType = sharingType
+        }
+    }
+
     func tearDown() {
         hide()
         windows.forEach { $0.close() }
@@ -61,6 +68,7 @@ final class GestureHUDController {
             for (index, screen) in screens.enumerated() {
                 windows[index].setFrame(screen.frame, display: false)
             }
+            setIncludedInCaptures(DrawingStyle.includeHUDInCaptures)
             return
         }
 
@@ -82,7 +90,9 @@ final class GestureHUDController {
             window.hasShadow = false
             window.ignoresMouseEvents = true
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-            window.sharingType = .none
+            window.sharingType = DrawingStyle.includeHUDInCaptures
+                ? .readOnly
+                : .none
             window.contentView = view
             window.setFrame(screen.frame, display: false)
             windows.append(window)

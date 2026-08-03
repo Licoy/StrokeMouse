@@ -1313,6 +1313,38 @@
         }
       }
     },
+    "general.includeHUDInCaptures": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show Drawing Feedback in Screenshots and Recordings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在截图与录屏中显示绘制反馈"
+          }
+        }
+      }
+    },
+    "general.includeHUDInCapturesHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When enabled, screenshot and screen recording apps can capture the drawing trail. Whether a window-only capture includes it depends on the app."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后，截图和录屏软件可捕获绘制轨迹；仅捕获单个窗口时是否包含轨迹取决于软件。"
+          }
+        }
+      }
+    },
     "general.startup": {
       "localizations": {
         "en": {

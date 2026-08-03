@@ -14,6 +14,7 @@ struct GeneralSettingsView: View {
     @AppStorage(PreferenceKey.hideDockIcon) private var hideDockIcon = false
     @AppStorage(PreferenceKey.hideMenuBarIcon) private var hideMenuBarIcon = false
     @AppStorage(PreferenceKey.showGestureHUD) private var showGestureHUD = true
+    @AppStorage(PreferenceKey.includeGestureHUDInCaptures) private var includeGestureHUDInCaptures = false
     @AppStorage(PreferenceKey.hudLineColor) private var lineColorHex = Constants.defaultHUDLineColorHex
     @AppStorage(PreferenceKey.hudLineWidth) private var lineWidth = Double(Constants.defaultHUDLineWidth)
     @AppStorage(PreferenceKey.hudShowStartPoint) private var showStartPoint = true
@@ -102,6 +103,19 @@ struct GeneralSettingsView: View {
                     .onChange(of: showGestureHUD) { _, newValue in
                         appState.updateShowGestureHUD(newValue)
                     }
+
+                Toggle(
+                    L10n.string("general.includeHUDInCaptures"),
+                    isOn: $includeGestureHUDInCaptures
+                )
+                .disabled(!showGestureHUD)
+                .onChange(of: includeGestureHUDInCaptures) { _, newValue in
+                    appState.updateGestureHUDCapture(newValue)
+                }
+
+                Text(L10n.string("general.includeHUDInCapturesHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 ColorPicker(L10n.string("general.lineColor"), selection: $lineColor, supportsOpacity: true)
                     .onChange(of: lineColor) { _, newValue in

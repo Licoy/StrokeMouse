@@ -25,6 +25,27 @@ final class L10nTests: XCTestCase {
         XCTAssertEqual(L10n.string("general.enableGestures"), "启用鼠标手势")
     }
 
+    func testHUDCaptureSettingStringsAreLocalized() {
+        let keys = [
+            "general.includeHUDInCaptures",
+            "general.includeHUDInCapturesHint",
+        ]
+        L10n.apply(.english)
+        let english = keys.map(L10n.string)
+        L10n.apply(.simplifiedChinese)
+        let chinese = keys.map(L10n.string)
+
+        for (key, value) in zip(keys, english) {
+            XCTAssertFalse(value.isEmpty, "Missing EN for \(key)")
+            XCTAssertNotEqual(value, key, "Unresolved EN key \(key)")
+        }
+        for (key, value) in zip(keys, chinese) {
+            XCTAssertFalse(value.isEmpty, "Missing ZH for \(key)")
+            XCTAssertNotEqual(value, key, "Unresolved ZH key \(key)")
+        }
+        XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
+    }
+
     func testEngineFooterPunctuationChinese() {
         L10n.apply(.simplifiedChinese)
         let s = L10n.string("general.engineFooter")

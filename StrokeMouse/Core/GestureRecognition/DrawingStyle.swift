@@ -12,6 +12,20 @@ enum DrawingStyle {
         set { UserDefaults.standard.set(newValue, forKey: PreferenceKey.showGestureHUD) }
     }
 
+    static var includeHUDInCaptures: Bool {
+        get {
+            UserDefaults.standard.bool(
+                forKey: PreferenceKey.includeGestureHUDInCaptures
+            )
+        }
+        set {
+            UserDefaults.standard.set(
+                newValue,
+                forKey: PreferenceKey.includeGestureHUDInCaptures
+            )
+        }
+    }
+
     static var lineWidth: CGFloat {
         get {
             let v = UserDefaults.standard.double(forKey: PreferenceKey.hudLineWidth)

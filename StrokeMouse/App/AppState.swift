@@ -249,6 +249,11 @@ final class AppState {
         applyCurrentGestureConfiguration()
     }
 
+    func updateGestureHUDCapture(_ included: Bool) {
+        DrawingStyle.includeHUDInCaptures = included
+        GestureHUDController.shared.setIncludedInCaptures(included)
+    }
+
     func setDirectTrackpadEnabled(_ enabled: Bool) {
         UserDefaults.standard.set(
             enabled,
