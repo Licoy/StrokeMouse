@@ -42,8 +42,8 @@ targets:
         PRODUCT_NAME: StrokeMouse
         PRODUCT_BUNDLE_IDENTIFIER: com.strokemouse.app
         APP_DISPLAY_NAME: StrokeMouse
-        MARKETING_VERSION: "0.0.19"
-        CURRENT_PROJECT_VERSION: "19"
+        MARKETING_VERSION: "0.0.20"
+        CURRENT_PROJECT_VERSION: "20"
         SPARKLE_PUBLIC_KEY: "__REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY__"
         INFOPLIST_FILE: StrokeMouse/Resources/Info.plist
         SWIFT_OBJC_BRIDGING_HEADER: StrokeMouse/Core/Trackpad/MultitouchSupportBridge.h
