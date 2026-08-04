@@ -46,6 +46,31 @@ macOS 鼠标与触控板手势自定义工具。可按住鼠标键绘制轨迹�
 - 鼠标或触控板均可完成绘制手势；直接多指触控优先支持 Mac 内置触控板
 - 外接 Magic Trackpad 为 best-effort 支持，可能因机型或系统版本而异
 
+## 安装
+
+### Homebrew（推荐）
+
+通过 StrokeMouse 项目维护的 [Licoy Homebrew Tap](https://github.com/Licoy/homebrew-tap) 安装：
+
+```bash
+brew install --cask licoy/tap/strokemouse
+```
+
+StrokeMouse 同时支持应用内更新；如希望通过 Homebrew 强制检查并升级，请使用：
+
+```bash
+brew upgrade --cask --greedy strokemouse
+```
+
+卸载应用时默认保留配置，添加 `--zap` 可同时移除配置：
+
+```bash
+brew uninstall --cask strokemouse
+brew uninstall --cask --zap strokemouse
+```
+
+也可前往 [官网下载页](https://strokemouse.com/download) 手动下载对应架构的 DMG。当前发行版使用固定自签代码签名且未经 Apple 公证；首次启动若被 Gatekeeper 阻止，请右键点按 App 并选择「打开」，或在「系统设置 → 隐私与安全性」中选择「仍要打开」。
+
 ## 权限
 
 | 权限 | 用途 |

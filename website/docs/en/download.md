@@ -2,7 +2,7 @@
 layout: page
 title: "Download"
 titleTemplate: "StrokeMouse"
-description: "Download StrokeMouse for macOS. Apple Silicon and Intel installers. Requires macOS 14+."
+description: "Install StrokeMouse for macOS with Homebrew or a DMG. Supports Apple Silicon and Intel. Requires macOS 14+."
 ---
 
 <DownloadPage />

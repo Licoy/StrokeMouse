@@ -6,7 +6,7 @@ titleTemplate: "StrokeMouse"
 
 # Install & build
 
-Prefer the [download page](/en/download) for **Apple Silicon / Intel** production builds. To compile yourself, follow the source build steps below.
+Homebrew is the recommended installation method. You can also get the **Apple Silicon / Intel** production builds from the [download page](/en/download). To compile yourself, follow the source build steps below.
 
 ## Requirements
 
@@ -15,6 +15,29 @@ Prefer the [download page](/en/download) for **Apple Silicon / Intel** productio
 | OS | macOS 14 Sonoma or later |
 | Dev build | Xcode 16+ |
 | Project gen | [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) |
+
+## Homebrew (recommended)
+
+Install from the [project-maintained Licoy Homebrew Tap](https://github.com/Licoy/homebrew-tap):
+
+```bash
+brew install --cask licoy/tap/strokemouse
+```
+
+StrokeMouse also supports in-app updates. To force Homebrew to check and install an upgrade, use:
+
+```bash
+brew upgrade --cask --greedy strokemouse
+```
+
+Uninstalling keeps your settings by default. Add `--zap` to remove them as well:
+
+```bash
+brew uninstall --cask strokemouse
+brew uninstall --cask --zap strokemouse
+```
+
+Homebrew and manual downloads use the same release packages, so the first-launch Gatekeeper and Accessibility notes below apply to both.
 
 ## Clone
 

@@ -46,6 +46,31 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - A mouse or trackpad can be used for drawn gestures; direct multi-touch primarily targets built-in Mac trackpads
 - External Magic Trackpad support is best effort and may vary by model or macOS release
 
+## Installation
+
+### Homebrew (recommended)
+
+Install from the [project-maintained Licoy Homebrew Tap](https://github.com/Licoy/homebrew-tap):
+
+```bash
+brew install --cask licoy/tap/strokemouse
+```
+
+StrokeMouse also supports in-app updates. To force Homebrew to check and install an upgrade, use:
+
+```bash
+brew upgrade --cask --greedy strokemouse
+```
+
+Uninstalling keeps your settings by default. Add `--zap` to remove them as well:
+
+```bash
+brew uninstall --cask strokemouse
+brew uninstall --cask --zap strokemouse
+```
+
+You can also download the DMG for your architecture from the [official download page](https://strokemouse.com/en/download). Current releases use a stable self-signed identity and are not Apple-notarized. If Gatekeeper blocks the first launch, right-click the app and choose Open, or use System Settings → Privacy & Security → Open Anyway.
+
 ## Permissions
 
 | Permission | Purpose |

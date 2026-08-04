@@ -7,6 +7,7 @@ import {
   MAC_ASSETS,
   releaseAssetUrl,
 } from '../constants'
+import TerminalBlock from './TerminalBlock.vue'
 
 const { lang } = useData()
 const isZh = computed(() => !lang.value || lang.value.startsWith('zh'))
@@ -17,7 +18,15 @@ const copy = computed(() =>
         title: '下载 StrokeMouse',
         lead: 'macOS 生产构建。请按芯片架构选择对应安装包。',
         version: `v${APP_VERSION}`,
-        recommended: '推荐下载',
+        homebrewTitle: 'Homebrew（推荐）',
+        homebrewDesc: '安装、升级与卸载依次使用以下命令；安装命令会自动添加 StrokeMouse 项目维护的 Tap。',
+        homebrewLines: [
+          'brew install --cask licoy/tap/strokemouse',
+          'brew upgrade --cask --greedy strokemouse',
+          'brew uninstall --cask strokemouse',
+        ],
+        homebrewNote: 'StrokeMouse 同时支持应用内更新，因此 Homebrew 升级命令使用 --greedy。',
+        manual: '手动下载 DMG',
         armTitle: 'Apple Silicon',
         armDesc: 'M1 / M2 / M3 / M4 及更新芯片',
         intelTitle: 'Intel',
@@ -25,7 +34,7 @@ const copy = computed(() =>
         get: '下载',
         reqLabel: '系统要求',
         reqValue: 'macOS 14 Sonoma 或更高',
-        installTitle: '安装说明',
+        installTitle: 'DMG 安装说明',
         steps: [
           '下载对应架构的 .dmg 安装包',
           '打开 .dmg，将 StrokeMouse 拖入「应用程序」',
@@ -36,14 +45,22 @@ const copy = computed(() =>
         releases: '全部发行版',
         source: '从源码构建',
         sourceLink: '/guide/installation',
-        note: '当前版本使用 ad-hoc 签名且未经 Apple 公证；若下载链接尚未可用，请按文档从源码构建。',
+        note: '当前版本使用固定自签代码签名且未经 Apple 公证；首次启动如被拦截，请按下方步骤在系统设置中放行。',
         fileLabel: '文件',
       }
     : {
         title: 'Download StrokeMouse',
         lead: 'Production builds for macOS. Pick the package that matches your chip.',
         version: `v${APP_VERSION}`,
-        recommended: 'Recommended',
+        homebrewTitle: 'Homebrew (recommended)',
+        homebrewDesc: 'Use these commands to install, upgrade, or uninstall. Installation automatically adds the project-maintained Licoy tap.',
+        homebrewLines: [
+          'brew install --cask licoy/tap/strokemouse',
+          'brew upgrade --cask --greedy strokemouse',
+          'brew uninstall --cask strokemouse',
+        ],
+        homebrewNote: 'StrokeMouse also supports in-app updates, so Homebrew upgrades use --greedy.',
+        manual: 'Manual DMG download',
         armTitle: 'Apple Silicon',
         armDesc: 'M1 / M2 / M3 / M4 and later',
         intelTitle: 'Intel',
@@ -51,7 +68,7 @@ const copy = computed(() =>
         get: 'Download',
         reqLabel: 'Requirements',
         reqValue: 'macOS 14 Sonoma or later',
-        installTitle: 'Installation',
+        installTitle: 'DMG installation',
         steps: [
           'Download the .dmg for your architecture',
           'Open the .dmg and drag StrokeMouse into Applications',
@@ -62,7 +79,7 @@ const copy = computed(() =>
         releases: 'All releases',
         source: 'Build from source',
         sourceLink: '/en/guide/installation',
-        note: 'Current releases are ad-hoc signed and not notarized. If downloads are not live yet, build from source.',
+        note: 'Current releases use a stable self-signed identity and are not Apple-notarized. If first launch is blocked, follow the steps below to approve the app in System Settings.',
         fileLabel: 'File',
       },
 )
@@ -102,7 +119,18 @@ const cards = computed(() => [
       </header>
 
       <section class="sm-download__section">
-        <h2 class="sm-download__h2">{{ copy.recommended }}</h2>
+        <h2 class="sm-download__h2">{{ copy.homebrewTitle }}</h2>
+        <p class="sm-download__homebrew-desc">{{ copy.homebrewDesc }}</p>
+        <TerminalBlock
+          class="sm-download__terminal"
+          title="Homebrew"
+          :lines="copy.homebrewLines"
+        />
+        <p class="sm-download__homebrew-note">{{ copy.homebrewNote }}</p>
+      </section>
+
+      <section class="sm-download__section">
+        <h2 class="sm-download__h2">{{ copy.manual }}</h2>
         <div class="sm-download__grid">
           <a
             v-for="card in cards"
@@ -254,6 +282,25 @@ const cards = computed(() => [
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--sm-text-faint);
+}
+
+.sm-download__homebrew-desc,
+.sm-download__homebrew-note {
+  color: var(--sm-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.sm-download__homebrew-desc {
+  margin: 0;
+}
+
+.sm-download__terminal {
+  margin: 0.9rem 0;
+}
+
+.sm-download__homebrew-note {
+  margin: 0;
 }
 
 .sm-download__grid {

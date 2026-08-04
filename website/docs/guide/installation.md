@@ -6,7 +6,7 @@ titleTemplate: "StrokeMouse"
 
 # 安装与构建
 
-优先从 [下载页](/download) 获取 **Apple Silicon / Intel** 生产构建。若需要自行编译，可按下方从源码构建。
+推荐使用 Homebrew 安装；也可从 [下载页](/download) 获取 **Apple Silicon / Intel** 生产构建。若需要自行编译，可按下方从源码构建。
 
 ## 系统要求
 
@@ -15,6 +15,29 @@ titleTemplate: "StrokeMouse"
 | 系统 | macOS 14 Sonoma 或更高 |
 | 开发构建 | Xcode 16+ |
 | 工程生成 | [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`） |
+
+## Homebrew（推荐）
+
+通过 StrokeMouse 项目维护的 [Licoy Homebrew Tap](https://github.com/Licoy/homebrew-tap) 安装：
+
+```bash
+brew install --cask licoy/tap/strokemouse
+```
+
+StrokeMouse 同时支持应用内更新；如希望通过 Homebrew 强制检查并升级，请使用：
+
+```bash
+brew upgrade --cask --greedy strokemouse
+```
+
+卸载应用时默认保留配置，添加 `--zap` 可同时移除配置：
+
+```bash
+brew uninstall --cask strokemouse
+brew uninstall --cask --zap strokemouse
+```
+
+Homebrew 安装与手动下载使用同一份正式发行包，因此首次启动时的 Gatekeeper 与辅助功能说明相同。
 
 ## 获取源码
 
