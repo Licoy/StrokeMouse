@@ -73,6 +73,13 @@ final class ShortcutConfigCompatibilityTests: XCTestCase {
         source.replaceAll(profiles)
         let package = try source.exportPackage(ids: Set(profiles.map(\.id)))
 
+        let v018File = try JSONDecoder().decode(
+            V018GestureConfigFile.self,
+            from: package
+        )
+        XCTAssertEqual(v018File.version, 2)
+        XCTAssertEqual(v018File.gestures.count, profiles.count)
+
         let exported = try JSONDecoder().decode(GestureConfigFile.self, from: package)
         XCTAssertEqual(exported.version, 2)
         XCTAssertEqual(exported.gestures.map(\.action), profiles.map(\.action))
@@ -87,4 +94,55 @@ final class ShortcutConfigCompatibilityTests: XCTestCase {
         let reloaded = ConfigStore(configURL: destinationURL)
         XCTAssertEqual(reloaded.gestures.map(\.action), profiles.map(\.action))
     }
+
+    func testNativeApplicationSwitchStorageIsRewrittenOnLoad() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseAppSwitchMigration-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let profile = GestureProfile(
+            name: "Application Switch",
+            pattern: .freePath(PathTemplates.up),
+            action: .applicationSwitch(.commandTab)
+        )
+        let sourceURL = directory.appendingPathComponent("source.json")
+        let source = ConfigStore(configURL: sourceURL)
+        source.replaceAll([profile])
+
+        var root = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: Data(contentsOf: sourceURL))
+                as? [String: Any]
+        )
+        var gestures = try XCTUnwrap(root["gestures"] as? [[String: Any]])
+        gestures[0]["action"] = [
+            "applicationSwitch": ["_0": "commandTab"]
+        ]
+        root["gestures"] = gestures
+
+        let destinationURL = directory.appendingPathComponent("destination.json")
+        try JSONSerialization.data(withJSONObject: root).write(to: destinationURL)
+
+        let migrated = ConfigStore(configURL: destinationURL)
+
+        XCTAssertFalse(migrated.requiresRecovery)
+        XCTAssertEqual(migrated.gestures.map(\.action), [.applicationSwitch(.commandTab)])
+        XCTAssertNoThrow(try JSONDecoder().decode(
+            V018GestureConfigFile.self,
+            from: Data(contentsOf: destinationURL)
+        ))
+    }
+}
+
+private struct V018GestureConfigFile: Decodable {
+    let version: Int
+    let gestures: [V018GestureProfile]
+}
+
+private struct V018GestureProfile: Decodable {
+    let action: V018GestureAction
+}
+
+private enum V018GestureAction: Decodable {
+    case shortcut(keyCode: UInt16, modifiers: UInt, display: String)
 }

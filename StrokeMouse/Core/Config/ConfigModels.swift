@@ -544,7 +544,7 @@ enum AppleScriptPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
-enum GestureAction: Codable, Equatable, Sendable {
+enum GestureAction: Equatable, Sendable {
     case none
     case shortcut(
         keyCode: UInt16,
@@ -599,6 +599,89 @@ enum GestureAction: Codable, Equatable, Sendable {
             }
             let trimmed = script.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.count > 40 ? String(trimmed.prefix(40)) + "…" : trimmed
+        }
+    }
+}
+
+extension GestureAction: Codable {
+    init(from decoder: Decoder) throws {
+        self = try PersistedGestureAction(from: decoder).runtimeAction
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try PersistedGestureAction(runtimeAction: self).encode(to: encoder)
+    }
+}
+
+/// Keeps the v2 wire format readable by 0.0.18. The application-switch UI was
+/// added in 0.0.19, but its commands are existing ordered shortcuts on disk.
+private enum PersistedGestureAction: Codable {
+    case none
+    case shortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        display: String,
+        orderedChord: ShortcutChord? = nil
+    )
+    case openApp(bundleId: String, name: String)
+    case openURL(String)
+    case shell(String)
+    case media(MediaCommand)
+    case window(WindowCommand)
+    case applicationSwitch(ApplicationSwitchCommand)
+    case appleScript(String)
+
+    init(runtimeAction action: GestureAction) {
+        switch action {
+        case .none: self = .none
+        case .shortcut(let keyCode, let modifiers, let display, let chord):
+            self = .shortcut(
+                keyCode: keyCode,
+                modifiers: modifiers,
+                display: display,
+                orderedChord: chord
+            )
+        case .openApp(let bundleId, let name): self = .openApp(bundleId: bundleId, name: name)
+        case .openURL(let url): self = .openURL(url)
+        case .shell(let command): self = .shell(command)
+        case .media(let command): self = .media(command)
+        case .window(let command): self = .window(command)
+        case .applicationSwitch(let command):
+            let chord = command.shortcutChord
+            self = .shortcut(
+                keyCode: chord.legacyKeyCode,
+                modifiers: chord.legacyModifiers,
+                display: KeyCodeNames.shortcutDisplay(chord: chord),
+                orderedChord: chord
+            )
+        case .appleScript(let source): self = .appleScript(source)
+        }
+    }
+
+    var runtimeAction: GestureAction {
+        switch self {
+        case .none: return .none
+        case .shortcut(let keyCode, let modifiers, let display, let chord):
+            if let chord,
+               let command = ApplicationSwitchCommand.allCases.first(
+                   where: { $0.shortcutChord == chord }
+               )
+            {
+                return .applicationSwitch(command)
+            }
+            return .shortcut(
+                keyCode: keyCode,
+                modifiers: modifiers,
+                display: display,
+                orderedChord: chord
+            )
+        case .openApp(let bundleId, let name): return .openApp(bundleId: bundleId, name: name)
+        case .openURL(let url): return .openURL(url)
+        case .shell(let command): return .shell(command)
+        case .media(let command): return .media(command)
+        case .window(let command): return .window(command)
+        case .applicationSwitch(let command): return .applicationSwitch(command)
+        case .appleScript(let source): return .appleScript(source)
         }
     }
 }

@@ -104,8 +104,11 @@ final class ConfigStore {
             if fileManager.fileExists(atPath: configURL.path) {
                 let data = try Data(contentsOf: configURL)
                 switch try decodeConfig(from: data) {
-                case .current(let profiles):
+                case .current(let profiles, let requiresCompatibilityRewrite):
                     try validate(profiles)
+                    if requiresCompatibilityRewrite {
+                        try persist(profiles)
+                    }
                     publish(profiles)
                 case .legacy(let profiles):
                     try validate(profiles)
@@ -230,7 +233,7 @@ final class ConfigStore {
     func analyzeImportPackage(from data: Data) throws -> GestureImportAnalysis {
         let importedProfiles: [GestureProfile]
         switch try decodeConfig(from: data) {
-        case .current(let profiles), .legacy(let profiles):
+        case .current(let profiles, _), .legacy(let profiles):
             importedProfiles = profiles
         }
         try validate(importedProfiles)
@@ -372,7 +375,16 @@ final class ConfigStore {
         switch header.version {
         case Constants.configVersion:
             do {
-                return .current(try decoder.decode(GestureConfigFile.self, from: data).gestures)
+                let file = try decoder.decode(GestureConfigFile.self, from: data)
+                let compatibility = try decoder.decode(
+                    GestureConfigCompatibilityFile.self,
+                    from: data
+                )
+                return .current(
+                    file.gestures,
+                    requiresCompatibilityRewrite: compatibility
+                        .storesNativeApplicationSwitch
+                )
             } catch {
                 throw ConfigStoreFailure.decodeFailed(error.localizedDescription)
             }
@@ -458,12 +470,40 @@ final class ConfigStore {
 }
 
 private enum DecodedConfig {
-    case current([GestureProfile])
+    case current(
+        [GestureProfile],
+        requiresCompatibilityRewrite: Bool
+    )
     case legacy([GestureProfile])
 }
 
 private struct GestureConfigHeader: Decodable {
     let version: Int
+}
+
+private struct GestureConfigCompatibilityFile: Decodable {
+    let gestures: [GestureConfigCompatibilityProfile]
+
+    var storesNativeApplicationSwitch: Bool {
+        gestures.contains { $0.action?.storesNativeApplicationSwitch == true }
+    }
+}
+
+private struct GestureConfigCompatibilityProfile: Decodable {
+    let action: GestureConfigCompatibilityAction?
+}
+
+private struct GestureConfigCompatibilityAction: Decodable {
+    let storesNativeApplicationSwitch: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case applicationSwitch
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        storesNativeApplicationSwitch = container.contains(.applicationSwitch)
+    }
 }
 
 private struct LegacyGestureConfigFile: Decodable {
