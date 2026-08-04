@@ -222,6 +222,7 @@ private extension GestureEditorView.ActionKind {
         case .shell: return .shell
         case .media: return .media
         case .window: return .window
+        case .applicationSwitch: return .window
         case .appleScript: return .appleScript
         }
     }

@@ -81,6 +81,51 @@ final class ActionExecutorTests: XCTestCase {
         XCTAssertTrue(platform.windows.isEmpty)
     }
 
+    func testApplicationSwitchIgnoresUnavailableTargetAndTargetPlatform() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        let applicationSwitcher = RecordingApplicationSwitcher()
+        let executor = ActionExecutor(
+            targetPlatform: platform,
+            applicationSwitcher: applicationSwitcher
+        )
+
+        try await executor.execute(
+            .applicationSwitch(.commandTab),
+            target: .unavailable(.windowUnavailable)
+        )
+
+        XCTAssertEqual(applicationSwitcher.commands, [.commandTab])
+        XCTAssertTrue(platform.shortcuts.isEmpty)
+        XCTAssertTrue(platform.windows.isEmpty)
+        XCTAssertNil(executor.lastError)
+    }
+
+    func testApplicationSwitchFailureIsRecordedAndRethrown() async {
+        let platform = RecordingGestureTargetActionPlatform()
+        let applicationSwitcher = RecordingApplicationSwitcher()
+        applicationSwitcher.error = ShortcutActionError.eventSourceUnavailable
+        let executor = ActionExecutor(
+            targetPlatform: platform,
+            applicationSwitcher: applicationSwitcher
+        )
+
+        do {
+            try await executor.executeForTesting(
+                .applicationSwitch(.shiftCommandTab)
+            )
+            XCTFail("Expected application switch failure")
+        } catch ShortcutActionError.eventSourceUnavailable {
+            // Expected typed failure.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(applicationSwitcher.commands, [.shiftCommandTab])
+        XCTAssertTrue(platform.shortcuts.isEmpty)
+        XCTAssertTrue(platform.windows.isEmpty)
+        XCTAssertNotNil(executor.lastError)
+    }
+
     func testPlatformFailureIsRecordedAndRethrownWithoutFallback() async {
         let platform = RecordingGestureTargetActionPlatform()
         platform.error = GestureTargetError.activationFailed(101)
@@ -155,6 +200,17 @@ private final class RecordingGestureTargetActionPlatform: GestureTargetActionPla
         target: GestureTargetContext
     ) async throws {
         windows.append(WindowCall(command: command, target: target))
+        if let error { throw error }
+    }
+}
+
+@MainActor
+private final class RecordingApplicationSwitcher: ApplicationSwitching {
+    var error: Error?
+    private(set) var commands: [ApplicationSwitchCommand] = []
+
+    func perform(_ command: ApplicationSwitchCommand) throws {
+        commands.append(command)
         if let error { throw error }
     }
 }

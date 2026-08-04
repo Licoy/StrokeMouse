@@ -4353,6 +4353,38 @@
         }
       }
     },
+    "window.applicationSwitch.commandTab": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch Apps (⌘Tab)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换 App（⌘Tab）"
+          }
+        }
+      }
+    },
+    "window.applicationSwitch.shiftCommandTab": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch Apps (⇧⌘Tab)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换 App（⇧⌘Tab）"
+          }
+        }
+      }
+    },
     "scope.global": {
       "localizations": {
         "en": {

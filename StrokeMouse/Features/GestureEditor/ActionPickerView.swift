@@ -1,6 +1,42 @@
 import AppKit
 import SwiftUI
 
+private enum WindowActionSelection: Hashable, Identifiable {
+    case window(WindowCommand)
+    case applicationSwitch(ApplicationSwitchCommand)
+
+    static let allCases: [WindowActionSelection] =
+        WindowCommand.allCases.map(WindowActionSelection.window)
+        + ApplicationSwitchCommand.allCases.map(WindowActionSelection.applicationSwitch)
+
+    var id: String {
+        switch self {
+        case .window(let command):
+            return "window.\(command.rawValue)"
+        case .applicationSwitch(let command):
+            return "applicationSwitch.\(command.rawValue)"
+        }
+    }
+
+    var displayKey: String {
+        switch self {
+        case .window(let command):
+            return command.displayKey
+        case .applicationSwitch(let command):
+            return command.displayKey
+        }
+    }
+
+    var action: GestureAction {
+        switch self {
+        case .window(let command):
+            return .window(command)
+        case .applicationSwitch(let command):
+            return .applicationSwitch(command)
+        }
+    }
+}
+
 struct ActionPickerView: View {
     @Binding var kind: GestureEditorView.ActionKind
     @Binding var action: GestureAction
@@ -14,7 +50,7 @@ struct ActionPickerView: View {
     @State private var urlString = "https://"
     @State private var shellCommand = "echo 'Hello from StrokeMouse'"
     @State private var mediaCommand: MediaCommand = .playPause
-    @State private var windowCommand: WindowCommand = .minimize
+    @State private var windowActionSelection: WindowActionSelection = .window(.minimize)
     @State private var appleScriptPreset: AppleScriptPreset = .sleep
     @State private var appleScript = AppleScriptPreset.sleep.source ?? ""
     /// Draft kept while the user is on a built-in so switching back to Custom restores it.
@@ -208,13 +244,13 @@ struct ActionPickerView: View {
                 }
 
             case .window:
-                Picker(L10n.string("action.window"), selection: $windowCommand) {
-                    ForEach(WindowCommand.allCases) { cmd in
-                        Text(L10n.string(cmd.displayKey)).tag(cmd)
+                Picker(L10n.string("action.window"), selection: $windowActionSelection) {
+                    ForEach(WindowActionSelection.allCases) { selection in
+                        Text(L10n.string(selection.displayKey)).tag(selection)
                     }
                 }
-                .onChange(of: windowCommand) { _, newValue in
-                    action = .window(newValue)
+                .onChange(of: windowActionSelection) { _, newValue in
+                    action = newValue.action
                 }
 
             case .appleScript:
@@ -360,7 +396,9 @@ struct ActionPickerView: View {
         case .media(let command):
             mediaCommand = command
         case .window(let command):
-            windowCommand = command
+            windowActionSelection = .window(command)
+        case .applicationSwitch(let command):
+            windowActionSelection = .applicationSwitch(command)
         case .appleScript(let source):
             let preset = AppleScriptPreset.matching(source: source)
             // Set draft before preset so any onChange → custom restore uses the hydrated script.
@@ -401,7 +439,7 @@ struct ActionPickerView: View {
         case .media:
             action = .media(mediaCommand)
         case .window:
-            action = .window(windowCommand)
+            action = windowActionSelection.action
         case .appleScript:
             applyAppleScriptPreset(appleScriptPreset)
         }

@@ -53,4 +53,38 @@ final class ShortcutConfigCompatibilityTests: XCTestCase {
         XCTAssertFalse(shortcutChords.isEmpty)
         XCTAssertTrue(shortcutChords.allSatisfy { $0 == nil })
     }
+
+    func testApplicationSwitchActionsSurviveExportImportAndReload() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseAppSwitchTests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let profiles = ApplicationSwitchCommand.allCases.map { command in
+            GestureProfile(
+                name: command.rawValue,
+                pattern: .freePath(PathTemplates.up),
+                action: .applicationSwitch(command)
+            )
+        }
+        let source = ConfigStore(
+            configURL: directory.appendingPathComponent("source.json")
+        )
+        source.replaceAll(profiles)
+        let package = try source.exportPackage(ids: Set(profiles.map(\.id)))
+
+        let exported = try JSONDecoder().decode(GestureConfigFile.self, from: package)
+        XCTAssertEqual(exported.version, 2)
+        XCTAssertEqual(exported.gestures.map(\.action), profiles.map(\.action))
+
+        let destinationURL = directory.appendingPathComponent("destination.json")
+        let destination = ConfigStore(configURL: destinationURL)
+        destination.replaceAll([])
+        _ = try destination.importPackage(from: package)
+
+        XCTAssertEqual(destination.gestures.map(\.action), profiles.map(\.action))
+
+        let reloaded = ConfigStore(configURL: destinationURL)
+        XCTAssertEqual(reloaded.gestures.map(\.action), profiles.map(\.action))
+    }
 }

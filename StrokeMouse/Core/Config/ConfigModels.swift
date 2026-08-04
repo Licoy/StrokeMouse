@@ -439,6 +439,30 @@ enum WindowCommand: String, Codable, CaseIterable, Identifiable, Sendable {
     var displayKey: String { "window.\(rawValue)" }
 }
 
+enum ApplicationSwitchCommand: String, Codable, CaseIterable, Identifiable, Sendable {
+    case commandTab
+    case shiftCommandTab
+
+    var id: String { rawValue }
+
+    var displayKey: String { "window.applicationSwitch.\(rawValue)" }
+
+    var shortcutChord: ShortcutChord {
+        switch self {
+        case .commandTab:
+            return ShortcutChord(
+                modifiers: [.command],
+                keyCode: UInt16(kVK_Tab)
+            )
+        case .shiftCommandTab:
+            return ShortcutChord(
+                modifiers: [.shift, .command],
+                keyCode: UInt16(kVK_Tab)
+            )
+        }
+    }
+}
+
 /// Built-in AppleScript snippets for the action editor. Storage remains the raw
 /// script string on `GestureAction.appleScript` so custom scripts stay free-form.
 enum AppleScriptPreset: String, CaseIterable, Identifiable, Sendable {
@@ -533,6 +557,7 @@ enum GestureAction: Codable, Equatable, Sendable {
     case shell(String)
     case media(MediaCommand)
     case window(WindowCommand)
+    case applicationSwitch(ApplicationSwitchCommand)
     case appleScript(String)
 
     var summaryKey: String {
@@ -544,6 +569,7 @@ enum GestureAction: Codable, Equatable, Sendable {
         case .shell: return "action.shell"
         case .media: return "action.media"
         case .window: return "action.window"
+        case .applicationSwitch: return "action.window"
         case .appleScript: return "action.appleScript"
         }
     }
@@ -564,6 +590,8 @@ enum GestureAction: Codable, Equatable, Sendable {
             return cmd.rawValue
         case .window(let cmd):
             return cmd.rawValue
+        case .applicationSwitch(let command):
+            return L10n.string(command.displayKey)
         case .appleScript(let script):
             let preset = AppleScriptPreset.matching(source: script)
             if preset != .custom {

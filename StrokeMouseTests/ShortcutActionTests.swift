@@ -224,6 +224,40 @@ final class ShortcutActionTests: XCTestCase {
         }
     }
 
+    func testCommandTabApplicationSwitchBuildsCompleteModifierSequence() {
+        let chord = ApplicationSwitchCommand.commandTab.shortcutChord
+        let plan = ShortcutAction.makeEventPlan(
+            keyCode: chord.legacyKeyCode,
+            modifiers: chord.legacyModifiers,
+            orderedChord: chord
+        )
+
+        XCTAssertEqual(plan, [
+            event(kVK_Command, isKeyDown: true, flags: [.maskCommand]),
+            event(kVK_Tab, isKeyDown: true, flags: [.maskCommand]),
+            event(kVK_Tab, isKeyDown: false, flags: [.maskCommand]),
+            event(kVK_Command, isKeyDown: false, flags: []),
+        ])
+    }
+
+    func testShiftCommandTabApplicationSwitchReleasesModifiersInReverseOrder() {
+        let chord = ApplicationSwitchCommand.shiftCommandTab.shortcutChord
+        let plan = ShortcutAction.makeEventPlan(
+            keyCode: chord.legacyKeyCode,
+            modifiers: chord.legacyModifiers,
+            orderedChord: chord
+        )
+
+        XCTAssertEqual(plan, [
+            event(kVK_Shift, isKeyDown: true, flags: [.maskShift]),
+            event(kVK_Command, isKeyDown: true, flags: [.maskShift, .maskCommand]),
+            event(kVK_Tab, isKeyDown: true, flags: [.maskShift, .maskCommand]),
+            event(kVK_Tab, isKeyDown: false, flags: [.maskShift, .maskCommand]),
+            event(kVK_Command, isKeyDown: false, flags: [.maskShift]),
+            event(kVK_Shift, isKeyDown: false, flags: []),
+        ])
+    }
+
     private func event(
         _ keyCode: Int,
         isKeyDown: Bool,

@@ -38,15 +38,37 @@ protocol GestureTargetActionPlatform {
 }
 
 @MainActor
+protocol ApplicationSwitching {
+    func perform(_ command: ApplicationSwitchCommand) throws
+}
+
+@MainActor
+struct MacApplicationSwitcher: ApplicationSwitching {
+    func perform(_ command: ApplicationSwitchCommand) throws {
+        let chord = command.shortcutChord
+        try ShortcutAction.post(
+            keyCode: chord.legacyKeyCode,
+            modifiers: chord.legacyModifiers,
+            orderedChord: chord
+        )
+    }
+}
+
+@MainActor
 @Observable
 final class ActionExecutor {
     private(set) var lastError: String?
     private(set) var lastActionSummary: String?
 
     private let targetPlatform: any GestureTargetActionPlatform
+    private let applicationSwitcher: any ApplicationSwitching
 
-    init(targetPlatform: (any GestureTargetActionPlatform)? = nil) {
+    init(
+        targetPlatform: (any GestureTargetActionPlatform)? = nil,
+        applicationSwitcher: (any ApplicationSwitching)? = nil
+    ) {
         self.targetPlatform = targetPlatform ?? WindowActions()
+        self.applicationSwitcher = applicationSwitcher ?? MacApplicationSwitcher()
     }
 
     func execute(
@@ -103,6 +125,8 @@ final class ActionExecutor {
                 command,
                 target: try target.requireContext()
             )
+        case .applicationSwitch(let command):
+            try applicationSwitcher.perform(command)
         case .appleScript(let source):
             try await ScriptActions.runAppleScript(source)
         }
@@ -142,7 +166,8 @@ extension GestureAction {
         switch self {
         case .shortcut, .window:
             return true
-        case .none, .openApp, .openURL, .shell, .media, .appleScript:
+        case .none, .openApp, .openURL, .shell, .media,
+             .applicationSwitch, .appleScript:
             return false
         }
     }
