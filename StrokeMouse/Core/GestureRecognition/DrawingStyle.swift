@@ -73,14 +73,72 @@ enum DrawingStyle {
         }
     }
 
+    /// Toast after a successful gesture match. Default on.
+    static var showMatchToast: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: PreferenceKey.showMatchToast) == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: PreferenceKey.showMatchToast)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: PreferenceKey.showMatchToast) }
+    }
+
+    /// Toast after no-match / too-short. Default on. Action errors always show.
+    static var showMissToast: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: PreferenceKey.showMissToast) == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: PreferenceKey.showMissToast)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: PreferenceKey.showMissToast) }
+    }
+
+    /// Live trail color feedback while drawing. Default off (opt-in).
+    static var showLiveMismatchFeedback: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: PreferenceKey.showLiveMismatchFeedback)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: PreferenceKey.showLiveMismatchFeedback)
+        }
+    }
+
+    /// Trail color when live feedback marks the stroke as unlikely.
+    static var mismatchLineColorHex: String {
+        get {
+            UserDefaults.standard.string(forKey: PreferenceKey.hudMismatchLineColor)
+                ?? Constants.defaultHUDMismatchLineColorHex
+        }
+        set { UserDefaults.standard.set(newValue, forKey: PreferenceKey.hudMismatchLineColor) }
+    }
+
+    static var mismatchLineNSColor: NSColor {
+        get {
+            color(fromHex: mismatchLineColorHex)
+                ?? (color(fromHex: Constants.defaultHUDMismatchLineColorHex) ?? .systemOrange)
+        }
+        set { mismatchLineColorHex = hex(from: newValue) }
+    }
+
+    static var mismatchLineSwiftUIColor: Color {
+        get { Color(nsColor: mismatchLineNSColor) }
+        set {
+            #if os(macOS)
+            mismatchLineNSColor = NSColor(newValue)
+            #endif
+        }
+    }
+
     /// Start marker is always red (product requirement); only size/visibility is configurable.
     static var startNSColor: NSColor { .systemRed }
 
     static var startSwiftUIColor: Color { .red }
 
-    static func snapshot() -> Snapshot {
+    static func snapshot(lineColorOverride: NSColor? = nil) -> Snapshot {
         Snapshot(
-            lineColor: lineNSColor,
+            lineColor: lineColorOverride ?? lineNSColor,
             lineWidth: lineWidth,
             showStartPoint: showStartPoint,
             startPointRadius: startPointRadius,

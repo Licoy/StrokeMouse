@@ -12,14 +12,16 @@ final class GestureHUDController {
 
     private init() {}
 
-    func showPath(_ points: [CGPoint]) {
+    /// - Parameter lineColorOverride: When non-nil, replaces the configured trail color
+    ///   (used for live mismatch feedback). Start-point color is unchanged.
+    func showPath(_ points: [CGPoint], lineColorOverride: NSColor? = nil) {
         // points are AppKit global coordinates (origin bottom-left of primary screen space).
         ensureWindows()
         guard !points.isEmpty else {
             hide()
             return
         }
-        let style = DrawingStyle.snapshot()
+        let style = DrawingStyle.snapshot(lineColorOverride: lineColorOverride)
         if !isVisible {
             for window in windows {
                 window.orderFrontRegardless()

@@ -51,6 +51,17 @@ enum Constants {
     static let defaultHUDLineWidth: CGFloat = 4
     static let defaultHUDStartPointRadius: CGFloat = 7
     static let defaultHUDLineColorHex = "#3B82F6FF" // blue
+    /// Default trail color while live feedback marks the stroke as unlikely.
+    /// Amber avoids clashing with the fixed red start-point marker.
+    static let defaultHUDMismatchLineColorHex = "#F59E0BFF"
+
+    /// Evaluate live viability every N accepted samples while drawing.
+    static let liveViabilityEvalEveryNSamples = 4
+    /// Consecutive unlikely evals required before the HUD switches color.
+    static let liveViabilityUnlikelyHysteresisCount = 3
+    /// Live hope threshold is `matchThreshold - offset`, then clamped.
+    static let liveViabilityHopeThresholdOffset = 0.15
+    static let liveViabilityHopeThresholdRange: ClosedRange<Double> = 0.45...0.75
 }
 
 enum PreferenceKey {
@@ -74,5 +85,9 @@ enum PreferenceKey {
     static let hudLineWidth = "hudLineWidth"
     static let hudShowStartPoint = "hudShowStartPoint"
     static let hudStartPointRadius = "hudStartPointRadius"
+    static let showMatchToast = "showMatchToast"
+    static let showMissToast = "showMissToast"
+    static let showLiveMismatchFeedback = "showLiveMismatchFeedback"
+    static let hudMismatchLineColor = "hudMismatchLineColor"
     static let automaticallyChecksForUpdates = "automaticallyChecksForUpdates"
 }

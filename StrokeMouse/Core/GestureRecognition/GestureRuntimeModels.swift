@@ -57,6 +57,8 @@ struct GestureRuntimeConfiguration: Equatable, Sendable {
     var minimumStrokeDistance: CGFloat
     var pathMatchThreshold: Double
     var showsHUD: Bool
+    /// Live trail recolor while drawing when no candidate remains hopeful.
+    var showsLiveMismatchFeedback: Bool
     var directTrackpadEnabled: Bool
 }
 

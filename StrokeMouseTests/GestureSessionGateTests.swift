@@ -235,6 +235,7 @@ final class GestureSessionGateTests: XCTestCase {
                 minimumStrokeDistance: 40,
                 pathMatchThreshold: 0.7,
                 showsHUD: false,
+                showsLiveMismatchFeedback: false,
                 directTrackpadEnabled: true
             ),
             isDiagnostic: false,

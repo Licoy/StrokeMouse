@@ -19,9 +19,14 @@ struct GeneralSettingsView: View {
     @AppStorage(PreferenceKey.hudLineWidth) private var lineWidth = Double(Constants.defaultHUDLineWidth)
     @AppStorage(PreferenceKey.hudShowStartPoint) private var showStartPoint = true
     @AppStorage(PreferenceKey.hudStartPointRadius) private var startPointRadius = Double(Constants.defaultHUDStartPointRadius)
+    @AppStorage(PreferenceKey.showMatchToast) private var showMatchToast = true
+    @AppStorage(PreferenceKey.showMissToast) private var showMissToast = true
+    @AppStorage(PreferenceKey.showLiveMismatchFeedback) private var showLiveMismatchFeedback = false
+    @AppStorage(PreferenceKey.hudMismatchLineColor) private var mismatchLineColorHex = Constants.defaultHUDMismatchLineColorHex
     @AppStorage(PreferenceKey.automaticallyChecksForUpdates) private var automaticallyChecksForUpdates = true
 
     @State private var lineColor: Color = DrawingStyle.lineSwiftUIColor
+    @State private var mismatchLineColor: Color = DrawingStyle.mismatchLineSwiftUIColor
     @State private var isConfirmingDoubleHide = false
     @State private var pendingDoubleHide: DoubleHideKind?
     /// Reference-type gate so confirm applies are visible to `onChange` (SwiftUI `@State` bool is unreliable here).
@@ -99,6 +104,24 @@ struct GeneralSettingsView: View {
             }
 
             Section {
+                Toggle(L10n.string("general.showMatchToast"), isOn: $showMatchToast)
+                    .onChange(of: showMatchToast) { _, newValue in
+                        DrawingStyle.showMatchToast = newValue
+                    }
+
+                Toggle(L10n.string("general.showMissToast"), isOn: $showMissToast)
+                    .onChange(of: showMissToast) { _, newValue in
+                        DrawingStyle.showMissToast = newValue
+                    }
+
+                Text(L10n.string("general.feedbackHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(L10n.string("general.feedback"))
+            }
+
+            Section {
                 Toggle(L10n.string("general.showHUD"), isOn: $showGestureHUD)
                     .onChange(of: showGestureHUD) { _, newValue in
                         appState.updateShowGestureHUD(newValue)
@@ -142,6 +165,30 @@ struct GeneralSettingsView: View {
                 )
                 .disabled(!showStartPoint)
 
+                Toggle(
+                    L10n.string("general.showLiveMismatchFeedback"),
+                    isOn: $showLiveMismatchFeedback
+                )
+                .disabled(!showGestureHUD)
+                .onChange(of: showLiveMismatchFeedback) { _, newValue in
+                    appState.updateShowLiveMismatchFeedback(newValue)
+                }
+
+                Text(L10n.string("general.showLiveMismatchFeedbackHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                ColorPicker(
+                    L10n.string("general.mismatchLineColor"),
+                    selection: $mismatchLineColor,
+                    supportsOpacity: true
+                )
+                .disabled(!showGestureHUD || !showLiveMismatchFeedback)
+                .onChange(of: mismatchLineColor) { _, newValue in
+                    DrawingStyle.mismatchLineSwiftUIColor = newValue
+                    mismatchLineColorHex = DrawingStyle.mismatchLineColorHex
+                }
+
                 HStack(spacing: 12) {
                     Text(L10n.string("general.strokePreview"))
                         .foregroundStyle(.secondary)
@@ -149,7 +196,8 @@ struct GeneralSettingsView: View {
                         lineColor: lineColor,
                         lineWidth: lineWidth,
                         showStart: showStartPoint,
-                        startRadius: startPointRadius
+                        startRadius: startPointRadius,
+                        mismatchLineColor: showLiveMismatchFeedback ? mismatchLineColor : nil
                     )
                     .frame(height: 48)
                     .frame(maxWidth: .infinity)
@@ -299,6 +347,10 @@ struct GeneralSettingsView: View {
         .id("general-settings-\(epoch)")
         .onAppear {
             lineColor = DrawingStyle.lineSwiftUIColor
+            mismatchLineColor = DrawingStyle.mismatchLineSwiftUIColor
+            showMatchToast = DrawingStyle.showMatchToast
+            showMissToast = DrawingStyle.showMissToast
+            showLiveMismatchFeedback = DrawingStyle.showLiveMismatchFeedback
             automaticallyChecksForUpdates = appState.updaterService.automaticallyChecksForUpdates
             hideMenuBarIcon = appState.prefersHideMenuBarIcon
         }
@@ -405,7 +457,12 @@ struct GeneralSettingsView: View {
         startPointRadius = Double(Constants.defaultHUDStartPointRadius)
         lineColorHex = Constants.defaultHUDLineColorHex
         lineColor = DrawingStyle.lineSwiftUIColor
+        showLiveMismatchFeedback = false
+        mismatchLineColorHex = Constants.defaultHUDMismatchLineColorHex
+        DrawingStyle.mismatchLineColorHex = Constants.defaultHUDMismatchLineColorHex
+        mismatchLineColor = DrawingStyle.mismatchLineSwiftUIColor
         appState.updateShowGestureHUD(true)
+        appState.updateShowLiveMismatchFeedback(false)
     }
 }
 
@@ -414,6 +471,8 @@ private struct StrokeStylePreview: View {
     let lineWidth: Double
     let showStart: Bool
     let startRadius: Double
+    /// When non-nil, draws a short second stroke in the mismatch color.
+    var mismatchLineColor: Color? = nil
 
     var body: some View {
         Canvas { context, size in
@@ -430,6 +489,19 @@ private struct StrokeStylePreview: View {
                 with: .color(lineColor),
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
             )
+
+            if let mismatchLineColor {
+                var mismatch = Path()
+                let mStart = CGPoint(x: size.width * 0.55, y: size.height * 0.75)
+                let mEnd = CGPoint(x: size.width - pad, y: size.height * 0.2)
+                mismatch.move(to: mStart)
+                mismatch.addLine(to: mEnd)
+                context.stroke(
+                    mismatch,
+                    with: .color(mismatchLineColor),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                )
+            }
 
             if showStart {
                 let r = CGFloat(startRadius) * 0.7

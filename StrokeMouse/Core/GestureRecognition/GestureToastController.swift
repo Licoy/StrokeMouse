@@ -12,19 +12,23 @@ final class GestureToastController {
     private init() {}
 
     func showMatched(name: String, score: Double) {
+        guard DrawingStyle.showMatchToast else { return }
         let pct = Int((score * 100).rounded())
         let text = String(format: L10n.string("toast.matched"), locale: L10n.locale, name, pct)
         present(text: text, isSuccess: true)
     }
 
     func showNoMatch() {
+        guard DrawingStyle.showMissToast else { return }
         present(text: L10n.string("toast.noMatch"), isSuccess: false)
     }
 
     func showTooShort() {
+        guard DrawingStyle.showMissToast else { return }
         present(text: L10n.string("toast.tooShort"), isSuccess: false)
     }
 
+    /// Action failures always surface — independent of match/miss toast prefs.
     func showActionError(_ message: String) {
         present(text: message, isSuccess: false)
     }

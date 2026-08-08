@@ -92,13 +92,17 @@ final class GestureRuntime {
         let source: GestureInputSource
         let revision: UInt64
         let targeted: [TargetedGesture]
+        let preparedTemplates: [TemplateMatcher.PreparedPath]
         let clickQuartzLocation: CGPoint?
         let origin: CGPoint
         let recognitionPolicy: GestureRecognitionPolicy
         let showsHUD: Bool
+        let showsLiveMismatchFeedback: Bool
         var mode: SessionMode
         var path: [CGPoint]
         var isDrawing: Bool
+        var liveHysteresis: LiveGestureViability.Hysteresis
+        var samplesSinceLiveEval: Int
     }
 
     private struct DirectSession {
@@ -149,6 +153,7 @@ final class GestureRuntime {
         minimumStrokeDistance: Constants.defaultMinStrokeDistance,
         pathMatchThreshold: Constants.freePathMatchThreshold,
         showsHUD: true,
+        showsLiveMismatchFeedback: false,
         directTrackpadEnabled: true
     )
     private var drawSession: DrawSession?
@@ -973,19 +978,34 @@ final class GestureRuntime {
         if mode == .diagnostic {
             lastDrawDiagnostic = nil
         }
+        let preparedTemplates = targeted.compactMap { item -> TemplateMatcher.PreparedPath? in
+            guard case .drawn(let drawn) = item.profile.input else { return nil }
+            let points = drawn.points.map(\.cgPoint)
+            guard points.count >= 2 else { return nil }
+            return GestureTemplateCache.shared.prepared(
+                id: item.profile.id,
+                points: points
+            )
+        }
         drawSession = DrawSession(
             source: source,
             revision: frozenConfiguration.revision,
             targeted: targeted,
+            preparedTemplates: preparedTemplates,
             clickQuartzLocation: clickQuartzLocation,
             origin: point,
             recognitionPolicy: recognitionPolicy(
                 for: frozenConfiguration
             ),
             showsHUD: frozenConfiguration.showsHUD && mode == .normal,
+            showsLiveMismatchFeedback: frozenConfiguration.showsLiveMismatchFeedback
+                && frozenConfiguration.showsHUD
+                && mode == .normal,
             mode: mode,
             path: [point],
-            isDrawing: false
+            isDrawing: false,
+            liveHysteresis: LiveGestureViability.Hysteresis(),
+            samplesSinceLiveEval: 0
         )
         currentPath = [point]
         state.activeSession = GestureActiveSessionSummary(
@@ -1009,6 +1029,28 @@ final class GestureRuntime {
         {
             session.isDrawing = true
         }
+        var lineColorOverride: NSColor?
+        if session.showsLiveMismatchFeedback, session.isDrawing {
+            session.samplesSinceLiveEval += 1
+            let n = max(1, Constants.liveViabilityEvalEveryNSamples)
+            if session.samplesSinceLiveEval == 1
+                || session.samplesSinceLiveEval % n == 0
+            {
+                let observed = LiveGestureViability.evaluate(
+                    path: session.path,
+                    preparedTemplates: session.preparedTemplates,
+                    minimumPathLength: session.recognitionPolicy.minimumPathLength,
+                    matchThreshold: session.recognitionPolicy.matchThreshold
+                )
+                session.liveHysteresis = LiveGestureViability.applyHysteresis(
+                    current: session.liveHysteresis,
+                    observed: observed
+                )
+            }
+            if session.liveHysteresis.state == .unlikely {
+                lineColorOverride = DrawingStyle.mismatchLineNSColor
+            }
+        }
         drawSession = session
         currentPath = session.path
         isDrawing = session.isDrawing
@@ -1016,7 +1058,10 @@ final class GestureRuntime {
            session.mode == .normal,
            session.path.count >= 2
         {
-            GestureHUDController.shared.showPath(session.path)
+            GestureHUDController.shared.showPath(
+                session.path,
+                lineColorOverride: lineColorOverride
+            )
         }
     }
 
