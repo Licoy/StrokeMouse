@@ -679,6 +679,63 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(package.gestures.map(\.id), [a.id, c.id])
     }
 
+    func testFullLibraryExportImportRoundTripPreservesProfiles() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let source = ConfigStore(configURL: dir.appendingPathComponent("source.json"))
+        let profiles = [
+            GestureProfile(
+                name: "Global Mouse",
+                input: .drawn(DrawnGesture(
+                    activation: .mouse(GestureTrigger(button: .right)),
+                    points: PathTemplates.up
+                )),
+                action: .openURL("https://example.com"),
+                scope: .global
+            ),
+            GestureProfile(
+                name: "Disabled Modifier",
+                isEnabled: false,
+                input: .drawn(DrawnGesture(
+                    activation: .modifier(.option),
+                    points: PathTemplates.left
+                )),
+                action: .media(.mute),
+                scope: .apps(["com.apple.Safari"])
+            ),
+            GestureProfile(
+                name: "Shared Touch",
+                input: .trackpad(.swipe(.three, .right)),
+                action: .window(.close),
+                scope: .apps(["com.apple.Safari", "com.google.Chrome"])
+            ),
+        ]
+        source.replaceAll(profiles)
+
+        let allIDs = Set(source.gestures.map(\.id))
+        let data = try source.exportPackage(ids: allIDs)
+        let package = try JSONDecoder().decode(GestureConfigFile.self, from: data)
+        XCTAssertEqual(package.gestures, profiles)
+
+        let destination = ConfigStore(
+            configURL: dir.appendingPathComponent("destination.json")
+        )
+        destination.replaceAll([])
+        let importedIDs = try destination.importPackage(from: data)
+
+        XCTAssertEqual(destination.gestures.count, profiles.count)
+        XCTAssertEqual(destination.gestures.map(\.name), profiles.map(\.name))
+        XCTAssertEqual(destination.gestures.map(\.scope), profiles.map(\.scope))
+        XCTAssertEqual(destination.gestures.map(\.isEnabled), profiles.map(\.isEnabled))
+        XCTAssertEqual(destination.gestures.map(\.action), profiles.map(\.action))
+        XCTAssertEqual(destination.gestures.map(\.input), profiles.map(\.input))
+        XCTAssertEqual(destination.gestures.map(\.id), importedIDs)
+        XCTAssertTrue(Set(importedIDs).isDisjoint(with: allIDs))
+    }
+
     func testWindowUnderPointerPolicySurvivesExportAnalysisAndImport() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)

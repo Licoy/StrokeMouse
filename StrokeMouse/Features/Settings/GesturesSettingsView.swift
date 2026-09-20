@@ -680,7 +680,7 @@ struct GesturesSettingsView: View {
 
                 Divider()
 
-                Button(L10n.string("gestures.export")) {
+                Button(L10n.string("gestures.exportSelected")) {
                     exportSelected(ids)
                 }
 
@@ -723,10 +723,17 @@ struct GesturesSettingsView: View {
             }
             .disabled(selection.isEmpty)
 
-            Button(L10n.string("gestures.export")) {
-                exportSelected(selection)
+            Menu(L10n.string("gestures.export")) {
+                Button(L10n.string("gestures.exportSelected")) {
+                    exportSelected(selection)
+                }
+                .disabled(selection.isEmpty)
+
+                Button(L10n.string("gestures.exportAll")) {
+                    exportSelected(Set(appState.configStore.gestures.map(\.id)))
+                }
+                .disabled(appState.configStore.gestures.isEmpty)
             }
-            .disabled(selection.isEmpty)
 
             Button(L10n.string("gestures.delete"), role: .destructive) {
                 requestDelete(selection)
