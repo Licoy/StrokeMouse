@@ -136,13 +136,31 @@ enum StrokeStructureExtractor {
         }
 
         var terminalFraction: CGFloat = 0
-        for segment in segments.reversed() {
-            let fraction = segment.arcLength / total
+        var terminalStartIndex = segments.endIndex
+        for index in segments.indices.reversed() {
+            let fraction = segments[index].arcLength / total
             guard fraction <= Constants.freePathShortSegmentFraction else { break }
+            terminalStartIndex = index
             terminalFraction += fraction
             if terminalFraction > Constants.freePathShortSegmentFraction {
-                return TerminalAssessment(trimmedFraction: 0, exceededBudget: true)
+                let exceeded = index > segments.startIndex
+                    && StrokeSegmentReducer.isAbruptTerminalTurn(
+                        preceding: segments[index - 1],
+                        terminal: segments[index]
+                    )
+                return TerminalAssessment(
+                    trimmedFraction: 0,
+                    exceededBudget: exceeded
+                )
             }
+        }
+        guard terminalFraction > 0,
+              terminalStartIndex > segments.startIndex,
+              StrokeSegmentReducer.isAbruptTerminalTurn(
+                  preceding: segments[terminalStartIndex - 1],
+                  terminal: segments[terminalStartIndex]
+              ) else {
+            return TerminalAssessment(trimmedFraction: 0, exceededBudget: false)
         }
         return TerminalAssessment(trimmedFraction: terminalFraction, exceededBudget: false)
     }

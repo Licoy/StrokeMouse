@@ -61,17 +61,26 @@ enum StrokeSegmentReducer {
             if index == 0 {
                 segments.replaceSubrange(0...1, with: [segments[0].combined(with: segments[1])])
             } else if index == segments.count - 1 {
-                trimmedTerminalLength += segments[index].arcLength
-                let additional = trimmedTerminalLength / initialLength
-                let total = existingTerminalFraction + (1 - existingTerminalFraction) * additional
-                guard total <= Constants.freePathShortSegmentFraction else {
-                    return ShortMergeResult(
-                        segments: segments,
-                        additionalTrimmedFraction: 0,
-                        exceededTerminalBudget: true
-                    )
+                if isAbruptTerminalTurn(
+                    preceding: segments[index - 1],
+                    terminal: segments[index]
+                ) {
+                    trimmedTerminalLength += segments[index].arcLength
+                    let additional = trimmedTerminalLength / initialLength
+                    let total = existingTerminalFraction
+                        + (1 - existingTerminalFraction) * additional
+                    guard total <= Constants.freePathShortSegmentFraction else {
+                        return ShortMergeResult(
+                            segments: segments,
+                            additionalTrimmedFraction: 0,
+                            exceededTerminalBudget: true
+                        )
+                    }
+                    segments.removeLast()
+                } else {
+                    let merged = segments[index - 1].combined(with: segments[index])
+                    segments.replaceSubrange((index - 1)...index, with: [merged])
                 }
-                segments.removeLast()
             } else {
                 mergeInternal(at: index, in: &segments)
             }
@@ -97,6 +106,15 @@ enum StrokeSegmentReducer {
 
     static func degreesToRadians(_ degrees: Double) -> Double {
         degrees * .pi / 180
+    }
+
+    static func isAbruptTerminalTurn(
+        preceding: StrokeStructureSegment,
+        terminal: StrokeStructureSegment
+    ) -> Bool {
+        angleDifference(preceding.angle, terminal.angle) > degreesToRadians(
+            Constants.freePathTurnAngleDegrees
+        )
     }
 
     private static func shortestInsignificantSegment(

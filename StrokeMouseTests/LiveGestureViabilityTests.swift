@@ -135,6 +135,24 @@ final class LiveGestureViabilityTests: XCTestCase {
         XCTAssertEqual(hysteresis.state, .viable)
     }
 
+    func testAcceptedLowercaseERemainsViableAtTerminalSample() {
+        let raw = GestureRecognitionTestSupport.lowercaseE()
+        let recorded = PathSimplifier.resample(
+            PathSimplifier.normalize(PathSimplifier.simplify(raw, epsilon: 2)),
+            count: Constants.freePathSampleCount
+        )
+        let preparedTemplate = TemplateMatcher.prepare(recorded)
+
+        let state = LiveGestureViability.evaluate(
+            path: raw,
+            preparedTemplates: [preparedTemplate],
+            minimumPathLength: 40,
+            matchThreshold: Constants.freePathMatchThreshold
+        )
+
+        XCTAssertEqual(state, .viable)
+    }
+
     func testHysteresisRequiresConsecutiveUnlikelyEvals() {
         var h = LiveGestureViability.Hysteresis()
         h = LiveGestureViability.applyHysteresis(

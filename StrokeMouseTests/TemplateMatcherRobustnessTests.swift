@@ -148,6 +148,69 @@ final class TemplateMatcherRobustnessTests: XCTestCase {
         )
     }
 
+    func testContinuousLowercaseEMatchesRecordedTemplateAcrossSamplingAndScale() {
+        let raw = Support.lowercaseE()
+        let recorded = PathSimplifier.resample(
+            PathSimplifier.normalize(PathSimplifier.simplify(raw, epsilon: 2)),
+            count: Constants.freePathSampleCount
+        )
+        let variants = [
+            raw,
+            Support.lowercaseE(
+                leadSampleCount: 12,
+                loopSampleCount: 72,
+                scale: 2.4,
+                offset: CGPoint(x: 320, y: -180)
+            ),
+            Support.lowercaseE(
+                leadSampleCount: 50,
+                loopSampleCount: 300,
+                scale: 0.55,
+                offset: CGPoint(x: -90, y: 240)
+            ),
+        ]
+
+        for (name, stroke, template) in [
+            ("raw-self", raw, raw),
+            ("recorded-self", recorded, recorded),
+        ] + variants.enumerated().map { index, stroke in
+            ("runtime-\(index)", stroke, recorded)
+        } {
+            let evaluation = TemplateMatcher.evaluate(stroke, template)
+            XCTAssertNil(evaluation.structuralMismatch, name)
+            XCTAssertGreaterThanOrEqual(
+                evaluation.score,
+                Constants.freePathMatchThreshold,
+                "\(name): shape=\(evaluation.shapeScore)"
+            )
+        }
+    }
+
+    func testContinuousLowercaseERejectsWrongDirectionMirrorAndTail() {
+        let raw = Support.lowercaseE()
+        let recorded = PathSimplifier.resample(
+            PathSimplifier.normalize(PathSimplifier.simplify(raw, epsilon: 2)),
+            count: Constants.freePathSampleCount
+        )
+        let centerX = (raw.map(\.x).min() ?? 0) + (raw.map(\.x).max() ?? 0)
+        let variants = [
+            ("reversed", Array(raw.reversed())),
+            ("mirrored", raw.map { CGPoint(x: centerX - $0.x, y: $0.y) }),
+            (
+                "tailed",
+                Support.appendingTail(to: raw, lengthFraction: 0.15, angleDegrees: -90)
+            ),
+        ]
+
+        for (name, stroke) in variants {
+            XCTAssertLessThan(
+                TemplateMatcher.bestScore(stroke, recorded),
+                Constants.freePathMatchThreshold,
+                name
+            )
+        }
+    }
+
     func testPeakScoreIsContinuousAcrossWidthApexAndRotationSweeps() {
         assertContinuousSweep(stride(from: CGFloat(110), through: 170, by: 2)) { width in
             Support.peak(self.variation(width: width, apex: 0.52))

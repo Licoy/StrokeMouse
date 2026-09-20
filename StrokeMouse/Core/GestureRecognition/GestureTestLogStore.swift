@@ -63,6 +63,8 @@ struct GestureTestLogCandidate: Codable, Sendable {
     let structuralMismatch: StrokeStructureMatcher.Mismatch?
     /// Normalized 32-point template; optional so schema-v1/v2 lines remain decodable.
     let templatePath: [CodablePoint]?
+    /// Exact persisted template; optional so schema-v1/v2/v3/v4 lines remain decodable.
+    let sourceTemplatePath: [CodablePoint]?
     let diagnostics: GestureTestLogMatchDiagnostics?
 }
 
@@ -88,7 +90,7 @@ struct GestureTestLogEntry: Codable, Sendable {
         timestamp: Date = Date()
     ) {
         let accepted = evaluation.acceptedCandidate
-        schemaVersion = 4
+        schemaVersion = 5
         self.timestamp = timestamp
         self.sessionID = sessionID
         selectedTrigger = evaluation.button
@@ -110,11 +112,19 @@ struct GestureTestLogEntry: Codable, Sendable {
                 shapeScore: candidate.shapeScore,
                 structuralMismatch: candidate.structuralMismatch,
                 templatePath: Self.normalizedTemplatePath(for: candidate.profile),
+                sourceTemplatePath: Self.sourceTemplatePath(for: candidate.profile),
                 diagnostics: candidate.diagnostics.map {
                     GestureTestLogMatchDiagnostics($0, finalScore: candidate.score)
                 }
             )
         }
+    }
+
+    private static func sourceTemplatePath(
+        for profile: GestureProfile
+    ) -> [CodablePoint]? {
+        guard case .drawn(let drawn) = profile.input else { return nil }
+        return drawn.points
     }
 
     private static func normalizedTemplatePath(

@@ -119,6 +119,34 @@ enum GestureRecognitionTestSupport {
         return points + tail
     }
 
+    static func lowercaseE(
+        leadSampleCount: Int = 30,
+        loopSampleCount: Int = 180,
+        scale: CGFloat = 1,
+        offset: CGPoint = .zero
+    ) -> [CGPoint] {
+        precondition(leadSampleCount >= 2 && loopSampleCount >= 2)
+        let lead = (0..<leadSampleCount).map { index in
+            CGPoint(
+                x: CGFloat(index) * 100 / CGFloat(leadSampleCount - 1),
+                y: 0
+            )
+        }
+        let loop = (1..<loopSampleCount).map { index in
+            let angle = 2 * Double.pi * Double(index) / Double(loopSampleCount - 1)
+            return CGPoint(
+                x: 45 + 55 * cos(angle),
+                y: 55 * sin(angle)
+            )
+        }
+        return (lead + loop).map { point in
+            CGPoint(
+                x: point.x * scale + offset.x,
+                y: point.y * scale + offset.y
+            )
+        }
+    }
+
     static func rotate(_ points: [CGPoint], degrees: CGFloat) -> [CGPoint] {
         guard !points.isEmpty else { return points }
         let sum = points.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
