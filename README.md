@@ -32,6 +32,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Trackpad Draw**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
 - **Experimental Touch Gestures**: the built-in trackpad supports 34 gesture classes—three- to five-finger taps, double taps, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
 - **Touch Gestures master switch**: disable Touch Gestures without deleting configured gestures; private-backend failures degrade only the trackpad channel, leaving mouse and Trackpad Draw available
+- **Scroll enhancement**: reverse the mouse wheel and the trackpad / Magic Mouse independently on each axis, and optionally smooth notched wheel scrolling (gentle / standard / responsive, or custom speed, duration, and acceleration). Exclusions match the frontmost app. These settings stay on this Mac and are not part of backup sync. Other scroll utilities can double-process events; apps that only read whole-line ticks (some games, VMs, remote desktops) should be excluded
 - **Per-gesture target**: choose the frontmost app or the app under the pointer at trigger-down; when a regular window exists, its exact window is frozen too, and app-scope checks and target-aware actions always reuse that target
 - **Free-path recognition**: arc-length resampling + 1D/2D normalization + limited rotation; significant-turn structure gates; live stroke HUD while holding the trigger
 - **App scope**: global, or pick apps by icon from installed applications (search / browse `.app`)
@@ -74,7 +75,7 @@ You can also download the DMG for your architecture from the [official download 
 
 | Permission | Purpose |
 |------------|---------|
-| **Accessibility** | Global mouse / modifier listening (`CGEventTap`), shortcut injection, window AX actions |
+| **Accessibility** | Global mouse / modifier / scroll listening (`CGEventTap`), shortcut injection, window AX actions |
 | **Automation** | Optional; required when AppleScript controls other apps |
 
 On first launch or **Settings → Permissions**, use in-app **Guide Me**: open System Settings and drag StrokeMouse into the list. Without trust the engine will not pretend to listen.

@@ -332,6 +332,56 @@ final class L10nTests: XCTestCase {
         XCTAssertEqual(LanguageOverride.system.pickerTitle, "跟随系统")
     }
 
+    func testScrollingStringsAreLocalized() {
+        let keys = [
+            "tab.scrolling",
+            "menu.pauseScrolling",
+            "menu.resumeScrolling",
+            "permissions.channel.scroll",
+            "scroll.section.main",
+            "scroll.enabled",
+            "scroll.status",
+            "scroll.status.listening",
+            "scroll.status.paused",
+            "scroll.status.notNeeded",
+            "scroll.status.needPermission",
+            "scroll.status.tapFailed",
+            "scroll.main.footer",
+            "scroll.section.reverse",
+            "scroll.group.mouse",
+            "scroll.group.trackpad",
+            "scroll.reverse.vertical",
+            "scroll.reverse.horizontal",
+            "scroll.reverse.footer",
+            "scroll.section.smooth",
+            "scroll.smooth.enabled",
+            "scroll.preset",
+            "scroll.preset.gentle",
+            "scroll.preset.standard",
+            "scroll.preset.responsive",
+            "scroll.preset.custom",
+            "scroll.advanced",
+            "scroll.step",
+            "scroll.duration",
+            "scroll.acceleration",
+            "scroll.unit.px",
+            "scroll.unit.ms",
+            "scroll.smooth.footer",
+            "scroll.section.excluded",
+            "scroll.exclude.empty",
+            "scroll.exclude.add",
+            "scroll.exclude.footer",
+        ]
+        for locale in LanguageOverride.explicitCatalogLocales {
+            L10n.apply(locale)
+            for key in keys {
+                let value = L10n.string(key)
+                XCTAssertFalse(value.isEmpty, "\(locale.rawValue) empty \(key)")
+                XCTAssertNotEqual(value, key, "\(locale.rawValue) unresolved \(key)")
+            }
+        }
+    }
+
     func testAppBundleShipsAllSupportedLocalizations() {
         let shipped = Set(Bundle.main.localizations.map {
             $0.replacingOccurrences(of: "_", with: "-")

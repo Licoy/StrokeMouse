@@ -86,6 +86,10 @@ struct PermissionsSettingsView: View {
                     L10n.string("permissions.channel.multitouch"),
                     status: appState.gestureRuntime.state.inputs.multitouch
                 )
+                LabeledContent(L10n.string("permissions.channel.scroll")) {
+                    Text(L10n.string(appState.scrollEngine.status.messageKey))
+                        .foregroundStyle(scrollStatusColor)
+                }
                 Toggle(
                     L10n.string("trackpad.directEnabled"),
                     isOn: Binding(
@@ -122,6 +126,14 @@ struct PermissionsSettingsView: View {
         .padding()
         .onAppear {
             appState.permissionManager.refresh()
+        }
+    }
+
+    private var scrollStatusColor: Color {
+        switch appState.scrollEngine.status {
+        case .listening: return .green
+        case .failed: return .orange
+        case .paused, .notNeeded: return .secondary
         }
     }
 

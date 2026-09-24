@@ -12,6 +12,7 @@ final class AppState {
     let permissionManager: PermissionManager
     let actionExecutor: ActionExecutor
     let gestureRuntime: GestureRuntime
+    let scrollEngine: ScrollEngine
     let updaterService: UpdaterService
     @ObservationIgnored
     lazy var configurationSync = ConfigurationSync(
@@ -55,12 +56,14 @@ final class AppState {
                 MultitouchSupportAdapter()
             }
         )
+        let scrollEngine = ScrollEngine(permissionManager: permissionManager)
         let updaterService = UpdaterService()
 
         self.configStore = configStore
         self.permissionManager = permissionManager
         self.actionExecutor = actionExecutor
         self.gestureRuntime = gestureRuntime
+        self.scrollEngine = scrollEngine
         self.updaterService = updaterService
         self.showOnboarding = !UserDefaults.standard.bool(forKey: PreferenceKey.hasCompletedOnboarding)
 
@@ -68,6 +71,7 @@ final class AppState {
         // Re-applying does not clear an unrelated latched multitouch failure.
         permissionManager.onTrustChanged = { [weak self] isTrusted in
             self?.gestureRuntime.accessibilityTrustDidChange(isTrusted)
+            self?.scrollEngine.accessibilityTrustDidChange(isTrusted)
             self?.refreshMenuBarIconStatus()
         }
 
@@ -93,6 +97,7 @@ final class AppState {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.applyCurrentGestureConfiguration()
+            self.applyScrollConfiguration()
             self.refreshMenuBarIconStatus()
         }
     }
@@ -209,6 +214,7 @@ final class AppState {
         if defaults.object(forKey: PreferenceKey.directTrackpadEnabled) == nil {
             defaults.set(true, forKey: PreferenceKey.directTrackpadEnabled)
         }
+        ScrollPreferences.seedMissingDefaults(in: defaults)
 
         let storedMatchThreshold = defaults.object(
             forKey: PreferenceKey.matchThreshold
@@ -288,7 +294,29 @@ final class AppState {
     func retryGestureInputs() {
         permissionManager.refresh()
         gestureRuntime.retryFailedInputs()
+        scrollEngine.retry()
         refreshMenuBarIconStatus()
+    }
+
+    func applyScrollConfiguration() {
+        scrollEngine.apply(ScrollPreferences.load(from: .standard))
+    }
+
+    func setScrollEnhancementEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(
+            enabled,
+            forKey: PreferenceKey.scrollEnhancementEnabled
+        )
+        applyScrollConfiguration()
+    }
+
+    func setScrollExcludedBundleIds(_ bundleIds: [String]) {
+        let normalized = ScrollPreferences.normalizedBundleIds(bundleIds)
+        UserDefaults.standard.set(
+            normalized,
+            forKey: PreferenceKey.scrollExcludedBundleIds
+        )
+        applyScrollConfiguration()
     }
 
     func applyCurrentGestureConfiguration(
@@ -439,6 +467,7 @@ final class AppState {
 
 enum SettingsTab: String, Hashable, CaseIterable, Identifiable {
     case gestures
+    case scrolling
     case general
     case sync
     case permissions
@@ -449,6 +478,7 @@ enum SettingsTab: String, Hashable, CaseIterable, Identifiable {
     var titleKey: String {
         switch self {
         case .gestures: return "tab.gestures"
+        case .scrolling: return "tab.scrolling"
         case .general: return "tab.general"
         case .sync: return "tab.sync"
         case .permissions: return "tab.permissions"
@@ -459,6 +489,7 @@ enum SettingsTab: String, Hashable, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .gestures: return "hand.draw"
+        case .scrolling: return "computermouse"
         case .general: return "gearshape"
         case .sync: return "arrow.triangle.2.circlepath"
         case .permissions: return "lock.shield"

@@ -62,6 +62,20 @@ enum Constants {
     /// Live hope threshold is `matchThreshold - offset`, then clamped.
     static let liveViabilityHopeThresholdOffset = 0.15
     static let liveViabilityHopeThresholdRange: ClosedRange<Double> = 0.45...0.75
+
+    /// Initial smooth-scroll tuning. Step, duration, and acceleration are clamped
+    /// to these ranges; frame timing stays fixed.
+    static let scrollStepRange: ClosedRange<Double> = 20...240
+    static let scrollStepIncrement = 10.0
+    static let scrollDurationRangeMs: ClosedRange<Double> = 80...600
+    static let scrollDurationIncrementMs = 20.0
+    static let scrollAccelerationRange: ClosedRange<Double> = 0...1
+    static let scrollAccelerationIncrement = 0.05
+    static let scrollFrameInterval: TimeInterval = 1.0 / 120.0
+    static let scrollComboWindow: TimeInterval = 0.12
+    static let scrollAccelerationGain = 0.25
+    static let scrollComboLimit = 12
+    static let scrollRemainingDistanceCap: Double = 4000
 }
 
 enum PreferenceKey {
@@ -90,4 +104,15 @@ enum PreferenceKey {
     static let showLiveMismatchFeedback = "showLiveMismatchFeedback"
     static let hudMismatchLineColor = "hudMismatchLineColor"
     static let automaticallyChecksForUpdates = "automaticallyChecksForUpdates"
+    static let scrollEnhancementEnabled = "scrollEnhancementEnabled"
+    static let scrollReverseMouseVertical = "scrollReverseMouseVertical"
+    static let scrollReverseMouseHorizontal = "scrollReverseMouseHorizontal"
+    static let scrollReverseTrackpadVertical = "scrollReverseTrackpadVertical"
+    static let scrollReverseTrackpadHorizontal = "scrollReverseTrackpadHorizontal"
+    static let scrollSmoothEnabled = "scrollSmoothEnabled"
+    static let scrollSmoothPreset = "scrollSmoothPreset"
+    static let scrollSmoothCustomStep = "scrollSmoothCustomStep"
+    static let scrollSmoothCustomDurationMs = "scrollSmoothCustomDurationMs"
+    static let scrollSmoothCustomAcceleration = "scrollSmoothCustomAcceleration"
+    static let scrollExcludedBundleIds = "scrollExcludedBundleIds"
 }

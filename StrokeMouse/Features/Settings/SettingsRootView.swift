@@ -15,6 +15,12 @@ struct SettingsRootView: View {
                 }
                 .tag(SettingsTab.gestures)
 
+            ScrollSettingsView()
+                .tabItem {
+                    Label(L10n.string("tab.scrolling"), systemImage: SettingsTab.scrolling.systemImage)
+                }
+                .tag(SettingsTab.scrolling)
+
             GeneralSettingsView()
                 .tabItem {
                     Label(L10n.string("tab.general"), systemImage: SettingsTab.general.systemImage)

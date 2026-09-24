@@ -32,6 +32,7 @@ Outil de personnalisation des gestes souris et trackpad pour macOS. Dessinez une
 - **Dessin trackpad** : maintenez exactement une touche parmi Fn / Control / Option / Shift / Command (Fn par défaut) et déplacez le pointeur ; une autre touche prise en charge annule cette reconnaissance
 - **Gestes tactiles expérimentaux** : le trackpad intégré prend en charge 34 classes — tapotements et double tapotements à trois à cinq doigts, balayages dans quatre directions, ainsi que pincements / écartements et rotations horaire / antihoraire à deux à cinq doigts
 - **Interrupteur général des gestes tactiles** : désactivez le canal tactile sans supprimer les gestes configurés ; une panne du backend privé ne dégrade que le canal tactile, le dessin souris et trackpad reste disponible
+- **Défilement amélioré** : inversez séparément la molette et le trackpad / Magic Mouse sur chaque axe, et lissez éventuellement la molette crantée (doux / standard / réactif, ou vitesse, durée et accélération personnalisées). Les exclusions suivent l’app au premier plan. Ces réglages restent sur ce Mac et ne font pas partie de la synchro de sauvegarde. Un autre outil de défilement peut traiter les événements deux fois ; les apps qui ne lisent que des pas entiers (certains jeux, VM, bureaux distants) doivent être exclues
 - **Cible propre à chaque geste** : choisissez l’app au premier plan ou l’app sous le pointeur au moment de l’appui sur le déclencheur ; s’il existe une fenêtre normale, elle est aussi figée, et les contrôles de portée ainsi que les actions liées à la cible réutilisent toujours cette cible
 - **Reconnaissance de trajectoire libre** : rééchantillonnage selon la longueur d’arc + normalisation 1D/2D + rotation limitée ; portes structurelles sur les virages marqués ; seuil de correspondance global réglable dans Général ; HUD de trajectoire en direct tant que le déclencheur est maintenu
 - **Portée App** : globale, ou ajout par icône parmi les applications installées (recherche / parcours de `.app`)
@@ -74,7 +75,7 @@ Vous pouvez aussi télécharger le DMG de votre architecture sur la [page de té
 
 | Autorisation | Usage |
 |--------------|--------|
-| **Accessibilité** | Écoute globale souris / modificateur (`CGEventTap`), injection de raccourcis, actions AX sur les fenêtres |
+| **Accessibilité** | Écoute globale souris / modificateur / défilement (`CGEventTap`), injection de raccourcis, actions AX sur les fenêtres |
 | **Automatisation** | Facultatif ; requis lorsque AppleScript pilote d’autres apps |
 
 Au premier lancement ou dans **Réglages → Autorisations**, utilisez le **guide d’autorisation** intégré : ouvrez les Réglages Système et faites glisser StrokeMouse dans la liste. Sans confiance, le moteur ne fait pas semblant d’écouter.

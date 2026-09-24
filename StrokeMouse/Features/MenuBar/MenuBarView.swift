@@ -15,6 +15,18 @@ struct MenuBarView: View {
                  : L10n.string("menu.resumeGestures"))
         }
 
+        if appState.scrollEngine.configuration.hasActiveFeatures {
+            Button {
+                appState.setScrollEnhancementEnabled(
+                    !appState.scrollEngine.configuration.isEnabled
+                )
+            } label: {
+                Text(appState.scrollEngine.configuration.isEnabled
+                     ? L10n.string("menu.pauseScrolling")
+                     : L10n.string("menu.resumeScrolling"))
+            }
+        }
+
         Button(L10n.string("menu.openSettings")) {
             // Defer: MenuBarExtra tears down its content as the menu closes.
             let open = appState.openSettings
