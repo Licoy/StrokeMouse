@@ -58,4 +58,5 @@ titleTemplate: "StrokeMouse"
 - [インストールとビルド](./installation) — `output/StrokeMouse.app` にコンパイル
 - [権限](./permissions) — アクセシビリティと自動化
 - [ジェスチャ](./gestures) — トリガー、マッチング、範囲
+- [設定とメニューバー](./settings#scroll-enhancement) — スクロールの反転とスムーズ化
 - [アクション](./actions) — ショートカット、ウインドウ、スクリプト

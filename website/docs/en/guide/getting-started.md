@@ -58,4 +58,5 @@ Left button and unmonitored buttons always pass through.
 - [Install & build](./installation) — compile to `output/StrokeMouse.app`
 - [Permissions](./permissions) — Accessibility vs Automation
 - [Gestures](./gestures) — triggers, matching, scope
+- [Settings & menu bar](./settings#scroll-enhancement) — scroll reverse and smoothing
 - [Actions](./actions) — shortcuts, windows, scripts

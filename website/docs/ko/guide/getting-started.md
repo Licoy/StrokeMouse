@@ -58,4 +58,5 @@ titleTemplate: "StrokeMouse"
 - [설치와 빌드](./installation) — `output/StrokeMouse.app`으로 컴파일
 - [권한](./permissions) — 손쉬운 사용과 자동화
 - [제스처](./gestures) — 트리거, 일치, 범위
+- [설정과 메뉴 막대](./settings#scroll-enhancement) — 스크롤 반전과 부드럽게
 - [동작](./actions) — 단축키, 윈도우, 스크립트

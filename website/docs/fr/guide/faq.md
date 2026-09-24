@@ -63,7 +63,18 @@ Vérifiez `~/Library/Application Support/StrokeMouse/gestures.json`. Restaurez d
 
 ## Quelle souris faut-il ?
 
-N’importe quelle souris avec un bouton déclencheur utilisable. Par défaut le bouton **droit** ; changez par geste vers milieu ou latéral. Les clics trackpad peuvent servir de boutons souris ; les gestes multi-doigts du trackpad ne sont pas le flux principal de ce produit.
+N’importe quelle souris avec un bouton déclencheur utilisable. Par défaut le bouton **droit** ; changez par geste vers milieu ou latéral. Les clics trackpad peuvent servir de boutons souris ; les gestes multi-doigts du trackpad ne sont pas le flux principal de ce produit. Le défilement amélioré n’exige pas une souris précise ; seule une molette crantée peut être lissée.
+
+## Le sens ou le ressenti du défilement est faux ?
+
+- L’inversion s’ajoute au « défilement naturel » du système. La molette et le trackpad (y compris Magic Mouse) se règlent séparément
+- Le lissage ne concerne qu’une molette crantée. Le trackpad et une molette haute résolution sont seulement inversés, pas lissés
+- Maintenir Command, Option, Control ou Shift désactive le lissage
+- Une app exclue au premier plan n’est pas traitée. L’exclusion suit l’app au premier plan, pas la fenêtre sous le pointeur
+- Un autre outil de défilement peut traiter les événements deux fois
+- Ces réglages ne suivent pas la sauvegarde des gestes. Sur un autre Mac, réglez-les de nouveau dans **Réglages → Défilement**
+
+Voir [Réglages et barre des menus](./settings#scroll-enhancement).
 
 ## Comment sauvegarder / partager des gestes ?
 

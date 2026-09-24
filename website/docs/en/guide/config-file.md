@@ -31,6 +31,7 @@ Settings can **Show in Finder**.
 |----------|----------|
 | Share / sync some gestures | **Settings → Gestures → Export / Import** |
 | Full backup | Copy the `StrokeMouse` folder or just `gestures.json` |
+| Scroll enhancement | Stays on this Mac. It is not in `gestures.json` or backup sync; set it again under **Settings → Scrolling** on a new Mac |
 | New machine | Install + authorize, then import a package **or** replace `gestures.json` and relaunch |
 | Hand-edit | Keep valid JSON; prefer backward-compatible optional fields |
 | Corrupt | Delete the file to regenerate defaults (custom data lost) |

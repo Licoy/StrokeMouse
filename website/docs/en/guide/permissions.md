@@ -1,6 +1,6 @@
 ---
 title: "Permissions"
-description: "StrokeMouse permissions: Accessibility for global mouse listening, Automation for AppleScript."
+description: "StrokeMouse permissions: Accessibility for global mouse and scroll listening, Automation for AppleScript."
 titleTemplate: "StrokeMouse"
 ---
 
@@ -12,14 +12,14 @@ StrokeMouse needs global mouse listening and optional automation. Failures are v
 
 | Permission | Required? | Purpose |
 |------------|-----------|---------|
-| **Accessibility** | **Yes** | Global mouse (`CGEventTap`), shortcut injection, window AX |
+| **Accessibility** | **Yes** | Global mouse and scroll (`CGEventTap`), shortcut injection, window AX |
 | **Automation** | Optional | AppleScript controlling other apps |
 
 ## Accessibility
 
 ### Why
 
-The engine intercepts mouse sequences for **configured triggers**. If `AXIsProcessTrusted()` is false, the app must **not** pretend to listen.
+The engine intercepts mouse sequences for **configured triggers**. If `AXIsProcessTrusted()` is false, the app must **not** pretend to listen. Once reverse or smoothing is on, scroll enhancement uses the same permission for a scroll-only listener; without trust, scrolling stays native.
 
 ### How to enable
 

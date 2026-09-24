@@ -6,6 +6,8 @@ export interface BentoItem {
   icon?: string
   title: string
   desc: string
+  /** Locale-relative docs path. Defaults to the gestures guide. */
+  href?: string
   size?: 'large' | 'media' | 'default'
   image?: string
   imageAlt?: string
@@ -34,7 +36,7 @@ const docsLink = computed(() => localeHref(locale.value, '/guide/gestures'))
         v-for="(item, i) in items"
         :key="i"
         class="cap"
-        :href="docsLink"
+        :href="item.href ? localeHref(locale, item.href) : docsLink"
       >
         <div class="n">
           <span>0{{ i + 1 }}</span>

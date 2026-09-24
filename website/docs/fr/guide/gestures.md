@@ -6,7 +6,7 @@ titleTemplate: "StrokeMouse"
 
 # Gestes
 
-Déclencheurs, échantillonnage et règles de correspondance pour des traits personnalisés fiables.
+Déclencheurs, échantillonnage et règles de correspondance pour des traits personnalisés fiables. L’inversion et le lissage du défilement ne sont pas dans la bibliothèque de gestes ; voir [Réglages et barre des menus](./settings#scroll-enhancement).
 
 ## Pipeline
 

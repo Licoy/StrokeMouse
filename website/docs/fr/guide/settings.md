@@ -1,6 +1,6 @@
 ---
 title: "Réglages et barre des menus"
-description: "Réglages StrokeMouse et barre des menus : bibliothèque de gestes recherche/filtre/import-export, éditeur, apparence, ouverture de session et autorisations."
+description: "Réglages StrokeMouse et barre des menus : bibliothèque de gestes, inversion et lissage du défilement, recherche/filtre/import-export, éditeur, apparence, ouverture de session et autorisations."
 titleTemplate: "StrokeMouse"
 ---
 
@@ -11,6 +11,7 @@ titleTemplate: "StrokeMouse"
 Contrôles du quotidien :
 
 - **Démarrer / arrêter les gestes**
+- **Suspendre / reprendre le défilement amélioré** — apparaît dès qu’une fonction de défilement est activée, indépendamment de la pause des gestes
 - **Ouvrir les réglages**
 - **Teinte d’état** — normal ; **jaune** si les gestes sont en pause ; **rouge** si l’Accessibilité manque
 - **Quitter**
@@ -24,9 +25,23 @@ Masquer à la fois Dock et barre des menus demande une confirmation pour ne pas 
 | Section | Contenu |
 |---------|---------|
 | **Gestes** | Barre latérale (global / par app) + liste : recherche / filtre / opérations groupées, import/export, éditeur |
+| **Défilement** | Inversion par axe, lissage de la molette crantée, exclusions selon l’app au premier plan ; reste sur ce Mac |
 | **Général** | Apparence, élément d’ouverture de session, masquer Dock / barre des menus, quitter |
 | **Autorisations** | État Accessibilité / Automatisation, guide d’autorisation, liens profonds |
 | **À propos** | Version et infos produit |
+
+## Défilement amélioré {#scroll-enhancement}
+
+**Réglages → Défilement** est séparé des gestes. Le « défilement naturel » du système reste un seul interrupteur partagé par la souris et le trackpad. Ici, vous pouvez inverser encore une fois par appareil et par axe, et donner de l’inertie à une molette crantée.
+
+- L’**interrupteur général** est activé par défaut, l’inversion et le lissage sont désactivés. Tant qu’aucune fonction n’est activée, aucun écouteur de défilement n’est installé et les gestes existants ne changent pas
+- L’**inversion** sépare la molette du trackpad et de la Magic Mouse, chacun avec verticale et horizontale. Elle s’ajoute au défilement naturel. Inverser l’horizontale du trackpad peut affecter le balayage pour changer de page dans les navigateurs. Le défilement horizontal avec Shift suit le réglage vertical
+- Le **défilement fluide** ne concerne qu’une molette crantée, pas le trackpad ni une molette haute résolution sans phase de geste. Les préréglages sont Doux, Standard et Réactif. Déplacer la vitesse, la durée ou l’accélération dans Avancé passe en Personnalisé. La vitesse et l’accélération ne s’appliquent que si le lissage est actif. Maintenir Command, Option, Control ou Shift conserve le défilement natif
+- Les **apps exclues** correspondent à l’**app au premier plan**, pas à la fenêtre sous le pointeur. Utile pour les jeux, les bureaux distants, les machines virtuelles, et les apps qui ne lisent que des pas entiers et défilent trop peu avec le lissage
+- Mettre les gestes en pause ne met pas le défilement en pause, et vous pouvez l’essayer avec les réglages ouverts. Dès qu’une fonction est activée, la barre des menus propose de suspendre ou reprendre le défilement amélioré. L’icône de la barre des menus ne reflète toujours que l’état des gestes
+- Ces réglages restent sur ce Mac. Ils n’entrent pas dans l’export des gestes, `gestures.json`, ni la synchro de sauvegarde. Un autre outil de défilement peut traiter les événements deux fois
+
+L’écoute du défilement exige aussi l’Accessibilité. Sans elle, le défilement reste natif, et **Réglages → Autorisations** affiche son état sur une ligne séparée.
 
 ## Liste des gestes
 

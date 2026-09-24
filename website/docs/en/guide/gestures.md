@@ -6,7 +6,7 @@ titleTemplate: "StrokeMouse"
 
 # Gestures
 
-Triggers, sampling, and matching rules for reliable custom strokes.
+Triggers, sampling, and matching rules for reliable custom strokes. Scroll reverse and smoothing are not in the gesture library; see [Settings & menu bar](./settings#scroll-enhancement).
 
 ## Pipeline
 

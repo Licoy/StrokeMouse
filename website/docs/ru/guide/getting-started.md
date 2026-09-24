@@ -58,4 +58,5 @@ titleTemplate: "StrokeMouse"
 - [Установка и сборка](./installation) — компиляция в `output/StrokeMouse.app`
 - [Доступ](./permissions) — Универсальный доступ и Автоматизация
 - [Жесты](./gestures) — триггеры, сопоставление, область
+- [Настройки и строка меню](./settings#scroll-enhancement) — обращение и сглаживание прокрутки
 - [Действия](./actions) — сочетания, окна, скрипты

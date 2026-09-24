@@ -58,4 +58,5 @@ Le bouton gauche et les boutons non surveillés passent toujours.
 - [Installation et compilation](./installation) — compiler vers `output/StrokeMouse.app`
 - [Autorisations](./permissions) — Accessibilité et Automatisation
 - [Gestes](./gestures) — déclencheurs, correspondance, portée
+- [Réglages et barre des menus](./settings#scroll-enhancement) — inversion et lissage du défilement
 - [Actions](./actions) — raccourcis, fenêtres, scripts

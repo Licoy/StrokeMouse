@@ -58,4 +58,5 @@ titleTemplate: "StrokeMouse"
 - [安裝與建置](./installation) — 從原始碼編譯到 `output/StrokeMouse.app`
 - [權限說明](./permissions) — 輔助使用與自動化分別做什麼
 - [手勢系統](./gestures) — 觸發鍵、比對、範圍
+- [設定與選單列](./settings#scroll-enhancement) — 捲動反向與平滑
 - [動作類型](./actions) — 快捷鍵、視窗、指令碼等

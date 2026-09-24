@@ -2,7 +2,7 @@
 layout: home
 title: "StrokeMouse"
 titleTemplate: "Mouse & trackpad gestures for macOS"
-description: "StrokeMouse is a macOS mouse and trackpad gesture tool. Draw with a mouse button or one modifier key, or use experimental multi-touch gestures, then run shortcuts, window actions, and scripts."
+description: "StrokeMouse is a macOS mouse and trackpad gesture tool. Draw with a mouse button or one modifier key, or use experimental multi-touch gestures, then run shortcuts, window actions, and scripts. Reverse each scroll axis and smooth a notched wheel."
 ---
 
 <div class="sm-home">
@@ -47,13 +47,14 @@ description: "StrokeMouse is a macOS mouse and trackpad gesture tool. Draw with 
 
 <FeatureBento
   heading="Built for power users"
-  lead="Three input modes share actions and app scope; drawn paths use controllable matching."
+  lead="Three input modes share actions and app scope; drawn paths use controllable matching. Scroll enhancement is separate and stays on this Mac."
   :items="[
     { icon: 'sparkles', title: 'Free-path matching', desc: 'Normalize, limited rotation, and structure gates that reject sloppy near-misses.', size: 'large', image: '/screenshots/5.png', imageAlt: 'Record stroke' },
     { icon: 'menu', title: 'Menu bar resident', desc: 'Start or stop gestures, open settings; icon tints when paused or untrusted.' },
     { icon: 'mouse', title: 'Mouse Draw', desc: 'Trigger with the right, middle, or a side button; only enabled buttons are watched.' },
     { icon: 'sparkles', title: 'Trackpad Draw', desc: 'Hold one Fn, Control, Option, Shift, or Command and move the pointer; reuse a mouse-draw rule when you want.' },
     { icon: 'zap', title: 'Experimental Touch Gestures', desc: '34 multi-finger taps, swipes, pinches, spreads, and rotations; macOS gestures may also run.' },
+    { icon: 'mouse', title: 'Scroll enhancement', desc: 'Reverse mouse wheel and trackpad per axis, and smooth a notched wheel. Not included in gesture backup.', href: '/guide/settings#scroll-enhancement' },
     { title: 'General settings', desc: 'Match threshold, appearance, and the Touch Gestures master switch.', size: 'media', image: '/screenshots/3.png', imageAlt: 'General settings' },
     { icon: 'window', title: 'App scope', desc: 'Global or per-app matching; sidebar groups by scope.' },
     { icon: 'import', title: 'Actions and import', desc: 'Shortcuts, windows, media, Shell and AppleScript; JSON batch tools.' },

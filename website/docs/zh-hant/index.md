@@ -2,7 +2,7 @@
 layout: home
 title: "StrokeMouse"
 titleTemplate: "macOS 滑鼠與觸控式軌跡板手勢"
-description: "StrokeMouse 是 macOS 滑鼠與觸控式軌跡板手勢自訂工具。用滑鼠鍵或單一修飾鍵繪製軌跡，也可使用實驗性多指觸控手勢；比對後執行快捷鍵、視窗操作與指令碼。"
+description: "StrokeMouse 是 macOS 滑鼠與觸控式軌跡板手勢自訂工具。用滑鼠鍵或單一修飾鍵繪製軌跡，也可使用實驗性多指觸控手勢；比對後執行快捷鍵、視窗操作與指令碼。滑鼠滾輪還可分軸反向並平滑。"
 ---
 
 <div class="sm-home">
@@ -47,13 +47,14 @@ description: "StrokeMouse 是 macOS 滑鼠與觸控式軌跡板手勢自訂工�
 
 <FeatureBento
   heading="為效率使用者準備的能力"
-  lead="三種輸入方式，共用動作與 App 範圍；繪製軌跡使用可控比對。"
+  lead="三種輸入方式，共用動作與 App 範圍；繪製軌跡使用可控比對。捲動增強單獨設定，只留在本機。"
   :items="[
     { icon: 'sparkles', title: '自由軌跡比對', desc: '正規化、有限旋轉與轉折結構門檻，拒絕胡亂近鄰比對。', size: 'large', image: '/screenshots/5.png', imageAlt: '錄製軌跡' },
     { icon: 'menu', title: '選單列常駐', desc: '啟停手勢、開啟設定；圖示隨暫停或缺權限變色。' },
     { icon: 'mouse', title: '滑鼠繪製', desc: '右鍵、中鍵或側鍵觸發；只監聽已啟用設定用到的按鈕。' },
     { icon: 'sparkles', title: '觸控板繪製', desc: '按住一個 Fn、Control、Option、Shift 或 Command，移動指標繪製軌跡；可複用滑鼠繪製規則。' },
     { icon: 'zap', title: '實驗性觸控手勢', desc: '34 類多指輕點、滑動、雙指開合與旋轉；系統手勢可能同時發生。' },
+    { icon: 'mouse', title: '捲動增強', desc: '滑鼠滾輪與觸控板分軸反向，一般滾輪可平滑；不進手勢備份。', href: '/guide/settings#scroll-enhancement' },
     { title: '一般設定', desc: '比對門檻、外觀與觸控手勢總開關。', size: 'media', image: '/screenshots/3.png', imageAlt: '一般設定' },
     { icon: 'window', title: 'App 範圍', desc: '全域或按應用程式生效；側邊欄依範圍組織手勢。' },
     { icon: 'import', title: '動作與匯入匯出', desc: '快捷鍵、視窗、媒體、Shell 與 AppleScript；JSON 批次管理。' },

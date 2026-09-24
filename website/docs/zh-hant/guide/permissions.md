@@ -1,6 +1,6 @@
 ---
 title: "權限說明"
-description: "StrokeMouse 權限說明：輔助使用用於全域滑鼠監聽，自動化用於 AppleScript。授權失敗排查指南。"
+description: "StrokeMouse 權限說明：輔助使用用於全域滑鼠與捲動監聽，自動化用於 AppleScript。授權失敗排查指南。"
 titleTemplate: "StrokeMouse"
 ---
 
@@ -12,14 +12,14 @@ StrokeMouse 需要全域滑鼠監聽與（可選）自動化能力。權限失�
 
 | 權限 | 是否必須 | 用途 |
 |------|----------|------|
-| **輔助使用（Accessibility）** | **必須** | 全域滑鼠事件（`CGEventTap`）、快捷鍵注入、視窗 AX 操作 |
+| **輔助使用（Accessibility）** | **必須** | 全域滑鼠與捲動事件（`CGEventTap`）、快捷鍵注入、視窗 AX 操作 |
 | **自動化（Automation）** | 可選 | 使用 AppleScript 控制其他 App 時按需授權 |
 
 ## 輔助使用
 
 ### 為什麼需要
 
-手勢引擎在系統級攔截**已設定觸發鍵**的滑鼠序列。沒有輔助使用信任時，`AXIsProcessTrusted()` 為否，應用**不得**假裝正在監聽。
+手勢引擎在系統級攔截**已設定觸發鍵**的滑鼠序列。沒有輔助使用信任時，`AXIsProcessTrusted()` 為否，應用**不得**假裝正在監聽。捲動增強在打開反向或平滑後，用同一項權限安裝只含滾輪事件的監聽；未授權時捲動保持系統原生。
 
 ### 如何開啟
 

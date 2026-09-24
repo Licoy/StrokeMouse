@@ -6,7 +6,7 @@ titleTemplate: "StrokeMouse"
 
 # 手勢系統
 
-理解觸發鍵、軌跡取樣與比對規則，才能穩定自訂手勢。
+理解觸發鍵、軌跡取樣與比對規則，才能穩定自訂手勢。捲動反向與平滑不在手勢庫裡，見 [設定與選單列](./settings#scroll-enhancement)。
 
 ## 核心流程
 

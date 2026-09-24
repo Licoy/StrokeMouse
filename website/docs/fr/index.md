@@ -2,7 +2,7 @@
 layout: home
 title: "StrokeMouse"
 titleTemplate: "Gestes souris et trackpad pour macOS"
-description: "StrokeMouse est un outil de gestes souris et trackpad pour macOS. Dessinez avec un bouton ou une touche de modification, ou utilisez le multitouch expérimental, puis lancez raccourcis, fenêtres et scripts."
+description: "StrokeMouse est un outil de gestes souris et trackpad pour macOS. Dessinez avec un bouton ou une touche de modification, ou utilisez le multitouch expérimental, puis lancez raccourcis, fenêtres et scripts. Inversez chaque axe de défilement et lissez une molette crantée."
 ---
 
 <div class="sm-home">
@@ -47,13 +47,14 @@ description: "StrokeMouse est un outil de gestes souris et trackpad pour macOS. 
 
 <FeatureBento
   heading="Conçu pour les utilisateurs avancés"
-  lead="Trois modes d’entrée partagent actions et portée d’app ; les trajectoires dessinées utilisent une correspondance contrôlable."
+  lead="Trois modes d’entrée partagent actions et portée d’app ; les trajectoires dessinées utilisent une correspondance contrôlable. Le défilement amélioré se règle à part et reste sur ce Mac."
   :items="[
     { icon: 'sparkles', title: 'Correspondance libre', desc: 'Normalisation, rotation limitée et portes structurelles qui rejettent les presque-correspondances approximatives.', size: 'large', image: '/screenshots/5.png', imageAlt: 'Enregistrement du trait' },
     { icon: 'menu', title: 'Toujours dans la barre des menus', desc: 'Démarrez ou arrêtez les gestes, ouvrez les réglages ; l’icône change de teinte en pause ou sans autorisation.' },
     { icon: 'mouse', title: 'Dessin souris', desc: 'Déclenchez avec le bouton droit, du milieu ou un bouton latéral ; seuls les boutons activés sont surveillés.' },
     { icon: 'sparkles', title: 'Dessin trackpad', desc: 'Maintenez Fn, Control, Option, Shift ou Command et déplacez le pointeur ; réutilisez une règle de dessin souris si vous voulez.' },
     { icon: 'zap', title: 'Gestes tactiles expérimentaux', desc: '34 classes de tapotements, balayages, pincements, écartements et rotations ; les gestes système peuvent aussi se produire.' },
+    { icon: 'mouse', title: 'Défilement amélioré', desc: 'Inversez la molette et le trackpad par axe, et lissez une molette crantée. Absent de la sauvegarde des gestes.', href: '/guide/settings#scroll-enhancement' },
     { title: 'Réglages généraux', desc: 'Seuil de correspondance, apparence et interrupteur général des gestes tactiles.', size: 'media', image: '/screenshots/3.png', imageAlt: 'Réglages généraux' },
     { icon: 'window', title: 'Portée d’app', desc: 'Globale ou par application ; la barre latérale groupe les gestes par portée.' },
     { icon: 'import', title: 'Actions et import', desc: 'Raccourcis, fenêtres, média, Shell et AppleScript ; gestion par lots en JSON.' },

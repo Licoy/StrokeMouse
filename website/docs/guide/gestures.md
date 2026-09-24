@@ -6,7 +6,7 @@ titleTemplate: "StrokeMouse"
 
 # 手势系统
 
-理解触发键、轨迹采样与匹配规则，才能稳定自定义手势。
+理解触发键、轨迹采样与匹配规则，才能稳定自定义手势。滚动反向与平滑不在手势库里，见 [设置与菜单栏](./settings#scroll-enhancement)。
 
 ## 核心流程
 

@@ -1,6 +1,6 @@
 ---
 title: "权限说明"
-description: "StrokeMouse 权限说明：辅助功能用于全局鼠标监听，自动化用于 AppleScript。授权失败排查指南。"
+description: "StrokeMouse 权限说明：辅助功能用于全局鼠标与滚动监听，自动化用于 AppleScript。授权失败排查指南。"
 titleTemplate: "StrokeMouse"
 ---
 
@@ -12,14 +12,14 @@ StrokeMouse 需要全局鼠标监听与（可选）自动化能力。权限失�
 
 | 权限 | 是否必须 | 用途 |
 |------|----------|------|
-| **辅助功能（Accessibility）** | **必须** | 全局鼠标事件（`CGEventTap`）、快捷键注入、窗口 AX 操作 |
+| **辅助功能（Accessibility）** | **必须** | 全局鼠标与滚动事件（`CGEventTap`）、快捷键注入、窗口 AX 操作 |
 | **自动化（Automation）** | 可选 | 使用 AppleScript 控制其他 App 时按需授权 |
 
 ## 辅助功能
 
 ### 为什么需要
 
-手势引擎在系统级拦截**已配置触发键**的鼠标序列。没有辅助功能信任时，`AXIsProcessTrusted()` 为否，应用**不得**假装正在监听。
+手势引擎在系统级拦截**已配置触发键**的鼠标序列。没有辅助功能信任时，`AXIsProcessTrusted()` 为否，应用**不得**假装正在监听。滚动增强在打开反向或平滑后，用同一项权限安装只含滚轮事件的监听；未授权时滚动保持系统原生。
 
 ### 如何开启
 

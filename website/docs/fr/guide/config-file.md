@@ -31,6 +31,7 @@ Les réglages peuvent **Afficher dans le Finder**.
 |----------|----------|
 | Partager / synchroniser certains gestes | **Réglages → Gestes → Exporter / Importer** |
 | Sauvegarde complète | Copier le dossier `StrokeMouse` ou seulement `gestures.json` |
+| Défilement amélioré | Reste sur ce Mac. Absent de `gestures.json` et de la synchro de sauvegarde ; sur un autre Mac, réglez-le de nouveau dans **Réglages → Défilement** |
 | Nouvelle machine | Installer + autoriser, puis importer un paquet **ou** remplacer `gestures.json` et relancer |
 | Édition à la main | Garder un JSON valide ; préférer des champs optionnels rétrocompatibles |
 | Fichier corrompu | Supprimer le fichier pour régénérer les défauts (données perso perdues) |

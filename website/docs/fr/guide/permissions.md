@@ -1,6 +1,6 @@
 ---
 title: "Autorisations"
-description: "Autorisations StrokeMouse : Accessibilité pour l’écoute souris globale, Automatisation pour AppleScript."
+description: "Autorisations StrokeMouse : Accessibilité pour l’écoute globale de la souris et du défilement, Automatisation pour AppleScript."
 titleTemplate: "StrokeMouse"
 ---
 
@@ -12,14 +12,14 @@ StrokeMouse a besoin d’une écoute souris globale et d’une automatisation fa
 
 | Autorisation | Obligatoire ? | Usage |
 |------------|-----------|---------|
-| **Accessibilité** | **Oui** | Souris globale (`CGEventTap`), injection de raccourcis, AX des fenêtres |
+| **Accessibilité** | **Oui** | Souris et défilement globaux (`CGEventTap`), injection de raccourcis, AX des fenêtres |
 | **Automatisation** | Facultatif | AppleScript qui pilote d’autres apps |
 
 ## Accessibilité
 
 ### Pourquoi
 
-Le moteur intercepte les séquences souris des **déclencheurs configurés**. Si `AXIsProcessTrusted()` est faux, l’app ne doit **pas** faire semblant d’écouter.
+Le moteur intercepte les séquences souris des **déclencheurs configurés**. Si `AXIsProcessTrusted()` est faux, l’app ne doit **pas** faire semblant d’écouter. Quand l’inversion ou le lissage est actif, le défilement amélioré utilise la même autorisation pour un écouteur limité à la molette. Sans confiance, le défilement reste natif.
 
 ### Comment activer
 

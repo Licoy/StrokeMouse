@@ -1,6 +1,6 @@
 ---
 title: "FAQ"
-description: "StrokeMouse FAQ: gestures not working, right-click menu, false matches, permissions, import/export backups, and more."
+description: "StrokeMouse FAQ: gestures not working, right-click menu, scroll direction, false matches, permissions, import/export backups, and more."
 titleTemplate: "StrokeMouse"
 ---
 
@@ -63,7 +63,18 @@ Check `~/Library/Application Support/StrokeMouse/gestures.json`. Restore from ba
 
 ## Which mouse do I need?
 
-Any mouse with a usable trigger button. Default is the **right** button; change per gesture to middle or side buttons. Trackpad clicks can work as mouse buttons; multi-finger trackpad gestures are not the intended workflow.
+Any mouse with a usable trigger button. Default is the **right** button; change per gesture to middle or side buttons. Trackpad clicks can work as mouse buttons; multi-finger trackpad gestures are not the intended workflow. Scroll enhancement does not need a particular mouse; only a notched wheel can be smoothed.
+
+## Scroll direction or feel is wrong?
+
+- Reverse stacks on top of system Natural Scrolling. The mouse wheel and the trackpad (including Magic Mouse) are separate
+- Smoothing applies only to a notched wheel. Trackpads and high-resolution wheels are reversed only, not smoothed
+- Holding Command, Option, Control, or Shift skips smoothing
+- An excluded frontmost app is left untouched. Exclusion follows the frontmost app, not the window under the pointer
+- Another scroll utility running at the same time may process events twice
+- Scroll settings do not travel with gesture backups. Set them again under **Settings → Scrolling** on a new Mac
+
+See [Settings & menu bar](./settings#scroll-enhancement).
 
 ## How do I back up / share gestures?
 
