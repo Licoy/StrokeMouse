@@ -10,7 +10,7 @@ final class SmoothScrollAnimatorTests: XCTestCase {
             acceleration: 0
         )
         animator.add(directionY: 1, directionX: 0, parameters: parameters, now: 0)
-        let pumped = pump(&animator, from: 0, until: 0.25)
+        let pumped = pump(&animator, from: 0, until: 0.5)
 
         XCTAssertEqual(pumped.y, 100, accuracy: 1)
         XCTAssertEqual(pumped.x, 0)
@@ -24,8 +24,9 @@ final class SmoothScrollAnimatorTests: XCTestCase {
         XCTAssertEqual(running, pumped.y)
     }
 
-    func testHardCutoffFinishesAtConfiguredDuration() {
+    func testFinishesWithinOneAndAHalfDurationWithoutATailJump() throws {
         var animator = SmoothScrollAnimator()
+        let duration = 0.08
         animator.add(
             directionY: 1,
             directionX: 0,
@@ -36,16 +37,98 @@ final class SmoothScrollAnimatorTests: XCTestCase {
             ),
             now: 0
         )
-        let early = animator.step(now: 0.04)
-        XCTAssertNotNil(early)
-        XCTAssertFalse(animator.isIdle)
+        var now = 0.0
+        var frames: [Int32] = []
+        while now < duration * 1.5 + Constants.scrollFrameInterval {
+            now += Constants.scrollFrameInterval
+            guard let delta = animator.step(now: now) else { break }
+            frames.append(delta.y)
+        }
 
-        let final = animator.step(now: 0.08)
-        XCTAssertNotNil(final)
         XCTAssertTrue(animator.isIdle)
-        XCTAssertNil(animator.step(now: 0.09))
-        let total = Int(early?.y ?? 0) + Int(final?.y ?? 0)
-        XCTAssertEqual(total, 50, accuracy: 1)
+        XCTAssertNil(animator.step(now: now + 0.01))
+        XCTAssertGreaterThanOrEqual(frames.count, 2)
+        let total = frames.reduce(Int32(0), +)
+        XCTAssertEqual(Double(total), 50, accuracy: 1)
+        let last = try XCTUnwrap(frames.last)
+        let previous = frames[frames.count - 2]
+        XCTAssertLessThanOrEqual(last, previous + 1)
+    }
+
+    func testNotchDuringAnimationDoesNotSlowTheNextFrame() throws {
+        var animator = SmoothScrollAnimator()
+        let parameters = ScrollSmoothParameters(
+            stepPixels: 80,
+            durationMs: 260,
+            acceleration: 0
+        )
+        let frame = Constants.scrollFrameInterval
+        animator.add(directionY: 1, directionX: 0, parameters: parameters, now: 0)
+        var now = 0.0
+        var previous: Int32 = 0
+        var checks = 0
+        var pending = Array(stride(from: 0.04, through: 0.20, by: 0.04))
+        while now < 0.28 {
+            let next = now + frame
+            if let impulse = pending.first, impulse > now, impulse <= next {
+                pending.removeFirst()
+                animator.add(
+                    directionY: 1,
+                    directionX: 0,
+                    parameters: parameters,
+                    now: impulse
+                )
+                let delta = try XCTUnwrap(animator.step(now: next))
+                XCTAssertGreaterThanOrEqual(delta.y, previous)
+                previous = delta.y
+                checks += 1
+                now = next
+                continue
+            }
+            if let delta = animator.step(now: next) {
+                previous = delta.y
+            }
+            now = next
+        }
+        XCTAssertGreaterThanOrEqual(checks, 4)
+    }
+
+    func testFastRepeatTailDoesNotJump() throws {
+        var animator = SmoothScrollAnimator()
+        let parameters = ScrollSmoothParameters(
+            stepPixels: 80,
+            durationMs: 260,
+            acceleration: 0.5
+        )
+        let frame = Constants.scrollFrameInterval
+        var now = 0.0
+        for index in 0..<10 {
+            let impulseTime = Double(index) * 0.02
+            while now + frame < impulseTime {
+                now += frame
+                _ = animator.step(now: now)
+            }
+            animator.add(
+                directionY: 1,
+                directionX: 0,
+                parameters: parameters,
+                now: impulseTime
+            )
+        }
+        var frames: [Int32] = []
+        let deadline = now + 1
+        while now < deadline {
+            now += frame
+            guard let delta = animator.step(now: now) else { break }
+            if delta.y != 0 {
+                frames.append(delta.y)
+            }
+        }
+        XCTAssertTrue(animator.isIdle)
+        XCTAssertGreaterThanOrEqual(frames.count, 2)
+        let last = Int(try XCTUnwrap(frames.last))
+        let previous = Int(frames[frames.count - 2])
+        XCTAssertLessThanOrEqual(last, max(2, previous + 1))
     }
 
     func testReverseClearsThatAxisOnly() {
@@ -58,7 +141,7 @@ final class SmoothScrollAnimatorTests: XCTestCase {
         animator.add(directionY: 1, directionX: 1, parameters: parameters, now: 0)
         _ = animator.step(now: 0.05)
         animator.add(directionY: -1, directionX: 0, parameters: parameters, now: 0.05)
-        let pumped = pump(&animator, from: 0.05, until: 0.5)
+        let pumped = pump(&animator, from: 0.05, until: 1)
 
         XCTAssertEqual(pumped.y, -100, accuracy: 1)
         XCTAssertGreaterThan(pumped.x, 0)
@@ -103,10 +186,10 @@ final class SmoothScrollAnimatorTests: XCTestCase {
                 now: Double(index) * 0.01
             )
         }
-        let pumped = pump(&animator, from: 0.4, until: 0.6)
+        let pumped = pump(&animator, from: 0.4, until: 1)
         XCTAssertEqual(
             pumped.y,
-            Int(Constants.scrollRemainingDistanceCap),
+            Int(Constants.scrollRemainingDistanceCap(stepPixels: parameters.stepPixels)),
             accuracy: 1
         )
     }
@@ -117,7 +200,7 @@ final class SmoothScrollAnimatorTests: XCTestCase {
     ) -> Int {
         var animator = SmoothScrollAnimator()
         add(&animator)
-        return pump(&animator, from: 0, until: 1).y
+        return pump(&animator, from: 0, until: 1.2).y
     }
 
     private func pump(

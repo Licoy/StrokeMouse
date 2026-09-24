@@ -75,7 +75,15 @@ enum Constants {
     static let scrollComboWindow: TimeInterval = 0.12
     static let scrollAccelerationGain = 0.25
     static let scrollComboLimit = 12
-    static let scrollRemainingDistanceCap: Double = 4000
+    /// End the glide once less than half a pixel remains. A time deadline
+    /// dumped the last ~2% in one frame.
+    static let scrollStopDistance: Double = 0.5
+
+    /// About two full acceleration combos at the current step. A fixed 4000pt
+    /// cap let one 120Hz frame emit roughly 480pt.
+    static func scrollRemainingDistanceCap(stepPixels: Double) -> Double {
+        stepPixels * Double(scrollComboLimit) * 2
+    }
 }
 
 enum PreferenceKey {

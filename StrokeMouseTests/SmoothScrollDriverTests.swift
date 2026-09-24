@@ -19,21 +19,22 @@ final class SmoothScrollDriverTests: XCTestCase {
                 durationMs: 80,
                 acceleration: 0
             ),
-            flags: .maskShift,
-            location: CGPoint(x: 12, y: 34)
+            flags: .maskShift
         )
 
         clock.now = 0
         driver.submit(impulse)
         driver.tickForTesting()
-        clock.now = 0.1
+        clock.now = 0.2
         driver.tickForTesting()
 
         XCTAssertFalse(poster.events.isEmpty)
         XCTAssertEqual(postedVerticalSum(poster.events), 80, accuracy: 1)
         let event = poster.events[0]
         XCTAssertEqual(event.flags, .maskShift)
-        XCTAssertEqual(event.location, CGPoint(x: 12, y: 34))
+        let cursor = CGEvent(source: nil)?.location ?? .zero
+        XCTAssertEqual(event.location.x, cursor.x, accuracy: 1)
+        XCTAssertEqual(event.location.y, cursor.y, accuracy: 1)
 
         let beforeCancel = poster.events.count
         driver.submit(impulse)
@@ -44,12 +45,15 @@ final class SmoothScrollDriverTests: XCTestCase {
     }
 
     func testSyntheticEventIsContinuousMarkedAndPixelValued() throws {
+        let source = CGEventSource(stateID: .privateState)
+        let before = CGEvent(source: nil)?.location ?? .zero
         let event = try XCTUnwrap(CGScrollEventPoster.makeEvent(
             deltaY: 12,
             deltaX: -4,
             flags: .maskCommand,
-            location: CGPoint(x: 8, y: 9)
+            source: source
         ))
+        let after = CGEvent(source: nil)?.location ?? .zero
         XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventIsContinuous), 1)
         XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1), 12)
         XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2), -4)
@@ -58,7 +62,10 @@ final class SmoothScrollDriverTests: XCTestCase {
             CGScrollEventPoster.syntheticEventMarker
         )
         XCTAssertEqual(event.flags, .maskCommand)
-        XCTAssertEqual(event.location, CGPoint(x: 8, y: 9))
+        XCTAssertEqual(event.location.x, before.x, accuracy: 1)
+        XCTAssertEqual(event.location.y, before.y, accuracy: 1)
+        XCTAssertEqual(event.location.x, after.x, accuracy: 1)
+        XCTAssertEqual(event.location.y, after.y, accuracy: 1)
     }
 
     private func postedVerticalSum(_ events: [CGEvent]) -> Int {

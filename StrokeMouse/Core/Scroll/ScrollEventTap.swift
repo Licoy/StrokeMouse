@@ -203,8 +203,7 @@ final class ScrollEventTap: ScrollEventSource, @unchecked Sendable {
                     directionY: directionY,
                     directionX: directionX,
                     parameters: captured.1.smoothParameters,
-                    flags: event.flags,
-                    location: event.location
+                    flags: event.flags
                 )
             )
             return nil

@@ -140,7 +140,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 - `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎。左键、未监控按钮和没有配对 down 的事件始终放行。
 - **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
 - `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
-- `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
+- `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。不得写入 `location`：创建时已带当前光标，过期坐标会被系统当成指针位置。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
 - Event tap 的 CFRunLoop source 跑在**专用线程**（非主线程），避免 UI/主线程卡顿拖死光标投递。
 - 触控手势（多指）只允许通过本地 C bridge `dlopen` / `dlsym` 解析 `MultitouchSupport`；禁止静态链接私有框架或引入第三方二进制。私有 callback 必须先复制成稳定值，再送入 Swift 串行队列；stop/unregister 后不得留下悬空 callback。
 - 触控手势不拦截 macOS 原生手势，系统动作可能同时发生。不得保存或记录原始触点轨迹；私有后端失败只将 multitouch 通道标为 failed/degraded，不能拖垮 mouse / modifier 通道，也不得模拟回退或静默重试。
