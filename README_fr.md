@@ -11,9 +11,9 @@
 Outil de personnalisation des gestes souris et trackpad pour macOS. Dessinez une trajectoire en maintenant un bouton de souris, dessinez au trackpad avec une seule touche de modification, ou utilisez des gestes tactiles expérimentaux à plusieurs doigts. En cas de correspondance, l’app exécute des raccourcis, ouvre des applications, pilote les fenêtres, les touches média, Shell / AppleScript, etc. Les gestes peuvent s’appliquer **globalement ou à une App précise**, les configurations sont **importables / exportables**, tout s’exécute en local et reste dans la barre des menus.
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="Vidéo de présentation de StrokeMouse" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="Vidéo de présentation de StrokeMouse" /></a>
   <br />
-  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4">▶ Voir la vidéo de présentation (1:42, texte à l’écran en chinois simplifié)</a></sub>
+  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ Voir la vidéo de présentation (1:42, texte à l’écran en chinois simplifié)</a></sub>
 </p>
 
 ## Aperçu

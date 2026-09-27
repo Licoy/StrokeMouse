@@ -11,9 +11,9 @@
 macOS 滑鼠與觸控式軌跡板手勢自訂工具。可按住滑鼠鍵繪製軌跡、按住單一修飾鍵進行觸控板繪製，也可使用實驗性的多指觸控手勢；比對成功後執行快捷鍵、開啟應用程式、視窗操作、媒體鍵、Shell / AppleScript 等。支援**全域或指定 App** 生效，手勢設定可**匯入匯出**，本機執行、選單列常駐。
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 宣傳片" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 宣傳片" /></a>
   <br />
-  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4">▶ 點擊觀看 1 分 42 秒宣傳片（片中文字為簡體中文）</a></sub>
+  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ 點擊觀看 1 分 42 秒宣傳片（片中文字為簡體中文）</a></sub>
 </p>
 
 ## 介面預覽

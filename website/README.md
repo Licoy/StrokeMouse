@@ -58,7 +58,7 @@ docs/
 修改主题组件文案：`docs/.vitepress/theme/i18n.ts`。  
 修改全站视觉：`docs/.vitepress/theme/style.css` 与 `components/`。
 
-**宣传片**：`docs/public/video/` 下是宣传片的网页压缩版、海报与 README 缩略图，官网首页用 `PromoVideo` 组件播放；GitHub 不能在 README 中内嵌仓库里的视频，所以各语言 README 放的是缩略图，链接到官网上的视频文件。
+**宣传片**：`docs/public/video/` 下是宣传片的网页压缩版、海报与 README 缩略图，官网首页用 `PromoVideo` 组件播放；GitHub 不能在 README 中内嵌仓库里的视频，所以各语言 README 放的是缩略图，链接到官网上的视频文件。更换视频后，要同步更新 `PromoVideo.vue` 和各 README 链接里的 `?v=`（取文件 SHA-256 的前 8 位）；站点前面有 CDN 缓存，URL 不变的话访客会继续拿到旧文件，甚至是发布前缓存下来的 404。
 
 **截图单源**：`docs/public/screenshots/` 为仓库内唯一产品截图目录。官网首页幻灯片使用 `/screenshots/*.png`；根目录 `README.md` 与各语言 README 引用 `website/docs/public/screenshots/`。
 

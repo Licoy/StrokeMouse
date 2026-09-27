@@ -11,9 +11,9 @@
 macOS용 마우스·트랙패드 제스처 사용자 설정 도구입니다. 마우스 버튼을 누른 채 궤적을 그리거나, 수정 키 하나를 누른 채 트랙패드 그리기를 하거나, 실험적인 여러 손가락 터치 제스처를 사용할 수 있습니다. 일치하면 단축키, 앱 열기, 윈도우 조작, 미디어 키, Shell / AppleScript 등을 실행합니다. **전역 또는 특정 App**에만 적용할 수 있고, 제스처 구성은 **가져오기/내보내기**가 가능하며, 로컬에서 실행되고 메뉴 막대에 상주합니다.
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 소개 영상" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 소개 영상" /></a>
   <br />
-  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4">▶ 1분 42초 소개 영상 보기 (영상 속 텍스트는 중국어 간체)</a></sub>
+  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ 1분 42초 소개 영상 보기 (영상 속 텍스트는 중국어 간체)</a></sub>
 </p>
 
 ## 화면 미리보기

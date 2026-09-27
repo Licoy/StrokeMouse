@@ -12,8 +12,9 @@ const props = withDefaults(
   }>(),
   {
     playLabel: 'Play video',
-    src: '/video/strokemouse-promo.mp4',
-    poster: '/video/strokemouse-promo-poster.jpg',
+    // ?v= 为文件 SHA-256 前 8 位。CDN 按完整 URL 缓存，换片后同步改这里和各 README 的链接
+    src: '/video/strokemouse-promo.mp4?v=d269ecf1',
+    poster: '/video/strokemouse-promo-poster.jpg?v=3088a677',
     duration: '1:42',
   },
 )

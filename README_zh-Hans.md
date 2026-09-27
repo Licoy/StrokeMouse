@@ -11,9 +11,9 @@
 macOS 鼠标与触控板手势自定义工具。可按住鼠标键绘制轨迹、按住单个修饰键进行触控板绘制，也可使用实验性的多指触控手势；匹配后执行快捷键、打开应用、窗口操作、媒体键、Shell / AppleScript 等。支持**全局或指定 App** 生效，手势配置可**导入导出**，本地运行、菜单栏常驻。
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 宣传片" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 宣传片" /></a>
   <br />
-  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4">▶ 点击观看 1 分 42 秒宣传片</a></sub>
+  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ 点击观看 1 分 42 秒宣传片</a></sub>
 </p>
 
 ## 界面预览
