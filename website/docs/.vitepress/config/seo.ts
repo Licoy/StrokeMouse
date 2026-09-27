@@ -18,7 +18,7 @@ import {
 export { pathFromRelative }
 
 export const SITE_TITLE = 'StrokeMouse'
-export const SITE_URL = 'https://strokemouse.app'
+export const SITE_URL = 'https://strokemouse.com'
 export const SITE_NAME = SITE_TITLE
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/app-icon.png`
 
