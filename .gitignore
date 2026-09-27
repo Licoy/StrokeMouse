@@ -41,3 +41,6 @@ certs/*
 .vscode/
 *.swp
 *~
+
+# 宣传片制作工程（仅本地使用，产出文件在 website/docs/public/video/）
+video/
