@@ -10,6 +10,12 @@
 
 macOS 向けのマウス／トラックパッドジェスチャカスタムツールです。マウスボタンを押したまま軌跡を描く、修飾キーを 1 つ押したままトラックパッド描画する、または実験的な複数指タッチジェスチャを使えます。一致するとショートカット、アプリを開く、ウインドウ操作、メディアキー、Shell / AppleScript などを実行します。**グローバルまたは特定 App** に適用でき、ジェスチャ設定は**読み込み／書き出し**可能、ローカル実行でメニューバーに常駐します。
 
+<p align="center">
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 紹介動画" /></a>
+  <br />
+  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4">▶ 1 分 42 秒の紹介動画を見る（動画内の文字は簡体字中国語）</a></sub>
+</p>
+
 ## 画面プレビュー
 
 | ジェスチャ設定一覧 | ジェスチャテスト |

@@ -23,6 +23,12 @@ description: "StrokeMouse is a macOS mouse and trackpad gesture tool. Draw with 
   :items="['Local-first', 'No telemetry', 'Open source AGPL', 'macOS 14+']"
 />
 
+<PromoVideo
+  heading="StrokeMouse in two minutes"
+  description="Input methods, actions, how recognition works, and setup in three steps. On-screen text is in Simplified Chinese."
+  play-label="Play video"
+/>
+
 <ScreenshotCarousel
   heading="Product screens"
   description="Gesture library, testing, settings, and permissions."

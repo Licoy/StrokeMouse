@@ -23,6 +23,12 @@ description: "StrokeMouse は macOS のマウス／トラックパッドジェ�
   :items="['ローカル実行', 'テレメトリなし', 'オープンソース AGPL', 'macOS 14+']"
 />
 
+<PromoVideo
+  heading="2 分でわかる StrokeMouse"
+  description="入力方法、実行できるアクション、認識のしくみ、3 ステップの導入まで。動画内の文字は簡体字中国語です。"
+  play-label="動画を再生"
+/>
+
 <ScreenshotCarousel
   heading="製品画面"
   description="ジェスチャライブラリ、テスト、設定、権限。"

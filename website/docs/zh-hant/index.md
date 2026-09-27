@@ -23,6 +23,12 @@ description: "StrokeMouse 是 macOS 滑鼠與觸控式軌跡板手勢自訂工�
   :items="['本機執行', '無遙測', '開源 AGPL', 'macOS 14+']"
 />
 
+<PromoVideo
+  heading="兩分鐘認識 StrokeMouse"
+  description="三種輸入方式、可執行的動作、辨識原理，以及三步上手。片中文字為簡體中文。"
+  play-label="播放宣傳片"
+/>
+
 <ScreenshotCarousel
   heading="產品介面"
   description="手勢庫、測試、設定與權限，所見即所得。"

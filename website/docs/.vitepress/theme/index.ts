@@ -14,6 +14,7 @@ import ScreenshotCarousel from './components/ScreenshotCarousel.vue'
 import ProofStrip from './components/ProofStrip.vue'
 import HowItWorks from './components/HowItWorks.vue'
 import HomeCta from './components/HomeCta.vue'
+import PromoVideo from './components/PromoVideo.vue'
 import { installLocaleRedirect } from './localePreference'
 import './style.css'
 
@@ -35,5 +36,6 @@ export default {
     app.component('ProofStrip', ProofStrip)
     app.component('HowItWorks', HowItWorks)
     app.component('HomeCta', HomeCta)
+    app.component('PromoVideo', PromoVideo)
   },
 } satisfies Theme

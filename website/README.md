@@ -47,8 +47,9 @@ docs/
   ja/             # 日本語
   ru/             # Русский
   fr/             # Français
-  public/         # logo / favicon / screenshots
+  public/         # logo / favicon / screenshots / video
     screenshots/  # 产品截图唯一源（README 与官网共用）
+    video/        # 宣传片（网页压缩版）、官网海报、README 缩略图
   index.md        # 简体中文首页
 ```
 
@@ -56,6 +57,8 @@ docs/
 修改导航 / 侧栏 / 搜索文案：`docs/.vitepress/config/chrome.ts`。  
 修改主题组件文案：`docs/.vitepress/theme/i18n.ts`。  
 修改全站视觉：`docs/.vitepress/theme/style.css` 与 `components/`。
+
+**宣传片**：`docs/public/video/` 下是宣传片的网页压缩版、海报与 README 缩略图，官网首页用 `PromoVideo` 组件播放；GitHub 不能在 README 中内嵌仓库里的视频，所以各语言 README 放的是缩略图，链接到官网上的视频文件。
 
 **截图单源**：`docs/public/screenshots/` 为仓库内唯一产品截图目录。官网首页幻灯片使用 `/screenshots/*.png`；根目录 `README.md` 与各语言 README 引用 `website/docs/public/screenshots/`。
 

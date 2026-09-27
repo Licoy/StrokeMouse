@@ -23,6 +23,12 @@ description: "StrokeMouse는 macOS 마우스·트랙패드 제스처 도구입�
   :items="['로컬 실행', '원격 측정 없음', '오픈 소스 AGPL', 'macOS 14+']"
 />
 
+<PromoVideo
+  heading="2분 만에 보는 StrokeMouse"
+  description="입력 방식, 실행할 수 있는 동작, 인식 원리, 세 단계 시작하기까지. 영상 속 텍스트는 중국어 간체입니다."
+  play-label="영상 재생"
+/>
+
 <ScreenshotCarousel
   heading="제품 화면"
   description="제스처 라이브러리, 테스트, 설정, 권한."

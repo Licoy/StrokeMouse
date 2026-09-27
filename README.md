@@ -10,6 +10,12 @@
 
 Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mouse button, draw with one modifier key (Trackpad Draw), or use experimental multi-finger Touch Gestures, then run shortcuts, open apps, window commands, media keys, Shell / AppleScript, and more. Gestures can be **global or app-scoped**, configs are **importable/exportable**, and everything runs locally from the menu bar.
 
+<p align="center">
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse intro video" /></a>
+  <br />
+  <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4">▶ Watch the 1:42 intro video (on-screen text in Simplified Chinese)</a></sub>
+</p>
+
 ## Screenshots
 
 | Gesture list | Gesture test |

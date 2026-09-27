@@ -23,6 +23,12 @@ description: "StrokeMouse est un outil de gestes souris et trackpad pour macOS. 
   :items="['Exécution locale', 'Sans télémétrie', 'Open source AGPL', 'macOS 14+']"
 />
 
+<PromoVideo
+  heading="StrokeMouse en deux minutes"
+  description="Modes de saisie, actions, fonctionnement de la reconnaissance et prise en main en trois étapes. Texte à l’écran en chinois simplifié."
+  play-label="Lire la vidéo"
+/>
+
 <ScreenshotCarousel
   heading="Écrans du produit"
   description="Bibliothèque de gestes, test, réglages et autorisations."
