@@ -39,16 +39,26 @@ struct GesturesSettingsView: View {
     @State private var sidebarSelection: GestureSidebarItem = .global
     @State private var pinnedAppBundleIds: [String] = GesturesSettingsView.loadPinnedApps()
     @State private var isAddAppHovered = false
+    @State private var groupEditor: AppGroupEditorRequest?
+    @State private var pendingDeleteGroupID: UUID?
+    @State private var isConfirmingDeleteGroup = false
 
     private var sidebarAppIds: [String] {
         let ids = GestureSidebarCatalog.sidebarAppBundleIds(
             gestures: appState.configStore.gestures,
-            pinnedBundleIds: pinnedAppBundleIds
+            pinnedBundleIds: pinnedAppBundleIds,
+            policyBundleIds: appState.configStore.appPolicies.map(\.bundleIdentifier)
         )
         return ids.sorted {
             let left = AppInfoLookup.info(forBundleId: $0).name
             let right = AppInfoLookup.info(forBundleId: $1).name
             return left.localizedCaseInsensitiveCompare(right) == .orderedAscending
+        }
+    }
+
+    private var sidebarGroups: [AppGroup] {
+        appState.configStore.appGroups.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
         }
     }
 
@@ -159,6 +169,56 @@ struct GesturesSettingsView: View {
                 .environment(appState)
                 .environment(\.locale, appState.resolvedLocale)
         }
+        .sheet(item: $groupEditor) { request in
+            AppGroupEditorView(
+                group: request.group,
+                isNew: request.isNew,
+                onSave: { saved in
+                    if request.isNew {
+                        appState.configStore.addAppGroup(saved)
+                    } else {
+                        appState.configStore.updateAppGroup(saved)
+                    }
+                    if let failure = appState.configStore.lastFailure {
+                        alertMessage = AlertMessage(
+                            title: L10n.string("gestures.saveFailedTitle"),
+                            detail: failure.localizedDescription
+                        )
+                        return
+                    }
+                    sidebarSelection = .group(saved.id)
+                    groupEditor = nil
+                },
+                onCancel: { groupEditor = nil }
+            )
+            .environment(\.locale, appState.resolvedLocale)
+        }
+        .confirmationDialog(
+            deleteGroupConfirmTitle,
+            isPresented: $isConfirmingDeleteGroup,
+            titleVisibility: .visible
+        ) {
+            Button(
+                L10n.string(
+                    pendingDeleteGroupGestureCount > 0
+                        ? "gestures.deleteGroupAndGestures"
+                        : "gestures.deleteGroup"
+                ),
+                role: .destructive
+            ) {
+                deletePendingGroup(.delete)
+            }
+            if pendingDeleteGroupGestureCount > 0 {
+                Button(L10n.string("gestures.deleteGroupKeepGestures")) {
+                    deletePendingGroup(.makeGlobal)
+                }
+            }
+            Button(L10n.string("common.cancel"), role: .cancel) {
+                pendingDeleteGroupID = nil
+            }
+        } message: {
+            Text(deleteGroupConfirmMessage)
+        }
         .sheet(isPresented: $isShowingAddApp) {
             InstalledAppPickerSheet(
                 mode: .single(currentBundleId: nil),
@@ -233,6 +293,13 @@ struct GesturesSettingsView: View {
             let valid = Set(appState.configStore.gestures.map(\.id))
             selection = selection.intersection(valid)
         }
+        .onChange(of: appState.configStore.appGroups) { _, groups in
+            if case .group(let id) = sidebarSelection,
+               !groups.contains(where: { $0.id == id })
+            {
+                sidebarSelection = .global
+            }
+        }
     }
 
     private var configRecoveryBanner: some View {
@@ -271,6 +338,34 @@ struct GesturesSettingsView: View {
             format: L10n.string("gestures.deleteConfirmMessage"),
             locale: L10n.locale,
             pendingDeleteIDs.count
+        )
+    }
+
+    private var pendingDeleteGroup: AppGroup? {
+        pendingDeleteGroupID.flatMap { appState.configStore.appGroup(id: $0) }
+    }
+
+    private var pendingDeleteGroupGestureCount: Int {
+        guard let id = pendingDeleteGroupID else { return 0 }
+        return gestureCount(for: .group(id))
+    }
+
+    private var deleteGroupConfirmTitle: String {
+        String(
+            format: L10n.string("gestures.deleteGroupConfirmTitle"),
+            locale: L10n.locale,
+            pendingDeleteGroup?.name ?? ""
+        )
+    }
+
+    private var deleteGroupConfirmMessage: String {
+        guard pendingDeleteGroupGestureCount > 0 else {
+            return L10n.string("gestures.deleteGroupConfirmMessageEmpty")
+        }
+        return String(
+            format: L10n.string("gestures.deleteGroupConfirmMessage"),
+            locale: L10n.locale,
+            pendingDeleteGroupGestureCount
         )
     }
 
@@ -334,6 +429,8 @@ struct GesturesSettingsView: View {
                                 title: info.name,
                                 count: gestureCount(for: item),
                                 isSelected: sidebarSelection == item,
+                                suppressesGlobal: appState.configStore
+                                    .appPolicy(forBundleIdentifier: bundleId) != nil,
                                 icon: {
                                     Image(nsImage: AppInfoLookup.icon(for: info.path))
                                         .resizable()
@@ -351,6 +448,40 @@ struct GesturesSettingsView: View {
                             }
                         }
                     }
+
+                    if !sidebarGroups.isEmpty {
+                        Text(L10n.string("gestures.sidebarGroups"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 10)
+                            .padding(.bottom, 2)
+                            .padding(.horizontal, 10)
+
+                        ForEach(sidebarGroups) { group in
+                            let item = GestureSidebarItem.group(group.id)
+                            GestureSidebarRow(
+                                title: group.name,
+                                count: gestureCount(for: item),
+                                isSelected: sidebarSelection == item,
+                                suppressesGlobal: !group.suppressedGlobalInputs.isEmpty,
+                                icon: {
+                                    Image(systemName: "square.stack.3d.up")
+                                        .foregroundStyle(.secondary)
+                                }
+                            ) {
+                                sidebarSelection = item
+                            }
+                            .help(AppGroupSummary.fullText(for: group))
+                            .contextMenu {
+                                Button(L10n.string("gestures.sidebarEditGroup")) {
+                                    groupEditor = AppGroupEditorRequest(group: group, isNew: false)
+                                }
+                                Button(L10n.string("gestures.sidebarDeleteGroup"), role: .destructive) {
+                                    requestDeleteGroup(group.id)
+                                }
+                            }
+                        }
+                    }
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
@@ -361,22 +492,31 @@ struct GesturesSettingsView: View {
     }
 
     private var addAppFooter: some View {
-        Button {
-            isShowingAddApp = true
+        Menu {
+            Button(L10n.string("gestures.sidebarAddApp")) {
+                isShowingAddApp = true
+            }
+            Button(L10n.string("gestures.sidebarNewGroup")) {
+                groupEditor = AppGroupEditorRequest(
+                    group: AppGroup(name: L10n.string("appGroup.defaultName")),
+                    isNew: true
+                )
+            }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "plus")
-                Text(L10n.string("gestures.sidebarAddApp"))
+                Text(L10n.string("gestures.sidebarAdd"))
             }
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(isAddAppHovered ? Color.primary.opacity(0.06) : chromeSurfaceColor)
         .onHover { isAddAppHovered = $0 }
-        .help(L10n.string("gestures.sidebarAddApp"))
+        .help(L10n.string("gestures.sidebarAdd"))
     }
 
     // MARK: - Detail (table only; bottom chrome is shared with sidebar)
@@ -385,6 +525,13 @@ struct GesturesSettingsView: View {
         VStack(spacing: 0) {
             toolbar
             Divider()
+
+            if sidebarSelection != .global {
+                AppScopeRuleBar(item: sidebarSelection) { group in
+                    groupEditor = AppGroupEditorRequest(group: group, isNew: false)
+                }
+                Divider()
+            }
 
             Group {
                 if appState.configStore.gestures.isEmpty, pinnedAppBundleIds.isEmpty, case .global = sidebarSelection {
@@ -421,6 +568,8 @@ struct GesturesSettingsView: View {
             return L10n.string("gestures.emptyGlobalTitle")
         case .app:
             return L10n.string("gestures.emptyAppTitle")
+        case .group:
+            return L10n.string("gestures.emptyGroupTitle")
         }
     }
 
@@ -436,6 +585,8 @@ struct GesturesSettingsView: View {
             return L10n.string("gestures.emptyGlobalSubtitle")
         case .app:
             return L10n.string("gestures.emptyAppSubtitle")
+        case .group:
+            return L10n.string("gestures.emptyGroupSubtitle")
         }
     }
 
@@ -586,6 +737,9 @@ struct GesturesSettingsView: View {
             return L10n.string("scope.global")
         case .app(let bundleId):
             return AppInfoLookup.info(forBundleId: bundleId).name
+        case .group(let groupID):
+            return appState.configStore.appGroup(id: groupID)?.name
+                ?? L10n.string("scope.group")
         }
     }
 
@@ -604,6 +758,11 @@ struct GesturesSettingsView: View {
                 .interpolation(.high)
                 .frame(width: 20, height: 20)
                 .cornerRadius(4)
+        case .group:
+            Image(systemName: "square.stack.3d.up")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+                .frame(width: 22, height: 22)
         }
     }
 
@@ -653,7 +812,12 @@ struct GesturesSettingsView: View {
 
             // Scope column: useful for multi-app gestures that appear under one app.
             TableColumn(L10n.string("gestures.col.scope")) { gesture in
-                GestureScopeCell(scope: gesture.scope)
+                GestureScopeCell(
+                    scope: gesture.scope,
+                    groupName: gesture.scope.groupID.flatMap {
+                        appState.configStore.appGroup(id: $0)?.name
+                    }
+                )
             }
             .width(min: 72, ideal: 100, max: 160)
         }
@@ -676,6 +840,20 @@ struct GesturesSettingsView: View {
                 }
                 Button(L10n.string("gestures.disableSelected")) {
                     appState.configStore.setEnabled(ids: ids, enabled: false)
+                }
+
+                Menu(L10n.string("gestures.moveTo")) {
+                    Button(L10n.string("scope.global")) {
+                        moveGestures(ids, to: .global)
+                    }
+                    if !sidebarGroups.isEmpty {
+                        Divider()
+                        ForEach(sidebarGroups) { group in
+                            Button(group.name) {
+                                moveGestures(ids, to: .group(group.id))
+                            }
+                        }
+                    }
                 }
 
                 Divider()
@@ -799,6 +977,7 @@ struct GesturesSettingsView: View {
             from: appState.configStore.gestures
         )
         if plan.isEmpty {
+            appState.configStore.removeAppPolicy(forBundleIdentifier: bundleId)
             removePinnedApp(bundleId)
             return
         }
@@ -818,7 +997,41 @@ struct GesturesSettingsView: View {
             appState.configStore.delete(ids: plan.idsToDelete)
             selection.subtract(plan.idsToDelete)
         }
+        appState.configStore.removeAppPolicy(forBundleIdentifier: bundleId)
         removePinnedApp(bundleId)
+    }
+
+    private func requestDeleteGroup(_ id: UUID) {
+        pendingDeleteGroupID = id
+        isConfirmingDeleteGroup = true
+    }
+
+    private func deletePendingGroup(_ disposition: AppGroupGestureDisposition) {
+        guard let id = pendingDeleteGroupID else { return }
+        let groupGestureIDs = Set(
+            GestureSidebarCatalog.gestures(
+                in: .group(id),
+                from: appState.configStore.gestures
+            ).map(\.id)
+        )
+        appState.configStore.deleteAppGroup(id: id, gestures: disposition)
+        if disposition == .delete {
+            selection.subtract(groupGestureIDs)
+        }
+        pendingDeleteGroupID = nil
+        if sidebarSelection == .group(id) {
+            sidebarSelection = .global
+        }
+    }
+
+    private func moveGestures(_ ids: Set<GestureProfile.ID>, to scope: AppScope) {
+        appState.configStore.setScope(scope, forGestureIDs: ids)
+        if let failure = appState.configStore.lastFailure {
+            alertMessage = AlertMessage(
+                title: L10n.string("gestures.saveFailedTitle"),
+                detail: failure.localizedDescription
+            )
+        }
     }
 
     private func removePinnedApp(_ bundleId: String) {
@@ -828,7 +1041,8 @@ struct GesturesSettingsView: View {
         if case .app(let selected) = sidebarSelection, selected == bundleId {
             let stillPresent = GestureSidebarCatalog.sidebarAppBundleIds(
                 gestures: appState.configStore.gestures,
-                pinnedBundleIds: pinnedAppBundleIds
+                pinnedBundleIds: pinnedAppBundleIds,
+                policyBundleIds: appState.configStore.appPolicies.map(\.bundleIdentifier)
             ).contains(bundleId)
             if !stillPresent {
                 sidebarSelection = .global
@@ -1214,12 +1428,19 @@ private struct AlertMessage: Identifiable {
     let detail: String
 }
 
+private struct AppGroupEditorRequest: Identifiable {
+    let id = UUID()
+    let group: AppGroup
+    let isNew: Bool
+}
+
 // MARK: - Sidebar row (explicit light/dark selection + hover)
 
 private struct GestureSidebarRow<Icon: View>: View {
     let title: String
     let count: Int
     let isSelected: Bool
+    var suppressesGlobal = false
     @ViewBuilder var icon: () -> Icon
     var action: () -> Void
 
@@ -1236,6 +1457,13 @@ private struct GestureSidebarRow<Icon: View>: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 Spacer(minLength: 4)
+                if suppressesGlobal {
+                    Image(systemName: "globe.badge.chevron.backward")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .help(L10n.string("gestures.sidebarSuppressedHelp"))
+                        .accessibilityLabel(L10n.string("gestures.sidebarSuppressedHelp"))
+                }
                 Text("\(count)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
@@ -1267,6 +1495,7 @@ private struct GestureSidebarRow<Icon: View>: View {
 
 private struct GestureScopeCell: View {
     let scope: AppScope
+    var groupName: String?
 
     private let iconSize: CGFloat = 16
     private let maxVisibleIcons = 6
@@ -1275,6 +1504,10 @@ private struct GestureScopeCell: View {
         switch scope {
         case .global:
             Text(L10n.string("scope.global"))
+                .lineLimit(1)
+                .foregroundStyle(.secondary)
+        case .group:
+            Label(groupName ?? L10n.string("scope.group"), systemImage: "square.stack.3d.up")
                 .lineLimit(1)
                 .foregroundStyle(.secondary)
         case .apps(let bundleIds):

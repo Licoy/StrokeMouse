@@ -1701,10 +1701,351 @@ final class GestureRuntimeTests: XCTestCase {
         )
     }
 
+    // MARK: - App rules
+
+    func testSuppressedApplicationReceivesTriggerButtonUntouched() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let capturer = MutableRuntimeTargetCapturer(
+            processIdentifier: 101,
+            bundleIdentifier: "com.blender.Blender"
+        )
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: capturer,
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        var matchedIDs: [UUID] = []
+        runtime.onMatch = { matchedIDs.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [rightUpProfile(name: "Global Up")],
+            appRules: GestureAppRules(
+                policies: [AppGesturePolicy(bundleIdentifier: "com.blender.blender")],
+                groups: []
+            )
+        ))
+
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+
+        XCTAssertEqual(mouse.replayedClicks, 0)
+        XCTAssertTrue(matchedIDs.isEmpty)
+        XCTAssertNil(runtime.state.activeSession)
+        XCTAssertNil(runtime.state.lastOutcome)
+        XCTAssertEqual(capturer.captureCount, 1)
+
+        // The gate stayed free: another application still gets the gesture.
+        capturer.bundleIdentifier = "com.apple.Safari"
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+        XCTAssertEqual(matchedIDs.count, 1)
+        // The down-edge decision's target is reused, not captured again.
+        XCTAssertEqual(capturer.captureCount, 2)
+    }
+
+    func testDeclinedMouseCaptureSkipsWindowTarget() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let capturer = IdentifyingRuntimeTargetCapturer(
+            processIdentifier: 101,
+            bundleIdentifier: "com.blender.Blender"
+        )
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: capturer,
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [rightUpProfile(name: "Global Up")],
+            appRules: GestureAppRules(
+                policies: [AppGesturePolicy(bundleIdentifier: "com.blender.Blender")],
+                groups: []
+            )
+        ))
+
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        await drainMainActor()
+        XCTAssertEqual(capturer.identityCount, 1)
+        XCTAssertEqual(capturer.windowCaptureCount, 0)
+
+        capturer.bundleIdentifier = "com.apple.Safari"
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+        XCTAssertEqual(capturer.identityCount, 2)
+        XCTAssertEqual(capturer.windowCaptureCount, 1)
+    }
+
+    func testApplicationOnlyTriggerGesturesPassThroughElsewhere() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let capturer = MutableRuntimeTargetCapturer(
+            processIdentifier: 101,
+            bundleIdentifier: "com.google.Chrome"
+        )
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: capturer,
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        var safariOnly = rightUpProfile(name: "Safari Up")
+        safariOnly.scope = .apps(["com.apple.Safari"])
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [safariOnly]
+        ))
+
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(mouse.replayedClicks, 0)
+
+        capturer.bundleIdentifier = "com.apple.Safari"
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        // A short press in a captured app is still replayed as a click.
+        XCTAssertEqual(mouse.replayedClicks, 1)
+    }
+
+    func testSuppressionOnlyAffectsSelectedInputKinds() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [rightUpProfile(name: "Global Up")],
+            appRules: GestureAppRules(
+                policies: [AppGesturePolicy(
+                    bundleIdentifier: "com.example.target",
+                    suppressedGlobalInputs: SuppressedGlobalInputs(kinds: [.touchGesture])
+                )],
+                groups: []
+            )
+        ))
+
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+    }
+
+    func testGroupGestureWinsOverGlobalInsideMatchingDirectory() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let capturer = MutableRuntimeTargetCapturer(
+            processIdentifier: 101,
+            bundleIdentifier: "com.studio.game",
+            bundlePath: "/Users/test/Steam/steamapps/common/Game/Game.app"
+        )
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: capturer,
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        let group = AppGroup(
+            name: "Steam",
+            matchers: [.directory("/Users/test/Steam/steamapps/common")]
+        )
+        let global = rightUpProfile(name: "Global Up")
+        var grouped = rightUpProfile(name: "Group Up")
+        grouped.scope = .group(group.id)
+        var matchedIDs: [UUID] = []
+        runtime.onMatch = { matchedIDs.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [global, grouped],
+            appRules: GestureAppRules(policies: [], groups: [group])
+        ))
+
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+
+        XCTAssertEqual(matchedIDs, [grouped.id])
+    }
+
+    func testDiagnosticsStillCaptureInSuppressedApplication() throws {
+        let mouse = RuntimeMouseEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [rightUpProfile(name: "Global Up")],
+            appRules: GestureAppRules(
+                policies: [AppGesturePolicy(bundleIdentifier: "com.example.target")],
+                groups: []
+            )
+        ))
+        let diagnostic = runtime.beginDiagnostics()
+        defer { diagnostic.end() }
+
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 300))
+    }
+
+    func testSuppressedModifierDrawingSkipsSessionAndFreesGate() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let modifier = RuntimeModifierEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            modifierEventTap: modifier,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        let modifierProfile = GestureProfile(
+            name: "Fn",
+            input: .drawn(DrawnGesture(
+                activation: .modifier(.function),
+                points: PathTemplates.up
+            ))
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [modifierProfile, rightUpProfile(name: "Mouse")],
+            appRules: GestureAppRules(
+                policies: [AppGesturePolicy(
+                    bundleIdentifier: "com.example.target",
+                    suppressedGlobalInputs: SuppressedGlobalInputs(kinds: [.trackpadDrawing])
+                )],
+                groups: []
+            )
+        ))
+
+        modifier.press(.function)
+        await drainMainActor()
+        XCTAssertNil(runtime.state.activeSession)
+
+        // While Fn is still held, the mouse can own a session.
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 300))
+        modifier.release(.function)
+        await drainMainActor()
+    }
+
+    func testSuppressedTouchGestureDoesNotRunAndFreesGate() async throws {
+        let source = RuntimeMultitouchSource()
+        let mouse = RuntimeMouseEventSource()
+        let platform = RuntimeActionPlatform()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { source }
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [shortcutProfile(name: "Swipe"), rightUpProfile(name: "Mouse")],
+            appRules: GestureAppRules(
+                policies: [],
+                groups: [AppGroup(
+                    name: "Target",
+                    matchers: [.bundleIdentifier("com.example.target")],
+                    suppressedGlobalInputs: SuppressedGlobalInputs(kinds: [.touchGesture])
+                )]
+            )
+        ))
+
+        source.emit(frame(at: 0, points: basePoints()))
+        source.emit(frame(at: 0.07, points: basePoints()))
+        await drainMainActor()
+        XCTAssertNil(runtime.state.activeSession)
+
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.right, at: CGPoint(x: 20, y: 300))
+
+        source.emit(frame(
+            at: 0.14,
+            points: basePoints().mapValues {
+                CGPoint(x: $0.x + 0.16, y: $0.y)
+            }
+        ))
+        source.emit(frame(at: 0.20, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(platform.shortcutCount, 0)
+    }
+
+    func testGroupTouchGestureRunsInMatchingApplication() async throws {
+        let source = RuntimeMultitouchSource()
+        let platform = RuntimeActionPlatform()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: MutableRuntimeTargetCapturer(
+                processIdentifier: 101,
+                bundleIdentifier: "unity.DefaultCompany.Game"
+            ),
+            multitouchSourceFactory: { source }
+        )
+        let group = AppGroup(name: "Unity", matchers: [.bundleIdentifierPattern("unity.*")])
+        var grouped = shortcutProfile(name: "Swipe")
+        grouped.scope = .group(group.id)
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [grouped],
+            appRules: GestureAppRules(policies: [], groups: [group])
+        ))
+
+        source.emit(frame(at: 0, points: basePoints()))
+        source.emit(frame(at: 0.07, points: basePoints()))
+        source.emit(frame(
+            at: 0.14,
+            points: basePoints().mapValues {
+                CGPoint(x: $0.x + 0.16, y: $0.y)
+            }
+        ))
+        source.emit(frame(at: 0.20, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(platform.shortcutProcessIdentifiers, [101])
+    }
+
+    private func rightUpProfile(name: String) -> GestureProfile {
+        GestureProfile(
+            name: name,
+            input: .drawn(DrawnGesture(
+                activation: .mouse(.default),
+                points: PathTemplates.up
+            )),
+            action: .none
+        )
+    }
+
     private func configuration(
         revision: UInt64,
         enabled: Bool,
-        profiles: [GestureProfile]
+        profiles: [GestureProfile],
+        appRules: GestureAppRules = .empty
     ) -> GestureRuntimeConfiguration {
         GestureRuntimeConfiguration(
             revision: revision,
@@ -1714,7 +2055,8 @@ final class GestureRuntimeTests: XCTestCase {
             pathMatchThreshold: 0.7,
             showsHUD: false,
             showsLiveMismatchFeedback: false,
-            directTrackpadEnabled: true
+            directTrackpadEnabled: true,
+            appRules: appRules
         )
     }
 
@@ -1835,7 +2177,7 @@ private final class RuntimePermissionProvider: GesturePermissionProviding {
 private final class RuntimeMouseEventSource: MouseGestureEventSource {
     var watchedButtons = Set<MouseTriggerButton>()
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)?
-    var shouldCapture: ((MouseTriggerButton) -> Bool)?
+    var shouldCapture: ((MouseTriggerButton, CGPoint) -> Bool)?
     private(set) var isActive = false
     private(set) var stopCount = 0
     private(set) var replayedClicks = 0
@@ -1878,7 +2220,7 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
         guard isActive,
               watchedButtons.contains(button),
               !interruptedButtons.contains(button),
-              shouldCapture?(button) ?? true
+              shouldCapture?(button, location) ?? true
         else {
             return false
         }
@@ -2020,7 +2362,9 @@ private final class MutableRuntimeTargetCapturer: GestureTargetCapturing,
 {
     private let lock = NSLock()
     private var storedProcessIdentifier: pid_t
-    private let bundleIdentifier: String
+    private var storedBundleIdentifier: String
+    private var storedBundlePath: String?
+    private(set) var captureCount = 0
 
     var processIdentifier: pid_t {
         get {
@@ -2035,24 +2379,100 @@ private final class MutableRuntimeTargetCapturer: GestureTargetCapturing,
         }
     }
 
+    var bundleIdentifier: String {
+        get { lock.withLock { storedBundleIdentifier } }
+        set { lock.withLock { storedBundleIdentifier = newValue } }
+    }
+
+    var bundlePath: String? {
+        get { lock.withLock { storedBundlePath } }
+        set { lock.withLock { storedBundlePath = newValue } }
+    }
+
     init(
         processIdentifier: pid_t,
-        bundleIdentifier: String = "com.example.target"
+        bundleIdentifier: String = "com.example.target",
+        bundlePath: String? = nil
     ) {
         storedProcessIdentifier = processIdentifier
-        self.bundleIdentifier = bundleIdentifier
+        storedBundleIdentifier = bundleIdentifier
+        storedBundlePath = bundlePath
     }
 
     func capture(
         policies: Set<GestureTargetPolicy>,
         at quartzLocation: CGPoint
     ) -> GestureTargetSnapshot {
-        let capturedProcessIdentifier = processIdentifier
+        let (capturedProcessIdentifier, capturedBundleIdentifier, capturedPath) =
+            lock.withLock {
+                captureCount += 1
+                return (storedProcessIdentifier, storedBundleIdentifier, storedBundlePath)
+            }
         let target = GestureTargetResolution.resolved(
             GestureTargetContext(
                 policy: .frontmostWindow,
                 identity: GestureTargetIdentity(
                     processIdentifier: capturedProcessIdentifier,
+                    bundleIdentifier: capturedBundleIdentifier,
+                    bundlePath: capturedPath
+                ),
+                application: nil,
+                window: nil
+            )
+        )
+        return GestureTargetSnapshot(
+            frontmostWindow: target,
+            windowUnderPointer: target
+        )
+    }
+}
+
+/// Separates the cheap identity read from the window capture so tests can
+/// prove a declined session never asks for the AX window.
+private final class IdentifyingRuntimeTargetCapturer: GestureTargetIdentifying,
+    @unchecked Sendable
+{
+    private let lock = NSLock()
+    private var storedProcessIdentifier: pid_t
+    private var storedBundleIdentifier: String
+    private(set) var identityCount = 0
+    private(set) var windowCaptureCount = 0
+
+    var bundleIdentifier: String {
+        get { lock.withLock { storedBundleIdentifier } }
+        set { lock.withLock { storedBundleIdentifier = newValue } }
+    }
+
+    init(processIdentifier: pid_t, bundleIdentifier: String) {
+        storedProcessIdentifier = processIdentifier
+        storedBundleIdentifier = bundleIdentifier
+    }
+
+    func captureIdentity(
+        policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetSnapshot {
+        lock.withLock { identityCount += 1 }
+        return snapshot()
+    }
+
+    func capture(
+        policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetSnapshot {
+        lock.withLock { windowCaptureCount += 1 }
+        return snapshot()
+    }
+
+    private func snapshot() -> GestureTargetSnapshot {
+        let (processIdentifier, bundleIdentifier) = lock.withLock {
+            (storedProcessIdentifier, storedBundleIdentifier)
+        }
+        let target = GestureTargetResolution.resolved(
+            GestureTargetContext(
+                policy: .frontmostWindow,
+                identity: GestureTargetIdentity(
+                    processIdentifier: processIdentifier,
                     bundleIdentifier: bundleIdentifier
                 ),
                 application: nil,

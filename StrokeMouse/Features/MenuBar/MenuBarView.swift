@@ -27,6 +27,31 @@ struct MenuBarView: View {
             }
         }
 
+        if let application = appState.lastExternalApplication {
+            let suppression = appState.globalGestureSuppression(for: application)
+            Toggle(
+                String(
+                    format: L10n.string("menu.suppressGlobalInApp"),
+                    locale: L10n.locale,
+                    application.name
+                ),
+                isOn: Binding(
+                    get: { suppression.byApplication },
+                    set: { appState.setGlobalGesturesSuppressed($0, for: application) }
+                )
+            )
+            if !suppression.byApplication, !suppression.byGroups.isEmpty {
+                Text(
+                    String(
+                        format: L10n.string("menu.suppressedByGroup"),
+                        locale: L10n.locale,
+                        AppScopeRuleBar.list(suppression.byGroups)
+                    )
+                )
+                .foregroundStyle(.secondary)
+            }
+        }
+
         Button(L10n.string("menu.openSettings")) {
             // Defer: MenuBarExtra tears down its content as the menu closes.
             let open = appState.openSettings

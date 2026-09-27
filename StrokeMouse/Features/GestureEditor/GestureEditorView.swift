@@ -4,8 +4,9 @@ struct GestureEditorView: View {
     @Environment(AppState.self) private var appState
     @State private var profile: GestureProfile
     @State private var actionKind: ActionKind
-    @State private var scopeIsGlobal = true
+    @State private var scopeMode: AppScopeMode = .global
     @State private var scopeBundleIds: [String] = []
+    @State private var scopeGroupID: UUID?
     @State private var pathPoints: [CodablePoint]
     @State private var captureSuppression: GestureCaptureSuppression?
 
@@ -30,10 +31,13 @@ struct GestureEditorView: View {
         _actionKind = State(initialValue: ActionKind.from(profile.action))
         switch profile.scope {
         case .global:
-            _scopeIsGlobal = State(initialValue: true)
+            _scopeMode = State(initialValue: .global)
             _scopeBundleIds = State(initialValue: [])
+        case .group(let groupID):
+            _scopeMode = State(initialValue: .group)
+            _scopeGroupID = State(initialValue: groupID)
         case .apps(let ids):
-            _scopeIsGlobal = State(initialValue: false)
+            _scopeMode = State(initialValue: .apps)
             // Preserve order, drop empties/duplicates.
             var seen = Set<String>()
             var unique: [String] = []
@@ -136,7 +140,12 @@ struct GestureEditorView: View {
             }
 
             Section(L10n.string("editor.scope")) {
-                AppScopeEditorView(isGlobal: $scopeIsGlobal, bundleIds: $scopeBundleIds)
+                AppScopeEditorView(
+                    mode: $scopeMode,
+                    bundleIds: $scopeBundleIds,
+                    groupID: $scopeGroupID,
+                    groups: appState.configStore.appGroups
+                )
             }
 
             Section(L10n.string("editor.notes")) {
@@ -151,8 +160,8 @@ struct GestureEditorView: View {
         HStack {
             Button(L10n.string("common.cancel")) { onCancel() }
                 .keyboardShortcut(.cancelAction)
-            if !canSave {
-                Text(L10n.string("editor.saveNeedsPath"))
+            if let saveBlocker {
+                Text(L10n.string(saveBlocker))
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .padding(.leading, 8)
@@ -185,21 +194,31 @@ struct GestureEditorView: View {
             drawn.points = pathPoints
             profile.input = .drawn(drawn)
         }
-        if scopeIsGlobal {
+        switch scopeMode {
+        case .global:
             profile.scope = .global
-        } else {
+        case .apps:
             profile.scope = .apps(scopeBundleIds)
+        case .group:
+            guard let scopeGroupID else { return }
+            profile.scope = .group(scopeGroupID)
         }
         onSave(profile)
     }
 
-    private var canSave: Bool {
-        switch profile.input {
-        case .drawn:
-            return pathPoints.count >= 2
-        case .trackpad:
-            return true
+    private var canSave: Bool { saveBlocker == nil }
+
+    /// Localization key explaining why saving is disabled.
+    private var saveBlocker: String? {
+        if case .drawn = profile.input, pathPoints.count < 2 {
+            return "editor.saveNeedsPath"
         }
+        if scopeMode == .group,
+           !appState.configStore.appGroups.contains(where: { $0.id == scopeGroupID })
+        {
+            return "editor.saveNeedsGroup"
+        }
+        return nil
     }
 
     private var targetHelpKey: String {

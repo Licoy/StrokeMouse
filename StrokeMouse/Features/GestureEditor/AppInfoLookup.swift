@@ -78,9 +78,14 @@ enum AppInfoLookup {
             roots.append(local)
         }
 
+        return scanApplications(in: roots, maxDepth: 2)
+    }
+
+    /// Scans arbitrary folders (e.g. a game library chosen for an app group).
+    static func scanApplications(in roots: [URL], maxDepth: Int) -> [Info] {
         var byBundleId: [String: Info] = [:]
         for root in roots {
-            scanDirectory(root, depth: 0, maxDepth: 2, into: &byBundleId)
+            scanDirectory(root, depth: 0, maxDepth: maxDepth, into: &byBundleId)
         }
 
         return byBundleId.values.sorted {

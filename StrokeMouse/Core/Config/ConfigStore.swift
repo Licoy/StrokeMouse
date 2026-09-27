@@ -11,13 +11,27 @@ final class ConfigStore {
     )
 
     private(set) var gestures: [GestureProfile] = []
+    /// Exact-application overrides, e.g. suppressing global gestures.
+    private(set) var appPolicies: [AppGesturePolicy] = []
+    private(set) var appGroups: [AppGroup] = []
     private(set) var lastError: String?
     private(set) var lastFailure: ConfigStoreFailure?
     private(set) var configURL: URL
     private(set) var requiresRecovery = false
 
-    /// Called after gestures are mutated and persisted (or after load).
+    /// Called after gestures, app policies or app groups are mutated and
+    /// persisted (or after load).
     var onGesturesChanged: (() -> Void)?
+
+    /// Complete library in its persisted wire shape.
+    var library: GestureConfigFile {
+        GestureConfigFile(
+            version: Constants.configVersion,
+            gestures: gestures,
+            appPolicies: appPolicies,
+            appGroups: appGroups
+        )
+    }
 
     private let fileManager: FileManager
     private let encoder: JSONEncoder
@@ -104,20 +118,21 @@ final class ConfigStore {
             if fileManager.fileExists(atPath: configURL.path) {
                 let data = try Data(contentsOf: configURL)
                 switch try decodeConfig(from: data) {
-                case .current(let profiles, let requiresCompatibilityRewrite):
-                    try validate(profiles)
+                case .current(let file, let requiresCompatibilityRewrite):
+                    try validate(file)
                     if requiresCompatibilityRewrite {
-                        try persist(profiles)
+                        try persist(file)
                     }
-                    publish(profiles)
+                    publish(file)
                 case .legacy(let profiles):
-                    try validate(profiles)
+                    let file = Self.file(gestures: profiles)
+                    try validate(file)
                     try preserveLegacyBackup(data)
-                    try persist(profiles)
-                    publish(profiles)
+                    try persist(file)
+                    publish(file)
                 }
             } else {
-                let defaults = DefaultGestures.make()
+                let defaults = Self.defaultLibrary()
                 try persist(defaults)
                 publish(defaults)
             }
@@ -133,8 +148,9 @@ final class ConfigStore {
     func save() -> Bool {
         guard !requiresRecovery else { return false }
         do {
-            try persist(gestures)
-            publish(gestures)
+            let current = library
+            try persist(current)
+            publish(current)
             return true
         } catch {
             recordFailure(error)
@@ -195,8 +211,101 @@ final class ConfigStore {
         commit(profiles)
     }
 
+    /// Restores the default gestures and clears app policies and groups.
     func resetToDefaults() {
-        commit(DefaultGestures.make())
+        commit(Self.defaultLibrary())
+    }
+
+    // MARK: - App policies and groups
+
+    func appPolicy(forBundleIdentifier bundleIdentifier: String) -> AppGesturePolicy? {
+        guard let key = AppMatching.normalizedBundleIdentifier(bundleIdentifier)?
+            .lowercased()
+        else {
+            return nil
+        }
+        return appPolicies.first { $0.bundleIdentifier.lowercased() == key }
+    }
+
+    /// An empty set removes the override so the application follows global gestures.
+    func setSuppressedGlobalInputs(
+        _ suppressed: SuppressedGlobalInputs,
+        forBundleIdentifier bundleIdentifier: String
+    ) {
+        guard let normalized = AppMatching.normalizedBundleIdentifier(bundleIdentifier) else {
+            return
+        }
+        var candidate = library
+        candidate.appPolicies.removeAll {
+            $0.bundleIdentifier.lowercased() == normalized.lowercased()
+        }
+        if !suppressed.isEmpty {
+            candidate.appPolicies.append(AppGesturePolicy(
+                bundleIdentifier: normalized,
+                suppressedGlobalInputs: suppressed
+            ))
+        }
+        guard candidate != library else { return }
+        commit(candidate)
+    }
+
+    func removeAppPolicy(forBundleIdentifier bundleIdentifier: String) {
+        setSuppressedGlobalInputs(.none, forBundleIdentifier: bundleIdentifier)
+    }
+
+    func appGroup(id: UUID) -> AppGroup? {
+        appGroups.first { $0.id == id }
+    }
+
+    func addAppGroup(_ group: AppGroup) {
+        var candidate = library
+        candidate.appGroups.append(group)
+        commit(candidate)
+    }
+
+    func updateAppGroup(_ group: AppGroup) {
+        guard let index = appGroups.firstIndex(where: { $0.id == group.id }) else {
+            return
+        }
+        var candidate = library
+        candidate.appGroups[index] = group
+        guard candidate != library else { return }
+        commit(candidate)
+    }
+
+    /// Removes a group. Its gestures are deleted or become global.
+    func deleteAppGroup(
+        id: UUID,
+        gestures disposition: AppGroupGestureDisposition
+    ) {
+        guard appGroups.contains(where: { $0.id == id }) else { return }
+        var candidate = library
+        candidate.appGroups.removeAll { $0.id == id }
+        switch disposition {
+        case .delete:
+            candidate.gestures.removeAll { $0.scope == .group(id) }
+        case .makeGlobal:
+            for index in candidate.gestures.indices
+            where candidate.gestures[index].scope == .group(id) {
+                candidate.gestures[index].scope = .global
+            }
+        }
+        commit(candidate)
+    }
+
+    /// Moves gestures to a new scope in one write (e.g. into an app group).
+    func setScope(_ scope: AppScope, forGestureIDs ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        var candidate = library
+        var changed = false
+        for index in candidate.gestures.indices
+        where ids.contains(candidate.gestures[index].id)
+            && candidate.gestures[index].scope != scope
+        {
+            candidate.gestures[index].scope = scope
+            changed = true
+        }
+        if changed { commit(candidate) }
     }
 
     // MARK: - Whole-library backup
@@ -208,11 +317,9 @@ final class ConfigStore {
             throw ConfigStoreFailure.recoveryRequired
         }
         do {
-            try validate(gestures)
-            return GestureConfigFile(
-                version: Constants.configVersion,
-                gestures: gestures
-            )
+            let current = library
+            try validate(current)
+            return current
         } catch {
             throw recordFailure(error)
         }
@@ -223,7 +330,7 @@ final class ConfigStore {
         guard file.version == Constants.configVersion else {
             throw ConfigStoreFailure.unsupportedVersion(file.version)
         }
-        try validate(file.gestures)
+        try validate(file)
     }
 
     /// Atomically replaces the complete gesture library from a backup.
@@ -234,8 +341,8 @@ final class ConfigStore {
         }
         try validateBackupGestureFile(file)
         do {
-            try persist(file.gestures)
-            publish(file.gestures)
+            try persist(file)
+            publish(file)
         } catch {
             throw recordFailure(error)
         }
@@ -247,7 +354,7 @@ final class ConfigStore {
     func recoverWithDefaults() throws -> URL? {
         guard requiresRecovery else { return nil }
         let backupURL = try preserveRecoveryCopy()
-        let defaults = DefaultGestures.make()
+        let defaults = Self.defaultLibrary()
         do {
             try persist(defaults)
             requiresRecovery = false
@@ -267,21 +374,30 @@ final class ConfigStore {
         guard !selected.isEmpty else {
             throw GestureImportExportError.emptySelection
         }
-        let file = GestureConfigFile(version: Constants.configVersion, gestures: selected)
+        // Group-scoped gestures carry their group so the package stays valid.
+        let referencedGroupIDs = Set(selected.compactMap(\.scope.groupID))
+        let file = GestureConfigFile(
+            version: Constants.configVersion,
+            gestures: selected,
+            appGroups: appGroups.filter { referencedGroupIDs.contains($0.id) }
+        )
         return try encoder.encode(file)
     }
 
     /// Decode a package and classify each profile as unique or duplicate vs current store content.
     func analyzeImportPackage(from data: Data) throws -> GestureImportAnalysis {
-        let importedProfiles: [GestureProfile]
+        let package: GestureConfigFile
         switch try decodeConfig(from: data) {
-        case .current(let profiles, _), .legacy(let profiles):
-            importedProfiles = profiles
+        case .current(let file, _):
+            package = file
+        case .legacy(let profiles):
+            package = Self.file(gestures: profiles)
         }
-        try validate(importedProfiles)
-        guard !importedProfiles.isEmpty else {
+        try validate(package)
+        guard !package.gestures.isEmpty else {
             throw GestureImportExportError.emptyPackage
         }
+        let (importedProfiles, groupsToAdd) = resolveImportedGroups(package)
         var unique: [GestureProfile] = []
         var duplicates: [GestureProfile] = []
         var ordered: [GestureProfile] = []
@@ -295,13 +411,52 @@ final class ConfigStore {
                 unique.append(profile)
             }
         }
-        return GestureImportAnalysis(unique: unique, duplicates: duplicates, ordered: ordered)
+        return GestureImportAnalysis(
+            unique: unique,
+            duplicates: duplicates,
+            ordered: ordered,
+            groups: groupsToAdd
+        )
+    }
+
+    /// Maps package groups onto local ones (same id, else same content) and
+    /// returns the groups that still need to be added.
+    private func resolveImportedGroups(
+        _ package: GestureConfigFile
+    ) -> ([GestureProfile], [AppGroup]) {
+        let referenced = Set(package.gestures.compactMap(\.scope.groupID))
+        var remap: [UUID: UUID] = [:]
+        var groupsToAdd: [AppGroup] = []
+        for group in package.appGroups where referenced.contains(group.id) {
+            if appGroups.contains(where: { $0.id == group.id }) {
+                remap[group.id] = group.id
+            } else if let local = appGroups.first(where: { $0.isContentEqual(to: group) }) {
+                remap[group.id] = local.id
+            } else {
+                remap[group.id] = group.id
+                groupsToAdd.append(group)
+            }
+        }
+        let profiles = package.gestures.map { profile in
+            guard let groupID = profile.scope.groupID,
+                  let mapped = remap[groupID]
+            else {
+                return profile
+            }
+            var remapped = profile
+            remapped.scope = .group(mapped)
+            return remapped
+        }
+        return (profiles, groupsToAdd)
     }
 
     /// Assign fresh UUIDs, append profiles, and persist once.
     /// - Returns: IDs of the newly imported profiles (for UI selection).
     @discardableResult
-    func importProfiles(_ profiles: [GestureProfile]) throws -> [UUID] {
+    func importProfiles(
+        _ profiles: [GestureProfile],
+        groups: [AppGroup] = []
+    ) throws -> [UUID] {
         guard !profiles.isEmpty else { return [] }
         guard !requiresRecovery else {
             throw GestureImportExportError.persistFailed(
@@ -310,14 +465,21 @@ final class ConfigStore {
             )
         }
         var newIDs: [UUID] = []
-        var candidate = gestures
+        var candidate = library
         newIDs.reserveCapacity(profiles.count)
         for profile in profiles {
             var imported = profile
             let newID = UUID()
             imported.id = newID
-            candidate.append(imported)
+            candidate.gestures.append(imported)
             newIDs.append(newID)
+        }
+        let referenced = Set(profiles.compactMap(\.scope.groupID))
+        for group in groups
+        where referenced.contains(group.id)
+            && !candidate.appGroups.contains(where: { $0.id == group.id })
+        {
+            candidate.appGroups.append(group)
         }
         do {
             try persist(candidate)
@@ -335,7 +497,10 @@ final class ConfigStore {
     @discardableResult
     func importPackage(from data: Data, duplicatePolicy: GestureImportDuplicatePolicy = .forceAll) throws -> [UUID] {
         let analysis = try analyzeImportPackage(from: data)
-        return try importProfiles(analysis.profilesToImport(policy: duplicatePolicy))
+        return try importProfiles(
+            analysis.profilesToImport(policy: duplicatePolicy),
+            groups: analysis.groups
+        )
     }
 
     /// Enabled gestures for the mouse button used for this stroke.
@@ -365,14 +530,12 @@ final class ConfigStore {
         })
     }
 
-    private func persist(_ profiles: [GestureProfile]) throws {
-        try validate(profiles)
+    private func persist(_ library: GestureConfigFile) throws {
+        var file = library
+        file.version = Constants.configVersion
+        try validate(file)
         let dir = configURL.deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
-        let file = GestureConfigFile(
-            version: Constants.configVersion,
-            gestures: profiles
-        )
         let data = try encoder.encode(file)
         let temp = dir.appendingPathComponent(".\(UUID().uuidString).tmp")
         defer { removeTemporaryItemIfPresent(at: temp) }
@@ -381,6 +544,37 @@ final class ConfigStore {
             try replaceItem(configURL, temp)
         } else {
             try fileManager.moveItem(at: temp, to: configURL)
+        }
+    }
+
+    private func validate(_ file: GestureConfigFile) throws {
+        try validate(file.gestures)
+        var groupIDs = Set<UUID>()
+        for group in file.appGroups {
+            guard groupIDs.insert(group.id).inserted else {
+                throw ConfigStoreFailure.invalidConfiguration(
+                    .duplicateAppGroupID(group.id)
+                )
+            }
+        }
+        var policyKeys = Set<String>()
+        for policy in file.appPolicies {
+            guard let key = AppMatching.normalizedBundleIdentifier(
+                policy.bundleIdentifier
+            )?.lowercased(),
+                policyKeys.insert(key).inserted
+            else {
+                throw ConfigStoreFailure.invalidConfiguration(
+                    .invalidAppPolicy(policy.bundleIdentifier)
+                )
+            }
+        }
+        for profile in file.gestures {
+            if let groupID = profile.scope.groupID, !groupIDs.contains(groupID) {
+                throw ConfigStoreFailure.invalidConfiguration(
+                    .missingAppGroup(groupID)
+                )
+            }
         }
     }
 
@@ -423,7 +617,7 @@ final class ConfigStore {
                     from: data
                 )
                 return .current(
-                    file.gestures,
+                    file,
                     requiresCompatibilityRewrite: compatibility
                         .storesNativeApplicationSwitch
                 )
@@ -496,6 +690,12 @@ final class ConfigStore {
     }
 
     private func commit(_ candidate: [GestureProfile]) {
+        var file = library
+        file.gestures = candidate
+        commit(file)
+    }
+
+    private func commit(_ candidate: GestureConfigFile) {
         guard !requiresRecovery else { return }
         do {
             try persist(candidate)
@@ -505,17 +705,32 @@ final class ConfigStore {
         }
     }
 
-    private func publish(_ profiles: [GestureProfile]) {
-        gestures = profiles
+    private func publish(_ file: GestureConfigFile) {
+        gestures = file.gestures
+        appPolicies = file.appPolicies
+        appGroups = file.appGroups
         lastFailure = nil
         lastError = nil
         onGesturesChanged?()
     }
+
+    private static func file(gestures: [GestureProfile]) -> GestureConfigFile {
+        GestureConfigFile(version: Constants.configVersion, gestures: gestures)
+    }
+
+    private static func defaultLibrary() -> GestureConfigFile {
+        file(gestures: DefaultGestures.make())
+    }
+}
+
+enum AppGroupGestureDisposition: Sendable {
+    case delete
+    case makeGlobal
 }
 
 private enum DecodedConfig {
     case current(
-        [GestureProfile],
+        GestureConfigFile,
         requiresCompatibilityRewrite: Bool
     )
     case legacy([GestureProfile])
@@ -660,28 +875,37 @@ enum ConfigValidationFailure: Equatable, Sendable {
     case duplicateProfileID(UUID)
     case drawnPathTooShort(UUID)
     case nonFiniteDrawnPoint(UUID)
+    case duplicateAppGroupID(UUID)
+    case missingAppGroup(UUID)
+    case invalidAppPolicy(String)
 
     var localizedDescription: String {
         let key: String
+        let argument: String
         switch self {
-        case .duplicateProfileID:
+        case .duplicateProfileID(let id):
             key = "config.failure.duplicateID"
-        case .drawnPathTooShort:
+            argument = id.uuidString
+        case .drawnPathTooShort(let id):
             key = "config.failure.drawnPathTooShort"
-        case .nonFiniteDrawnPoint:
+            argument = id.uuidString
+        case .nonFiniteDrawnPoint(let id):
             key = "config.failure.nonFinitePoint"
-        }
-        let id: UUID
-        switch self {
-        case .duplicateProfileID(let value),
-             .drawnPathTooShort(let value),
-             .nonFiniteDrawnPoint(let value):
-            id = value
+            argument = id.uuidString
+        case .duplicateAppGroupID(let id):
+            key = "config.failure.duplicateAppGroupID"
+            argument = id.uuidString
+        case .missingAppGroup(let id):
+            key = "config.failure.missingAppGroup"
+            argument = id.uuidString
+        case .invalidAppPolicy(let bundleIdentifier):
+            key = "config.failure.invalidAppPolicy"
+            argument = bundleIdentifier
         }
         return String(
             format: L10n.string(key),
             locale: L10n.locale,
-            id.uuidString
+            argument
         )
     }
 }
@@ -702,6 +926,8 @@ struct GestureImportAnalysis: Equatable, Sendable {
     let duplicates: [GestureProfile]
     /// Full package in original order (migrated).
     let ordered: [GestureProfile]
+    /// Package app groups referenced by the profiles and missing locally.
+    var groups: [AppGroup] = []
 
     var totalCount: Int { ordered.count }
     var hasDuplicates: Bool { !duplicates.isEmpty }

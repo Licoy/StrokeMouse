@@ -3,6 +3,7 @@ import ApplicationServices
 import Foundation
 
 final class MacGestureTargetCapturer: GestureTargetCapturing,
+    GestureTargetIdentifying,
     @unchecked Sendable
 {
     private let system: any GestureTargetCaptureSystemClient
@@ -29,21 +30,87 @@ final class MacGestureTargetCapturer: GestureTargetCapturing,
         )
     }
 
+    func captureIdentity(
+        policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetSnapshot {
+        GestureTargetSnapshot(
+            frontmostWindow: identity(
+                for: .frontmostWindow,
+                whenRequestedBy: policies,
+                at: quartzLocation
+            ),
+            windowUnderPointer: identity(
+                for: .windowUnderPointer,
+                whenRequestedBy: policies,
+                at: quartzLocation
+            )
+        )
+    }
+
     private func resolution(
         for policy: GestureTargetPolicy,
         whenRequestedBy policies: Set<GestureTargetPolicy>,
         at quartzLocation: CGPoint
     ) -> GestureTargetResolution {
+        resolve(policy, whenRequestedBy: policies) {
+            switch policy {
+            case .frontmostWindow:
+                return try captureFrontmostTarget()
+            case .windowUnderPointer:
+                return try captureTargetUnderPointer(at: quartzLocation)
+            }
+        }
+    }
+
+    /// Frontmost identity is `NSWorkspace` only. The pointer policy still
+    /// hit-tests, but neither path copies an AX window.
+    private func identity(
+        for policy: GestureTargetPolicy,
+        whenRequestedBy policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetResolution {
+        resolve(policy, whenRequestedBy: policies) {
+            switch policy {
+            case .frontmostWindow:
+                guard let application = system.frontmostApplication else {
+                    throw GestureTargetError.noFrontmostApplication
+                }
+                return makeContext(
+                    policy: .frontmostWindow,
+                    application: application,
+                    window: nil
+                )
+            case .windowUnderPointer:
+                let hit = try system.element(at: quartzLocation)
+                let processIdentifier = try system.processIdentifier(
+                    of: hit,
+                    operation: .getProcessIdentifier
+                )
+                guard let application = system.runningApplication(
+                    processIdentifier: processIdentifier
+                ) else {
+                    throw GestureTargetError.applicationUnavailable(processIdentifier)
+                }
+                return makeContext(
+                    policy: .windowUnderPointer,
+                    application: application,
+                    window: nil
+                )
+            }
+        }
+    }
+
+    private func resolve(
+        _ policy: GestureTargetPolicy,
+        whenRequestedBy policies: Set<GestureTargetPolicy>,
+        _ body: () throws -> GestureTargetContext
+    ) -> GestureTargetResolution {
         guard policies.contains(policy) else {
             return .unavailable(.targetNotCaptured(policy))
         }
         do {
-            switch policy {
-            case .frontmostWindow:
-                return .resolved(try captureFrontmostTarget())
-            case .windowUnderPointer:
-                return .resolved(try captureTargetUnderPointer(at: quartzLocation))
-            }
+            return .resolved(try body())
         } catch let error as GestureTargetError {
             return .unavailable(error)
         } catch {
@@ -96,7 +163,8 @@ final class MacGestureTargetCapturer: GestureTargetCapturing,
             policy: policy,
             identity: GestureTargetIdentity(
                 processIdentifier: application.processIdentifier,
-                bundleIdentifier: application.bundleIdentifier
+                bundleIdentifier: application.bundleIdentifier,
+                bundlePath: (application.bundleURL ?? application.executableURL)?.path
             ),
             application: application,
             window: window.map(GestureWindowTarget.init)

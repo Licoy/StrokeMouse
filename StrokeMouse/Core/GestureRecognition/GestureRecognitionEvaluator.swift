@@ -140,11 +140,11 @@ enum GestureRecognitionEvaluator {
             if case .drawn = profile.input { return true }
             return false
         }
-        let applicationSpecific = profiles.filter {
-            if case .apps = $0.scope { return true }
-            return false
+        let tiers = GestureScopeTier.allCases.compactMap { tier -> [GestureProfile]? in
+            let members = profiles.filter { GestureScopeTier($0.scope) == tier }
+            return members.isEmpty ? nil : members
         }
-        guard !applicationSpecific.isEmpty else {
+        guard tiers.count > 1 else {
             return evaluate(
                 path: path,
                 profiles: profiles,
@@ -154,31 +154,34 @@ enum GestureRecognitionEvaluator {
             )
         }
 
-        let preferred = evaluate(
-            path: path,
-            profiles: applicationSpecific,
-            reportingButton: .right,
-            policy: policy,
-            includes: includesDrawn
-        )
-        switch preferred.decision {
-        case .noCandidates, .belowThreshold:
-            let global = profiles.filter {
-                if case .global = $0.scope { return true }
-                return false
-            }
-            guard !global.isEmpty else { return preferred }
-            let fallback = evaluate(
+        // More specific tiers win; a tier that cannot accept falls through to
+        // the next, keeping the most informative non-empty result.
+        var result: GestureRecognitionEvaluation?
+        for tierProfiles in tiers {
+            let evaluation = evaluate(
                 path: path,
-                profiles: global,
+                profiles: tierProfiles,
                 reportingButton: .right,
                 policy: policy,
                 includes: includesDrawn
             )
-            return fallback.decision == .noCandidates ? preferred : fallback
-        case .accepted, .invalidPath, .tooShort, .ambiguous:
-            return preferred
+            if result == nil || evaluation.decision != .noCandidates {
+                result = evaluation
+            }
+            switch evaluation.decision {
+            case .noCandidates, .belowThreshold:
+                continue
+            case .accepted, .invalidPath, .tooShort, .ambiguous:
+                return evaluation
+            }
         }
+        return result ?? evaluate(
+            path: path,
+            profiles: profiles,
+            reportingButton: .right,
+            policy: policy,
+            includes: includesDrawn
+        )
     }
 
     private static func evaluate(

@@ -3,6 +3,12 @@ import Foundation
 import Observation
 import SwiftUI
 
+struct ExternalApplication: Equatable, Sendable {
+    let bundleIdentifier: String
+    let name: String
+    let path: String?
+}
+
 @MainActor
 @Observable
 final class AppState {
@@ -36,6 +42,13 @@ final class AppState {
     /// Test seam: when set, `openSettings` calls this instead of creating a real window
     /// (avoids AppStorage dual-hide side effects in the unit-test host).
     var presentSettingsWindowHandler: ((SettingsTab) -> Void)?
+
+    /// Last application activated other than StrokeMouse itself. The menu bar
+    /// offers a per-app global-gesture switch for it (e.g. a full-screen game).
+    private(set) var lastExternalApplication: ExternalApplication?
+    /// Block-based observers are removed when this token is released.
+    @ObservationIgnored
+    private var frontmostApplicationObserver: NSObjectProtocol?
 
     var resolvedLocale: Locale { L10n.locale }
 
@@ -90,6 +103,7 @@ final class AppState {
         syncMenuBarExtraInserted()
         installSettingsWindowCloseObserver()
         installOpenSettingsNotificationObserver()
+        installFrontmostApplicationObserver()
 
         // Defer the event tap until the main run loop is spinning. Creating a
         // filtering CGEventTap during @State construction (esp. on macOS 14)
@@ -100,6 +114,70 @@ final class AppState {
             self.applyScrollConfiguration()
             self.refreshMenuBarIconStatus()
         }
+    }
+
+    private func installFrontmostApplicationObserver() {
+        noteActivatedApplication(NSWorkspace.shared.frontmostApplication)
+        frontmostApplicationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] note in
+            let application = note.userInfo?[NSWorkspace.applicationUserInfoKey]
+                as? NSRunningApplication
+            MainActor.assumeIsolated {
+                self?.noteActivatedApplication(application)
+            }
+        }
+    }
+
+    private func noteActivatedApplication(_ application: NSRunningApplication?) {
+        guard let application,
+              application.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let bundleIdentifier = application.bundleIdentifier
+        else {
+            return
+        }
+        let next = ExternalApplication(
+            bundleIdentifier: bundleIdentifier,
+            name: application.localizedName ?? bundleIdentifier,
+            path: (application.bundleURL ?? application.executableURL)?.path
+        )
+        guard next != lastExternalApplication else { return }
+        lastExternalApplication = next
+    }
+
+    /// Whether the exact-app policy suppresses global gestures, plus the names
+    /// of app groups that also suppress them for this application.
+    func globalGestureSuppression(
+        for application: ExternalApplication
+    ) -> (byApplication: Bool, byGroups: [String]) {
+        let byApplication = configStore.appPolicy(
+            forBundleIdentifier: application.bundleIdentifier
+        ) != nil
+        let suppressingGroups = configStore.appGroups.filter {
+            !$0.suppressedGlobalInputs.isEmpty
+        }
+        guard !suppressingGroups.isEmpty else { return (byApplication, []) }
+        let rules = GestureAppRules(policies: [], groups: suppressingGroups)
+        let ids = Set(rules.matchingGroupIDs(
+            bundleIdentifier: application.bundleIdentifier,
+            path: application.path
+        ))
+        return (
+            byApplication,
+            suppressingGroups.filter { ids.contains($0.id) }.map(\.name)
+        )
+    }
+
+    func setGlobalGesturesSuppressed(
+        _ suppressed: Bool,
+        for application: ExternalApplication
+    ) {
+        configStore.setSuppressedGlobalInputs(
+            suppressed ? .all : .none,
+            forBundleIdentifier: application.bundleIdentifier
+        )
     }
 
     /// AppDelegate / external code posts this; route through `openSettings`.
@@ -360,6 +438,10 @@ final class AppState {
             showsLiveMismatchFeedback: DrawingStyle.showLiveMismatchFeedback,
             directTrackpadEnabled: defaults.bool(
                 forKey: PreferenceKey.directTrackpadEnabled
+            ),
+            appRules: GestureAppRules(
+                policies: configStore.appPolicies,
+                groups: configStore.appGroups
             )
         )
     }

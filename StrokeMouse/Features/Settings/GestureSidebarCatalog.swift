@@ -4,16 +4,20 @@ import Foundation
 enum GestureSidebarItem: Hashable, Sendable {
     case global
     case app(String)
+    case group(UUID)
 }
 
 /// Pure helpers for grouping / filtering gestures by app scope (unit-testable).
 enum GestureSidebarCatalog {
-    /// Bundle IDs that should appear in the sidebar: pinned ∪ referenced by any profile.
+    /// Bundle IDs that should appear in the sidebar:
+    /// pinned ∪ referenced by any profile ∪ carrying an app policy.
     static func sidebarAppBundleIds(
         gestures: [GestureProfile],
-        pinnedBundleIds: [String]
+        pinnedBundleIds: [String],
+        policyBundleIds: [String] = []
     ) -> [String] {
         var ids = Set(pinnedBundleIds.compactMap(normalizedBundleId))
+        ids.formUnion(policyBundleIds.compactMap(normalizedBundleId))
         for gesture in gestures {
             if case .apps(let bundleIds) = gesture.scope {
                 for id in bundleIds {
@@ -42,6 +46,8 @@ enum GestureSidebarCatalog {
                 }
                 return false
             }
+        case .group(let groupID):
+            return gestures.filter { $0.scope == .group(groupID) }
         }
     }
 
@@ -55,6 +61,8 @@ enum GestureSidebarCatalog {
                 return .apps([normalized])
             }
             return .global
+        case .group(let groupID):
+            return .group(groupID)
         }
     }
 
@@ -68,6 +76,8 @@ enum GestureSidebarCatalog {
                 return .app(first)
             }
             return .global
+        case .group(let groupID):
+            return .group(groupID)
         }
     }
 

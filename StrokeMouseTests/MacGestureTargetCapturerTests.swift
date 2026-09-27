@@ -211,6 +211,34 @@ final class MacGestureTargetCapturerTests: XCTestCase {
         XCTAssertEqual(actual, mismatchedPID)
     }
 
+    func testIdentityCaptureDoesNotCopyAnAXWindow() throws {
+        let system = try makeSystem()
+        let capturer = MacGestureTargetCapturer(system: system)
+        let location = CGPoint(x: 12, y: 34)
+
+        let frontmost = capturer.captureIdentity(
+            policies: [.frontmostWindow],
+            at: location
+        )
+        let frontmostContext = try frontmost.frontmostWindow.requireContext()
+        XCTAssertEqual(frontmostContext.bundleIdentifier, system.application.bundleIdentifier)
+        XCTAssertNil(frontmostContext.window)
+        XCTAssertTrue(system.hitTestLocations.isEmpty)
+        XCTAssertTrue(system.attributeReads.isEmpty)
+        guard case .unavailable(.targetNotCaptured(.windowUnderPointer)) = frontmost.windowUnderPointer
+        else { return XCTFail("Unrequested pointer target should stay uncaptured") }
+
+        let pointer = capturer.captureIdentity(
+            policies: [.windowUnderPointer],
+            at: location
+        )
+        let pointerContext = try pointer.windowUnderPointer.requireContext()
+        XCTAssertEqual(system.hitTestLocations, [location])
+        XCTAssertNil(pointerContext.window)
+        XCTAssertEqual(pointerContext.processIdentifier, system.application.processIdentifier)
+        XCTAssertTrue(system.attributeReads.isEmpty)
+    }
+
     func testUnexpectedFrontmostWindowValueDoesNotBecomeApplicationTarget() throws {
         let system = try makeSystem()
         system.focusedWindowError = GestureTargetError.unexpectedAXValue(

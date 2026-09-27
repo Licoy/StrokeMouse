@@ -5,6 +5,19 @@ import Foundation
 struct GestureTargetIdentity: Equatable, Sendable {
     let processIdentifier: pid_t
     let bundleIdentifier: String?
+    /// Application bundle path (or executable path for bundle-less apps),
+    /// used by directory-based app group rules.
+    let bundlePath: String?
+
+    init(
+        processIdentifier: pid_t,
+        bundleIdentifier: String?,
+        bundlePath: String? = nil
+    ) {
+        self.processIdentifier = processIdentifier
+        self.bundleIdentifier = bundleIdentifier
+        self.bundlePath = bundlePath
+    }
 }
 
 final class GestureWindowTarget {
@@ -24,6 +37,7 @@ struct GestureTargetContext {
 
     var processIdentifier: pid_t { identity.processIdentifier }
     var bundleIdentifier: String? { identity.bundleIdentifier }
+    var bundlePath: String? { identity.bundlePath }
 
     func requireWindow() throws -> GestureWindowTarget {
         guard let window else {
@@ -103,6 +117,7 @@ enum GestureTargetResolution {
     }
 
     var bundleIdentifier: String? { context?.bundleIdentifier }
+    var bundlePath: String? { context?.bundlePath }
     var processIdentifier: pid_t? { context?.processIdentifier }
 
     func requireContext() throws -> GestureTargetContext {
@@ -137,19 +152,74 @@ struct TargetedGesture {
     let target: GestureTargetResolution
 }
 
+/// Candidate precedence: exact application > app group > global.
+enum GestureScopeTier: Int, CaseIterable, Comparable, Sendable {
+    case application
+    case group
+    case global
+
+    init(_ scope: AppScope) {
+        switch scope {
+        case .apps: self = .application
+        case .group: self = .group
+        case .global: self = .global
+        }
+    }
+
+    static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+}
+
+extension GestureInputSource {
+    var inputKind: GestureInputKind {
+        switch self {
+        case .mouse: return .mouseDrawing
+        case .modifier: return .trackpadDrawing
+        case .multitouch: return .touchGesture
+        }
+    }
+}
+
 enum GestureCandidateSelector {
+    /// Resolves each profile against its own frozen target. Global profiles are
+    /// dropped when the target application suppresses `inputKind`; group
+    /// profiles survive only when the target matches the group.
     static func prepare(
         profiles: [GestureProfile],
-        snapshot: GestureTargetSnapshot
+        snapshot: GestureTargetSnapshot,
+        inputKind: GestureInputKind? = nil,
+        rules: GestureAppRules = .empty
     ) -> [TargetedGesture] {
-        profiles.compactMap { profile in
+        var suppressedByPolicy: [GestureTargetPolicy: Bool] = [:]
+        func suppressesGlobal(_ policy: GestureTargetPolicy) -> Bool {
+            guard let inputKind, !rules.isEmpty else { return false }
+            if let cached = suppressedByPolicy[policy] { return cached }
+            let target = snapshot.resolution(for: policy)
+            let suppressed = target.context != nil
+                && rules.suppressedGlobalInputs(
+                    bundleIdentifier: target.bundleIdentifier,
+                    path: target.bundlePath
+                ).contains(inputKind)
+            suppressedByPolicy[policy] = suppressed
+            return suppressed
+        }
+        return profiles.compactMap { profile in
             let target = snapshot.resolution(for: profile.targetPolicy)
             switch profile.scope {
             case .global:
+                guard !suppressesGlobal(profile.targetPolicy) else { return nil }
                 return TargetedGesture(profile: profile, target: target)
             case .apps(let bundleIdentifiers):
                 guard let bundleIdentifier = target.bundleIdentifier,
                       bundleIdentifiers.contains(bundleIdentifier)
+                else { return nil }
+                return TargetedGesture(profile: profile, target: target)
+            case .group(let groupID):
+                guard target.context != nil,
+                      rules.groupContains(
+                          groupID,
+                          bundleIdentifier: target.bundleIdentifier,
+                          path: target.bundlePath
+                      )
                 else { return nil }
                 return TargetedGesture(profile: profile, target: target)
             }
@@ -160,6 +230,16 @@ enum GestureCandidateSelector {
 /// Implementations are invoked only by GestureRuntime's serialized input core.
 protocol GestureTargetCapturing: AnyObject, Sendable {
     func capture(
+        policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetSnapshot
+}
+
+/// Identity without copying AX windows. Runtime uses this to decline a session
+/// before talking to the target application; only an accepted session calls
+/// `capture` for the operable window.
+protocol GestureTargetIdentifying: GestureTargetCapturing {
+    func captureIdentity(
         policies: Set<GestureTargetPolicy>,
         at quartzLocation: CGPoint
     ) -> GestureTargetSnapshot

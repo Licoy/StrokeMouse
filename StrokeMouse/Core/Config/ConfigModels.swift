@@ -691,12 +691,154 @@ private enum PersistedGestureAction: Codable {
 enum AppScope: Codable, Equatable, Sendable {
     case global
     case apps([String]) // bundle identifiers
+    /// Shared by every application matched by an `AppGroup`.
+    /// `GestureProfile` stores this in a v2-readable wire shape.
+    case group(UUID)
 
     var summaryKey: String {
         switch self {
         case .global: return "scope.global"
         case .apps: return "scope.apps"
+        case .group: return "scope.group"
         }
+    }
+
+    var groupID: UUID? {
+        guard case .group(let id) = self else { return nil }
+        return id
+    }
+}
+
+/// Product-level input families. Runtime sessions map onto these by source,
+/// so a mouse-drawn profile that is also reachable by a modifier key counts as
+/// trackpad drawing when the modifier started the session.
+enum GestureInputKind: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
+    case mouseDrawing
+    case trackpadDrawing
+    case touchGesture
+
+    var id: String { rawValue }
+
+    var displayKey: String { "inputKind.\(rawValue)" }
+}
+
+/// Global gestures suppressed while the target application matches a rule.
+/// Encoded as a sorted array so persisted bytes stay stable; unknown kinds
+/// written by newer versions are ignored.
+struct SuppressedGlobalInputs: Codable, Equatable, Hashable, Sendable {
+    var kinds: Set<GestureInputKind>
+
+    static let none = SuppressedGlobalInputs(kinds: [])
+    static let all = SuppressedGlobalInputs(kinds: Set(GestureInputKind.allCases))
+
+    init(kinds: Set<GestureInputKind>) {
+        self.kinds = kinds
+    }
+
+    var isEmpty: Bool { kinds.isEmpty }
+
+    func contains(_ kind: GestureInputKind) -> Bool {
+        kinds.contains(kind)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode([String].self)
+        kinds = Set(raw.compactMap(GestureInputKind.init(rawValue:)))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(
+            GestureInputKind.allCases.filter(kinds.contains).map(\.rawValue)
+        )
+    }
+}
+
+/// Per-application override keyed by exact bundle identifier.
+struct AppGesturePolicy: Codable, Equatable, Sendable {
+    var bundleIdentifier: String
+    var suppressedGlobalInputs: SuppressedGlobalInputs
+
+    init(
+        bundleIdentifier: String,
+        suppressedGlobalInputs: SuppressedGlobalInputs = .all
+    ) {
+        self.bundleIdentifier = bundleIdentifier
+        self.suppressedGlobalInputs = suppressedGlobalInputs
+    }
+}
+
+struct AppMatcher: Codable, Equatable, Hashable, Sendable {
+    enum Kind: String, Codable, CaseIterable, Hashable, Sendable {
+        /// Exact bundle identifier, case-insensitive.
+        case bundleIdentifier
+        /// Whole-string bundle identifier pattern; `*` matches any run of characters.
+        case bundleIdentifierPattern
+        /// Application bundle (or executable) located inside this directory tree.
+        case directory
+    }
+
+    var kind: Kind
+    var value: String
+
+    init(kind: Kind, value: String) {
+        self.kind = kind
+        self.value = value
+    }
+
+    static func bundleIdentifier(_ value: String) -> AppMatcher {
+        AppMatcher(kind: .bundleIdentifier, value: value)
+    }
+
+    static func bundleIdentifierPattern(_ value: String) -> AppMatcher {
+        AppMatcher(kind: .bundleIdentifierPattern, value: value)
+    }
+
+    static func directory(_ value: String) -> AppMatcher {
+        AppMatcher(kind: .directory, value: value)
+    }
+}
+
+/// Named set of applications that share gestures and a global-gesture policy.
+struct AppGroup: Identifiable, Codable, Equatable, Sendable {
+    var id: UUID
+    var name: String
+    var matchers: [AppMatcher]
+    var suppressedGlobalInputs: SuppressedGlobalInputs
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        matchers: [AppMatcher] = [],
+        suppressedGlobalInputs: SuppressedGlobalInputs = .none
+    ) {
+        self.id = id
+        self.name = name
+        self.matchers = matchers
+        self.suppressedGlobalInputs = suppressedGlobalInputs
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        matchers = try container.decodeIfPresent([AppMatcher].self, forKey: .matchers) ?? []
+        suppressedGlobalInputs = try container.decodeIfPresent(
+            SuppressedGlobalInputs.self,
+            forKey: .suppressedGlobalInputs
+        ) ?? .none
+    }
+
+    /// Content equality ignoring `id` (used for import duplicate detection).
+    func isContentEqual(to other: AppGroup) -> Bool {
+        name == other.name
+            && matchers == other.matchers
+            && suppressedGlobalInputs == other.suppressedGlobalInputs
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, matchers, suppressedGlobalInputs
     }
 }
 
@@ -776,7 +918,11 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         input = try container.decode(GestureInput.self, forKey: .input)
         action = try container.decodeIfPresent(GestureAction.self, forKey: .action) ?? .none
-        scope = try container.decodeIfPresent(AppScope.self, forKey: .scope) ?? .global
+        if let groupID = try container.decodeIfPresent(UUID.self, forKey: .appGroup) {
+            scope = .group(groupID)
+        } else {
+            scope = try container.decodeIfPresent(AppScope.self, forKey: .scope) ?? .global
+        }
         targetPolicy = try container.decodeIfPresent(GestureTargetPolicy.self, forKey: .targetPolicy)
             ?? .frontmostWindow
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
@@ -789,7 +935,15 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(input, forKey: .input)
         try container.encode(action, forKey: .action)
-        try container.encode(scope, forKey: .scope)
+        switch scope {
+        case .group(let groupID):
+            // Older versions only know `global` / `apps`; an empty app list
+            // keeps the file readable there and leaves the gesture inert.
+            try container.encode(AppScope.apps([]), forKey: .scope)
+            try container.encode(groupID, forKey: .appGroup)
+        case .global, .apps:
+            try container.encode(scope, forKey: .scope)
+        }
         try container.encode(targetPolicy, forKey: .targetPolicy)
         try container.encode(notes, forKey: .notes)
     }
@@ -807,7 +961,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, isEnabled, input
-        case action, scope, targetPolicy, notes
+        case action, scope, appGroup, targetPolicy, notes
     }
 }
 
@@ -816,8 +970,51 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
 struct GestureConfigFile: Codable, Equatable, Sendable {
     var version: Int
     var gestures: [GestureProfile]
+    /// Exact-application overrides. Omitted from the file when empty.
+    var appPolicies: [AppGesturePolicy]
+    /// Omitted from the file when empty.
+    var appGroups: [AppGroup]
 
     static let empty = GestureConfigFile(version: Constants.configVersion, gestures: [])
+
+    init(
+        version: Int,
+        gestures: [GestureProfile],
+        appPolicies: [AppGesturePolicy] = [],
+        appGroups: [AppGroup] = []
+    ) {
+        self.version = version
+        self.gestures = gestures
+        self.appPolicies = appPolicies
+        self.appGroups = appGroups
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decode(Int.self, forKey: .version)
+        gestures = try container.decode([GestureProfile].self, forKey: .gestures)
+        appPolicies = try container.decodeIfPresent(
+            [AppGesturePolicy].self,
+            forKey: .appPolicies
+        ) ?? []
+        appGroups = try container.decodeIfPresent([AppGroup].self, forKey: .appGroups) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(version, forKey: .version)
+        try container.encode(gestures, forKey: .gestures)
+        if !appPolicies.isEmpty {
+            try container.encode(appPolicies, forKey: .appPolicies)
+        }
+        if !appGroups.isEmpty {
+            try container.encode(appGroups, forKey: .appGroups)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case version, gestures, appPolicies, appGroups
+    }
 }
 
 // MARK: - Appearance / Language preferences (UI)

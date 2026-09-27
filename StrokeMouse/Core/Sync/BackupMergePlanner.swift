@@ -183,10 +183,25 @@ struct BackupMergePlan<Value: Equatable & Sendable>: Sendable {
             }
         }
 
+        // Groups merge by id and policies by bundle identifier; the local copy
+        // wins when both sides define one, so a merge never rewrites local rules.
+        let localGroupIDs = Set(local.appGroups.map(\.id))
+        let mergedGroups = local.appGroups + backup.appGroups.filter {
+            !localGroupIDs.contains($0.id)
+        }
+        let localPolicyKeys = Set(local.appPolicies.map {
+            $0.bundleIdentifier.lowercased()
+        })
+        let mergedPolicies = local.appPolicies + backup.appPolicies.filter {
+            !localPolicyKeys.contains($0.bundleIdentifier.lowercased())
+        }
+
         return BackupMergeResult(
             gestureFile: GestureConfigFile(
                 version: Constants.configVersion,
-                gestures: mergedGestures
+                gestures: mergedGestures,
+                appPolicies: mergedPolicies,
+                appGroups: mergedGroups
             ),
             settings: mergedSettings
         )

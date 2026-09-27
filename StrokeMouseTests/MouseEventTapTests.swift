@@ -108,7 +108,11 @@ final class MouseEventTapTests: XCTestCase {
     func testRejectedSessionClaimPassesDownAndUpThroughUnchanged() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _ in false }
+        var offeredLocation: CGPoint?
+        tap.shouldCapture = { _, location in
+            offeredLocation = location
+            return false
+        }
         var observedEventCount = 0
         tap.onEvent = { _, _ in observedEventCount += 1 }
         let down = try makeMouseEvent(type: .rightMouseDown, button: .right)
@@ -117,6 +121,8 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertNotNil(tap.handle(type: .rightMouseDown, event: down))
         XCTAssertNotNil(tap.handle(type: .rightMouseUp, event: up))
         XCTAssertEqual(observedEventCount, 0)
+        // The owner decides from the down edge's own location (target app).
+        XCTAssertEqual(offeredLocation, down.location)
     }
 
     func testTaggedReplayEventsPassThroughWithoutBeingObserved() throws {

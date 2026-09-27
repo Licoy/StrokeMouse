@@ -17,7 +17,9 @@ extension PermissionManager: GesturePermissionProviding {}
 protocol MouseGestureEventSource: AnyObject {
     var watchedButtons: Set<MouseTriggerButton> { get set }
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)? { get set }
-    var shouldCapture: ((MouseTriggerButton) -> Bool)? { get set }
+    /// Receives the Quartz location of the down edge so the owner can decide
+    /// from the target application before the event is swallowed.
+    var shouldCapture: ((MouseTriggerButton, CGPoint) -> Bool)? { get set }
     var isActive: Bool { get }
 
     func start() -> Bool
@@ -60,6 +62,8 @@ struct GestureRuntimeConfiguration: Equatable, Sendable {
     /// Live trail recolor while drawing when no candidate remains hopeful.
     var showsLiveMismatchFeedback: Bool
     var directTrackpadEnabled: Bool
+    /// Compiled app policies and groups consulted on every session begin.
+    var appRules: GestureAppRules = .empty
 }
 
 enum GestureRuntimeConfigurationError: Error, Equatable, Sendable {

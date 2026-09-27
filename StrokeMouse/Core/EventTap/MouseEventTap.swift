@@ -73,7 +73,7 @@ final class MouseEventTap: @unchecked Sendable {
     private var acceptingEvents = true
     private var eventGeneration: UInt64 = 0
     private var onEventStorage: ((EventKind, UInt64) -> Void)?
-    private var shouldCaptureStorage: ((MouseTriggerButton) -> Bool)?
+    private var shouldCaptureStorage: ((MouseTriggerButton, CGPoint) -> Bool)?
     private let stateLock = NSLock()
     private let buttonStateProvider:
         @Sendable (MouseTriggerButton) -> Bool
@@ -92,9 +92,10 @@ final class MouseEventTap: @unchecked Sendable {
         get { stateLock.withLock { onEventStorage } }
         set { stateLock.withLock { onEventStorage = newValue } }
     }
-    /// Synchronous lightweight arbitration. A rejected down/up pair is passed
-    /// through untouched, which is required when another input source owns the session.
-    var shouldCapture: ((MouseTriggerButton) -> Bool)? {
+    /// Synchronous arbitration on the tap thread. A rejected down/up pair is
+    /// passed through untouched, which is required when another input source
+    /// owns the session or the target application has no candidate gesture.
+    var shouldCapture: ((MouseTriggerButton, CGPoint) -> Bool)? {
         get { stateLock.withLock { shouldCaptureStorage } }
         set { stateLock.withLock { shouldCaptureStorage = newValue } }
     }
@@ -317,7 +318,7 @@ final class MouseEventTap: @unchecked Sendable {
                !blockedButtonsUntilUp.contains(button)
             {
                 stateLock.unlock()
-                let claimed = shouldCapture?(button) ?? true
+                let claimed = shouldCapture?(button, location) ?? true
                 stateLock.lock()
                 if acceptingEvents,
                    claimed,

@@ -10,7 +10,8 @@ struct DirectTrackpadGestureMatcher {
     func match(
         _ gesture: DirectTrackpadGesture,
         profiles: [GestureProfile],
-        snapshot: GestureTargetSnapshot
+        snapshot: GestureTargetSnapshot,
+        rules: GestureAppRules = .empty
     ) -> DirectTrackpadMatch {
         let exact = profiles.filter { profile in
             guard profile.isEnabled,
@@ -22,15 +23,16 @@ struct DirectTrackpadGestureMatcher {
         }
         let targeted = GestureCandidateSelector.prepare(
             profiles: exact,
-            snapshot: snapshot
+            snapshot: snapshot,
+            inputKind: .touchGesture,
+            rules: rules
         )
-        let applicationSpecific = targeted.filter {
-            if case .apps = $0.profile.scope { return true }
-            return false
-        }
-        return resolve(
-            applicationSpecific.isEmpty ? targeted : applicationSpecific
-        )
+        // Only the most specific non-empty tier competes; several exact
+        // matches inside that tier are a conflict.
+        let preferredTier = targeted.map { GestureScopeTier($0.profile.scope) }.min()
+        return resolve(targeted.filter {
+            GestureScopeTier($0.profile.scope) == preferredTier
+        })
     }
 
     private func resolve(

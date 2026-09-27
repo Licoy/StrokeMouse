@@ -77,6 +77,31 @@ private final class DrawCallbackGeneration: @unchecked Sendable {
     }
 }
 
+/// Hands the target captured while deciding whether to swallow a mouse down
+/// to the down edge that follows on the same tap thread, so AX runs once.
+private final class PendingMouseCapture: @unchecked Sendable {
+    private let lock = NSLock()
+    private var admissionID: UInt64?
+    private var snapshot: GestureTargetSnapshot?
+
+    func store(_ snapshot: GestureTargetSnapshot, for admissionID: UInt64) {
+        lock.withLock {
+            self.admissionID = admissionID
+            self.snapshot = snapshot
+        }
+    }
+
+    func take(for admissionID: UInt64) -> GestureTargetSnapshot? {
+        lock.withLock {
+            defer {
+                self.admissionID = nil
+                snapshot = nil
+            }
+            return self.admissionID == admissionID ? snapshot : nil
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class GestureRuntime {
@@ -108,6 +133,7 @@ final class GestureRuntime {
     private struct DirectSession {
         let revision: UInt64
         let profiles: [GestureProfile]
+        let rules: GestureAppRules
         let snapshot: GestureTargetSnapshot
         let beganAt: TimeInterval
         var mode: SessionMode
@@ -118,6 +144,7 @@ final class GestureRuntime {
 
     private struct PendingTapContext {
         let profiles: [GestureProfile]
+        let rules: GestureAppRules
         let snapshot: GestureTargetSnapshot
         let tap: TrackpadTap
         let mode: SessionMode
@@ -198,9 +225,31 @@ final class GestureRuntime {
             doubleClickInterval: doubleClickInterval
         )
         let drawCallbacks = drawCallbackGeneration
-        mouseEventTap.shouldCapture = { [weak sessionGate] button in
-            guard drawCallbacks.token != nil else { return false }
-            return sessionGate?.claim(.mouse(button)) != nil
+        let pendingMouseCapture = PendingMouseCapture()
+        // The target is resolved before the down edge is swallowed: when the
+        // target application has no candidate for this button, the physical
+        // down/up pair reaches it untouched (native drag / hold semantics).
+        mouseEventTap.shouldCapture = { [weak sessionGate] button, location in
+            guard let callbackToken = drawCallbacks.token else { return false }
+            return inputCoreQueue.sync {
+                guard drawCallbacks.isCurrent(callbackToken),
+                      let sessionGate,
+                      let admission = sessionGate.claim(.mouse(button))
+                else {
+                    return false
+                }
+                let snapshot = Self.captureTargetSnapshot(
+                    for: admission,
+                    at: location,
+                    using: resolvedTargetCapturer
+                )
+                guard Self.hasCandidates(admission, snapshot: snapshot) else {
+                    sessionGate.release(admission)
+                    return false
+                }
+                pendingMouseCapture.store(snapshot, for: admission.id)
+                return true
+            }
         }
         mouseEventTap.onEvent = {
             [weak self, weak sessionGate, weak mouseEventTap]
@@ -225,11 +274,12 @@ final class GestureRuntime {
                         for: .mouse(button)
                     )
                     snapshot = admission.map {
-                        Self.captureTargetSnapshot(
-                            for: $0,
-                            at: location,
-                            using: resolvedTargetCapturer
-                        )
+                        pendingMouseCapture.take(for: $0.id)
+                            ?? Self.captureTargetSnapshot(
+                                for: $0,
+                                at: location,
+                                using: resolvedTargetCapturer
+                            )
                     }
                 case .buttonUp(let button, _):
                     if let completed = sessionGate?.admission(
@@ -280,13 +330,25 @@ final class GestureRuntime {
                 let snapshot: GestureTargetSnapshot?
                 switch event {
                 case .began(let key):
-                    admission = sessionGate?.claim(.modifier(key))
-                    snapshot = admission.map {
+                    let claimed = sessionGate?.claim(.modifier(key))
+                    let captured = claimed.map {
                         Self.captureTargetSnapshot(
                             for: $0,
                             at: quartzLocation,
                             using: resolvedTargetCapturer
                         )
+                    }
+                    if let claimed, let captured,
+                       !Self.hasCandidates(claimed, snapshot: captured)
+                    {
+                        // Listen-only: nothing to release to the app, just
+                        // skip the session (no HUD) and free the gate.
+                        sessionGate?.release(claimed)
+                        admission = nil
+                        snapshot = nil
+                    } else {
+                        admission = claimed
+                        snapshot = captured
                     }
                 case .ended(let key):
                     if let completed = sessionGate?.admission(
@@ -958,15 +1020,8 @@ final class GestureRuntime {
             return
         }
         let frozenConfiguration = admission.context.configuration
-        let candidates = frozenConfiguration.profiles.filter {
-            $0.isEnabled
-                && GestureInputMatcher.matches(
-                    source: source,
-                    input: $0.input
-                )
-        }
-        let targeted = GestureCandidateSelector.prepare(
-            profiles: candidates,
+        let targeted = Self.targetedCandidates(
+            for: admission,
             snapshot: snapshot
         )
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
@@ -1165,6 +1220,38 @@ final class GestureRuntime {
         )
     }
 
+    /// Candidates for the admission's source after app scope, app groups and
+    /// per-application global suppression are applied to the frozen target.
+    nonisolated private static func targetedCandidates(
+        for admission: GestureInputAdmission,
+        snapshot: GestureTargetSnapshot
+    ) -> [TargetedGesture] {
+        let configuration = admission.context.configuration
+        let profiles = configuration.profiles.filter { profile in
+            profile.isEnabled
+                && GestureInputMatcher.matches(
+                    source: admission.source,
+                    input: profile.input
+                )
+        }
+        return GestureCandidateSelector.prepare(
+            profiles: profiles,
+            snapshot: snapshot,
+            inputKind: admission.source.inputKind,
+            rules: configuration.appRules
+        )
+    }
+
+    /// Diagnostics always record; otherwise a session only starts when the
+    /// target application can match at least one gesture.
+    nonisolated private static func hasCandidates(
+        _ admission: GestureInputAdmission,
+        snapshot: GestureTargetSnapshot
+    ) -> Bool {
+        admission.context.isDiagnostic
+            || !targetedCandidates(for: admission, snapshot: snapshot).isEmpty
+    }
+
     nonisolated private static func captureTargetSnapshot(
         for admission: GestureInputAdmission,
         at quartzLocation: CGPoint,
@@ -1178,10 +1265,18 @@ final class GestureRuntime {
                 input: profile.input
             )
         }
-        return capturer.capture(
-            policies: Set(profiles.map(\.targetPolicy)),
-            at: quartzLocation
-        )
+        let policies = Set(profiles.map(\.targetPolicy))
+        if let identifying = capturer as? any GestureTargetIdentifying {
+            let identity = identifying.captureIdentity(
+                policies: policies,
+                at: quartzLocation
+            )
+            // No candidate: keep the physical event, and do not copy an AX window.
+            guard Self.hasCandidates(admission, snapshot: identity) else {
+                return identity
+            }
+        }
+        return capturer.capture(policies: policies, at: quartzLocation)
     }
 
     private func startSampling() {
@@ -1301,17 +1396,28 @@ final class GestureRuntime {
             guard $0.isEnabled, case .trackpad = $0.input else { return false }
             return true
         }
+        let mode: SessionMode = admission.context.isDiagnostic
+            || !diagnosticTokens.isEmpty
+            || !suppressionTokens.isEmpty
+            ? .diagnostic
+            : .normal
+        if mode == .normal,
+           !Self.hasCandidates(admission, snapshot: snapshot)
+        {
+            // Nothing can fire in this application: free the gate for other
+            // sources and ignore the rest of this contact sequence.
+            sessionGate.release(admission)
+            ignoresDirectTouchesUntilEmpty = true
+            return
+        }
         preparePendingTapForContactSequence(startedAt: frame.timestamp)
         directSession = DirectSession(
             revision: frozenConfiguration.revision,
             profiles: profiles,
+            rules: frozenConfiguration.appRules,
             snapshot: snapshot,
             beganAt: frame.timestamp,
-            mode: admission.context.isDiagnostic
-                || !diagnosticTokens.isEmpty
-                || !suppressionTokens.isEmpty
-                ? .diagnostic
-                : .normal,
+            mode: mode,
             centroid: Self.centroid(contacts.map(\.position))
         )
         state.activeSession = GestureActiveSessionSummary(
@@ -1335,6 +1441,7 @@ final class GestureRuntime {
                 beganAt: session.beganAt,
                 timestamp: timestamp,
                 profiles: session.profiles,
+                rules: session.rules,
                 snapshot: session.snapshot,
                 mode: session.mode
             )
@@ -1346,6 +1453,7 @@ final class GestureRuntime {
             executeDirect(
                 .swipe(count, direction.modelValue),
                 profiles: session.profiles,
+                rules: session.rules,
                 snapshot: session.snapshot,
                 mode: session.mode
             )
@@ -1357,6 +1465,7 @@ final class GestureRuntime {
             executeDirect(
                 .pinch(count, direction.modelValue),
                 profiles: session.profiles,
+                rules: session.rules,
                 snapshot: session.snapshot,
                 mode: session.mode
             )
@@ -1368,6 +1477,7 @@ final class GestureRuntime {
             executeDirect(
                 .rotate(count, direction.modelValue),
                 profiles: session.profiles,
+                rules: session.rules,
                 snapshot: session.snapshot,
                 mode: session.mode
             )
@@ -1380,6 +1490,7 @@ final class GestureRuntime {
         beganAt sessionBeganAt: TimeInterval,
         timestamp: TimeInterval,
         profiles: [GestureProfile],
+        rules: GestureAppRules,
         snapshot: GestureTargetSnapshot,
         mode: SessionMode
     ) {
@@ -1392,11 +1503,13 @@ final class GestureRuntime {
             hasSingle: hasDirectMatch(
                 .tap(count, .single),
                 profiles: profiles,
+                rules: rules,
                 snapshot: snapshot
             ),
             hasDouble: hasDirectMatch(
                 .tap(count, .double),
                 profiles: profiles,
+                rules: rules,
                 snapshot: snapshot
             )
         )
@@ -1407,6 +1520,7 @@ final class GestureRuntime {
         }
         let current = PendingTapContext(
             profiles: profiles,
+            rules: rules,
             snapshot: snapshot,
             tap: TrackpadTap(
                 deviceID: 0,
@@ -1582,6 +1696,7 @@ final class GestureRuntime {
         executeDirect(
             .tap(count, tapCount),
             profiles: context.profiles,
+            rules: context.rules,
             snapshot: context.snapshot,
             mode: context.mode
         )
@@ -1600,12 +1715,14 @@ final class GestureRuntime {
     private func hasDirectMatch(
         _ gesture: DirectTrackpadGesture,
         profiles: [GestureProfile],
+        rules: GestureAppRules,
         snapshot: GestureTargetSnapshot
     ) -> Bool {
         switch DirectTrackpadGestureMatcher().match(
             gesture,
             profiles: profiles,
-            snapshot: snapshot
+            snapshot: snapshot,
+            rules: rules
         ) {
         case .none: return false
         case .selected, .conflict: return true
@@ -1615,13 +1732,15 @@ final class GestureRuntime {
     private func executeDirect(
         _ gesture: DirectTrackpadGesture,
         profiles: [GestureProfile],
+        rules: GestureAppRules,
         snapshot: GestureTargetSnapshot,
         mode: SessionMode
     ) {
         switch DirectTrackpadGestureMatcher().match(
             gesture,
             profiles: profiles,
-            snapshot: snapshot
+            snapshot: snapshot,
+            rules: rules
         ) {
         case .none:
             // Direct no-match is intentionally quiet during normal use.
