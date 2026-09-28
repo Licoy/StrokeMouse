@@ -34,8 +34,10 @@ enum Constants {
     static let freePathMatchThresholdStep: Double = 0.01
     /// Minimum score lead over second-best to accept (when ≥2 candidates).
     static let freePathMinLeadOverSecond: Double = 0.06
-    /// Resample free-path templates to this many points.
-    static let freePathSampleCount = 32
+    /// Resample free-path paths to this many points while matching.
+    static let freePathSampleCount = 64
+    /// Preserve extra detail in newly recorded free-path templates.
+    static let freePathRecordingSampleCount = 128
     /// Structural signature sampling and simplification in normalized space.
     static let freePathStructureSampleCount = 64
     static let freePathStructureSimplifyEpsilon: CGFloat = 0.04

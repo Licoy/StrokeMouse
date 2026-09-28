@@ -587,14 +587,30 @@ final class ConfigStore {
                 )
             }
             guard case .drawn(let drawn) = profile.input else { continue }
-            guard drawn.points.count >= 2 else {
+            guard drawn.allPaths.count <= DrawnGesture.maximumSampleCount else {
+                throw ConfigStoreFailure.invalidConfiguration(
+                    .tooManyDrawnSamples(profile.id)
+                )
+            }
+            guard drawn.allPaths.allSatisfy({ $0.count >= 2 }) else {
                 throw ConfigStoreFailure.invalidConfiguration(
                     .drawnPathTooShort(profile.id)
                 )
             }
-            guard drawn.points.allSatisfy({ $0.x.isFinite && $0.y.isFinite }) else {
+            guard drawn.allPaths.joined().allSatisfy({
+                $0.x.isFinite && $0.y.isFinite
+            }) else {
                 throw ConfigStoreFailure.invalidConfiguration(
                     .nonFiniteDrawnPoint(profile.id)
+                )
+            }
+            guard drawn.allPaths.allSatisfy({ path in
+                zip(path, path.dropFirst()).contains { lhs, rhs in
+                    lhs.x != rhs.x || lhs.y != rhs.y
+                }
+            }) else {
+                throw ConfigStoreFailure.invalidConfiguration(
+                    .zeroLengthDrawnPath(profile.id)
                 )
             }
         }
@@ -873,8 +889,10 @@ enum ConfigStoreFailure: Error, Equatable, LocalizedError, Sendable {
 
 enum ConfigValidationFailure: Equatable, Sendable {
     case duplicateProfileID(UUID)
+    case tooManyDrawnSamples(UUID)
     case drawnPathTooShort(UUID)
     case nonFiniteDrawnPoint(UUID)
+    case zeroLengthDrawnPath(UUID)
     case duplicateAppGroupID(UUID)
     case missingAppGroup(UUID)
     case invalidAppPolicy(String)
@@ -886,11 +904,17 @@ enum ConfigValidationFailure: Equatable, Sendable {
         case .duplicateProfileID(let id):
             key = "config.failure.duplicateID"
             argument = id.uuidString
+        case .tooManyDrawnSamples(let id):
+            key = "config.failure.tooManyDrawnSamples"
+            argument = id.uuidString
         case .drawnPathTooShort(let id):
             key = "config.failure.drawnPathTooShort"
             argument = id.uuidString
         case .nonFiniteDrawnPoint(let id):
             key = "config.failure.nonFinitePoint"
+            argument = id.uuidString
+        case .zeroLengthDrawnPath(let id):
+            key = "config.failure.zeroLengthDrawnPath"
             argument = id.uuidString
         case .duplicateAppGroupID(let id):
             key = "config.failure.duplicateAppGroupID"

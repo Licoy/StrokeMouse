@@ -7,7 +7,7 @@ struct GestureEditorView: View {
     @State private var scopeMode: AppScopeMode = .global
     @State private var scopeBundleIds: [String] = []
     @State private var scopeGroupID: UUID?
-    @State private var pathPoints: [CodablePoint]
+    @State private var sampleState: GestureSampleEditorState
     @State private var captureSuppression: GestureCaptureSuppression?
 
     var onSave: (GestureProfile) -> Void
@@ -21,13 +21,13 @@ struct GestureEditorView: View {
 
     init(profile: GestureProfile, onSave: @escaping (GestureProfile) -> Void, onCancel: @escaping () -> Void) {
         _profile = State(initialValue: profile)
-        let points: [CodablePoint]
+        let paths: [[CodablePoint]]
         if case .drawn(let drawn) = profile.input {
-            points = drawn.points
+            paths = drawn.allPaths
         } else {
-            points = []
+            paths = []
         }
-        _pathPoints = State(initialValue: points)
+        _sampleState = State(initialValue: GestureSampleEditorState(paths: paths))
         _actionKind = State(initialValue: ActionKind.from(profile.action))
         switch profile.scope {
         case .global:
@@ -90,7 +90,7 @@ struct GestureEditorView: View {
 
             GestureInputEditorView(
                 input: $profile.input,
-                pathPoints: $pathPoints
+                sampleState: $sampleState
             )
             .frame(maxHeight: .infinity)
         }
@@ -191,7 +191,9 @@ struct GestureEditorView: View {
 
     private func commitAndSave() {
         if case .drawn(var drawn) = profile.input {
-            drawn.points = pathPoints
+            guard let primary = sampleState.samples.first else { return }
+            drawn.points = primary
+            drawn.additionalPaths = Array(sampleState.samples.dropFirst())
             profile.input = .drawn(drawn)
         }
         switch scopeMode {
@@ -210,7 +212,7 @@ struct GestureEditorView: View {
 
     /// Localization key explaining why saving is disabled.
     private var saveBlocker: String? {
-        if case .drawn = profile.input, pathPoints.count < 2 {
+        if case .drawn = profile.input, !sampleState.canSave {
             return "editor.saveNeedsPath"
         }
         if scopeMode == .group,

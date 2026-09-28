@@ -248,6 +248,57 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: url), bytes)
     }
 
+    func testLegacyV2ZeroLengthPrimaryRequiresRecoveryWithoutRewrite() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "StrokeMouseTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("gestures.json")
+        let profile = GestureProfile(
+            name: "Legacy zero length",
+            input: .drawn(DrawnGesture(
+                activation: .mouse(.default),
+                points: [
+                    CodablePoint(x: 4, y: 4),
+                    CodablePoint(x: 4, y: 4),
+                ]
+            ))
+        )
+        let bytes = try JSONEncoder().encode(GestureConfigFile(
+            version: 2,
+            gestures: [profile]
+        ))
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: bytes) as? [String: Any]
+        )
+        let gestures = try XCTUnwrap(object["gestures"] as? [[String: Any]])
+        let input = try XCTUnwrap(gestures.first?["input"] as? [String: Any])
+        let value = try XCTUnwrap(input["value"] as? [String: Any])
+        XCTAssertNil(value["additionalPaths"])
+        try bytes.write(to: url)
+
+        let store = ConfigStore(configURL: url)
+
+        XCTAssertTrue(store.gestures.isEmpty)
+        XCTAssertTrue(store.requiresRecovery)
+        XCTAssertEqual(
+            store.lastFailure,
+            .invalidConfiguration(.zeroLengthDrawnPath(profile.id))
+        )
+        XCTAssertEqual(
+            store.lastError,
+            ConfigValidationFailure.zeroLengthDrawnPath(profile.id)
+                .localizedDescription
+        )
+        XCTAssertEqual(try Data(contentsOf: url), bytes)
+    }
+
     func testV1MigrationPreservesProfileFieldsAndOrder() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)

@@ -575,8 +575,14 @@ final class GestureRuntime {
                 throw GestureRuntimeConfigurationError.duplicateProfileID(profile.id)
             }
             guard case .drawn(let drawn) = profile.input else { continue }
-            guard drawn.points.count >= 2,
-                  drawn.points.allSatisfy({ $0.x.isFinite && $0.y.isFinite })
+            guard drawn.allPaths.count <= DrawnGesture.maximumSampleCount,
+                  drawn.allPaths.allSatisfy({ path in
+                      path.count >= 2
+                          && path.allSatisfy { $0.x.isFinite && $0.y.isFinite }
+                          && zip(path, path.dropFirst()).contains { lhs, rhs in
+                              lhs.x != rhs.x || lhs.y != rhs.y
+                          }
+                  })
             else {
                 throw GestureRuntimeConfigurationError.invalidDrawnPath(profile.id)
             }
@@ -1033,13 +1039,13 @@ final class GestureRuntime {
         if mode == .diagnostic {
             lastDrawDiagnostic = nil
         }
-        let preparedTemplates = targeted.compactMap { item -> TemplateMatcher.PreparedPath? in
-            guard case .drawn(let drawn) = item.profile.input else { return nil }
-            let points = drawn.points.map(\.cgPoint)
-            guard points.count >= 2 else { return nil }
-            return GestureTemplateCache.shared.prepared(
+        let preparedTemplates = targeted.flatMap { item -> [TemplateMatcher.PreparedPath] in
+            guard case .drawn(let drawn) = item.profile.input else { return [] }
+            let paths = drawn.allPaths.map { $0.map(\.cgPoint) }
+            guard paths.allSatisfy({ $0.count >= 2 }) else { return [] }
+            return GestureTemplateCache.shared.preparedPaths(
                 id: item.profile.id,
-                points: points
+                paths: paths
             )
         }
         drawSession = DrawSession(
@@ -1216,7 +1222,8 @@ final class GestureRuntime {
             source: session.source,
             path: session.path,
             evaluation: evaluation,
-            outcome: outcome
+            outcome: outcome,
+            configurationRevision: session.revision
         )
     }
 

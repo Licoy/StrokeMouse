@@ -143,10 +143,11 @@ struct GestureRecorderView: View {
         }
         // View Y grows downward; live engine uses AppKit Y-up.
         let flipped = flipY(draftPoints)
-        let simplified = PathSimplifier.simplify(flipped, epsilon: 2)
-        let normalized = PathSimplifier.normalize(simplified)
-        let sampled = PathSimplifier.resample(normalized, count: Constants.freePathSampleCount)
-        path = sampled.map(CodablePoint.init)
+        guard let recorded = UnistrokeGeometry.recordedPath(flipped) else {
+            draft = []
+            return
+        }
+        path = recorded.map(CodablePoint.init)
         onRecordedPath?(flipped)
         draft = []
     }

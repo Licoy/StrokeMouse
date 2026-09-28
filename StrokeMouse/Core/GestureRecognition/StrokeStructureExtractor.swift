@@ -37,7 +37,7 @@ enum StrokeStructureExtractor {
     }
 
     static func extract(_ points: [CGPoint]) -> StrokeStructureExtraction {
-        guard let sampled = UnistrokeGeometry.resampledPath(
+        guard let sampled = UnistrokeGeometry.structuralPath(
             points,
             count: Constants.freePathStructureSampleCount
         ), let normalized = UnistrokeGeometry.normalize(sampled, uniform: true) else {

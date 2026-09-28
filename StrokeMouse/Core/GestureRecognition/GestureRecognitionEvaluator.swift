@@ -2,14 +2,14 @@ import CoreGraphics
 import Foundation
 
 /// Memoizes template preparation (resampling + structural extraction) per
-/// profile. Preparation is a pure function of the template points, so entries
-/// only need points-equality validation; edited templates re-prepare in place.
+/// profile. Preparation is a pure function of the complete path collection,
+/// so edited or reused profile ids re-prepare in place.
 final class GestureTemplateCache: @unchecked Sendable {
     static let shared = GestureTemplateCache()
 
     private struct Entry {
-        let points: [CGPoint]
-        let prepared: TemplateMatcher.PreparedPath
+        let paths: [[CGPoint]]
+        let preparedPaths: [TemplateMatcher.PreparedPath]
     }
 
     private let lock = NSLock()
@@ -19,22 +19,30 @@ final class GestureTemplateCache: @unchecked Sendable {
     private let capacity = 128
 
     func prepared(id: UUID, points: [CGPoint]) -> TemplateMatcher.PreparedPath {
+        preparedPaths(id: id, paths: [points])[0]
+    }
+
+    func preparedPaths(
+        id: UUID,
+        paths: [[CGPoint]]
+    ) -> [TemplateMatcher.PreparedPath] {
         lock.lock()
-        if let entry = entries[id], entry.points == points {
+        if let entry = entries[id], entry.paths == paths {
             lock.unlock()
-            return entry.prepared
+            return entry.preparedPaths
         }
         lock.unlock()
 
-        let prepared = TemplateMatcher.prepare(points)
+        let prepared = paths.map { TemplateMatcher.prepare($0) }
         lock.lock()
         if entries[id] == nil, entries.count >= capacity {
             entries.removeAll(keepingCapacity: true)
         }
-        entries[id] = Entry(points: points, prepared: prepared)
+        entries[id] = Entry(paths: paths, preparedPaths: prepared)
         lock.unlock()
         return prepared
     }
+
 }
 
 enum GestureEvaluationDecision: String, Codable, Sendable {
@@ -82,6 +90,26 @@ struct GestureCandidateEvaluation: Sendable {
     let shapeScore: Double
     let structuralMismatch: StrokeStructureMatcher.Mismatch?
     let diagnostics: TemplateMatcher.Diagnostics?
+    let winningTemplateIndex: Int
+    let templateEvaluations: [TemplateMatcher.Evaluation]
+
+    init(
+        profile: GestureProfile,
+        score: Double,
+        shapeScore: Double,
+        structuralMismatch: StrokeStructureMatcher.Mismatch?,
+        diagnostics: TemplateMatcher.Diagnostics?,
+        winningTemplateIndex: Int = 0,
+        templateEvaluations: [TemplateMatcher.Evaluation] = []
+    ) {
+        self.profile = profile
+        self.score = score
+        self.shapeScore = shapeScore
+        self.structuralMismatch = structuralMismatch
+        self.diagnostics = diagnostics
+        self.winningTemplateIndex = winningTemplateIndex
+        self.templateEvaluations = templateEvaluations
+    }
 }
 
 struct GestureRecognitionEvaluation: Sendable {
@@ -206,21 +234,35 @@ enum GestureRecognitionEvaluator {
         let preparedStroke = TemplateMatcher.prepare(path)
         let candidates = profiles.compactMap { profile -> GestureCandidateEvaluation? in
             guard profile.isEnabled, includes(profile),
-                  let template = templatePoints(for: profile)
+                  let templates = templatePaths(for: profile)
             else { return nil }
-            let match = TemplateMatcher.evaluate(
-                stroke: preparedStroke,
-                template: GestureTemplateCache.shared.prepared(
-                    id: profile.id,
-                    points: template
+            let matches = GestureTemplateCache.shared.preparedPaths(
+                id: profile.id,
+                paths: templates
+            ).map { template in
+                TemplateMatcher.evaluate(
+                    stroke: preparedStroke,
+                    template: template
                 )
-            )
+            }
+            guard let winner = matches.indices.max(by: { lhs, rhs in
+                let left = matches[lhs]
+                let right = matches[rhs]
+                if left.score != right.score { return left.score < right.score }
+                if left.shapeScore != right.shapeScore {
+                    return left.shapeScore < right.shapeScore
+                }
+                return lhs > rhs
+            }) else { return nil }
+            let match = matches[winner]
             return GestureCandidateEvaluation(
                 profile: profile,
                 score: match.score,
                 shapeScore: match.shapeScore,
                 structuralMismatch: match.structuralMismatch,
-                diagnostics: match.diagnostics
+                diagnostics: match.diagnostics,
+                winningTemplateIndex: winner,
+                templateEvaluations: matches
             )
         }.sorted { lhs, rhs in
             if lhs.score != rhs.score { return lhs.score > rhs.score }
@@ -263,10 +305,10 @@ enum GestureRecognitionEvaluator {
         )
     }
 
-    private static func templatePoints(for profile: GestureProfile) -> [CGPoint]? {
+    private static func templatePaths(for profile: GestureProfile) -> [[CGPoint]]? {
         guard case .drawn(let drawn) = profile.input else { return nil }
-        let points = drawn.points.map(\.cgPoint)
-        return points.count >= 2 ? points : nil
+        let paths = drawn.allPaths.map { $0.map(\.cgPoint) }
+        return paths.allSatisfy { $0.count >= 2 } ? paths : nil
     }
 
     private static func result(

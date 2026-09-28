@@ -111,10 +111,28 @@ struct GestureActiveSessionSummary: Equatable, Sendable {
 }
 
 struct GestureDrawDiagnostic {
+    let id: UUID
     let source: GestureInputSource
     let path: [CGPoint]
     let evaluation: GestureRecognitionEvaluation?
     let outcome: GestureRuntimeOutcome
+    let configurationRevision: UInt64
+
+    init(
+        source: GestureInputSource,
+        path: [CGPoint],
+        evaluation: GestureRecognitionEvaluation?,
+        outcome: GestureRuntimeOutcome,
+        id: UUID = UUID(),
+        configurationRevision: UInt64 = 0
+    ) {
+        self.id = id
+        self.source = source
+        self.path = path
+        self.evaluation = evaluation
+        self.outcome = outcome
+        self.configurationRevision = configurationRevision
+    }
 }
 
 enum GestureRuntimeOutcome: Equatable, Sendable {

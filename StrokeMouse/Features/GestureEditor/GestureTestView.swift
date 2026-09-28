@@ -10,6 +10,14 @@ private enum GestureTestInputMode: String, CaseIterable, Identifiable {
     var titleKey: String { "gestureTest.input.\(rawValue)" }
 }
 
+private enum GestureTestMouseCaptureMode: String, CaseIterable, Identifiable {
+    case canvas
+    case runtime
+
+    var id: String { rawValue }
+    var titleKey: String { "gestureTest.capture.\(rawValue)" }
+}
+
 struct GestureTestView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
@@ -17,12 +25,14 @@ struct GestureTestView: View {
     @State private var previewPath: [CodablePoint] = []
     @State private var selectedButton: MouseTriggerButton = .right
     @State private var inputMode: GestureTestInputMode = .mouseDraw
+    @State private var mouseCaptureMode: GestureTestMouseCaptureMode = .canvas
     @State private var evaluation: GestureRecognitionEvaluation?
     @State private var rawPointCount = 0
     @State private var sessionID = UUID()
     @State private var diagnosticSession: GestureDiagnosticSession?
     @State private var didSaveLog = false
     @State private var logError: String?
+    @State private var replaySummary: String?
     @AppStorage(PreferenceKey.directTrackpadEnabled)
     private var directTrackpadEnabled = true
 
@@ -51,6 +61,15 @@ struct GestureTestView: View {
             previewPath = []
             evaluation = nil
             rawPointCount = 0
+        }
+        .onChange(of: mouseCaptureMode) { _, _ in
+            previewPath = []
+            evaluation = nil
+            rawPointCount = 0
+        }
+        .onChange(of: appState.gestureRuntime.lastDrawDiagnostic?.id) {
+            _, _ in
+            consumeRuntimeDiagnostic()
         }
     }
 
@@ -85,13 +104,26 @@ struct GestureTestView: View {
 
             switch inputMode {
             case .mouseDraw:
-                labeledSegmentedPicker(
-                    title: L10n.string("gestureTest.trigger"),
-                    selection: $selectedButton,
-                    maxControlWidth: 560
-                ) {
-                    ForEach(MouseTriggerButton.allCases) { button in
-                        Text(L10n.string(button.displayKey)).tag(button)
+                VStack(alignment: .leading, spacing: 10) {
+                    labeledSegmentedPicker(
+                        title: L10n.string("gestureTest.captureMode"),
+                        selection: $mouseCaptureMode,
+                        maxControlWidth: 560
+                    ) {
+                        ForEach(GestureTestMouseCaptureMode.allCases) { mode in
+                            Text(L10n.string(mode.titleKey)).tag(mode)
+                        }
+                    }
+                    if mouseCaptureMode == .canvas {
+                        labeledSegmentedPicker(
+                            title: L10n.string("gestureTest.trigger"),
+                            selection: $selectedButton,
+                            maxControlWidth: 560
+                        ) {
+                            ForEach(MouseTriggerButton.allCases) { button in
+                                Text(L10n.string(button.displayKey)).tag(button)
+                            }
+                        }
                     }
                 }
             case .modifierDraw:
@@ -140,7 +172,11 @@ struct GestureTestView: View {
         switch inputMode {
         case .mouseDraw:
             HStack(alignment: .top, spacing: 16) {
-                drawingPanel
+                if mouseCaptureMode == .canvas {
+                    drawingPanel
+                } else {
+                    runtimeMouseDrawingPanel
+                }
                 resultPanel
                     .frame(width: 330)
             }
@@ -200,6 +236,32 @@ struct GestureTestView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var runtimeMouseDrawingPanel: some View {
+        let runtime = appState.gestureRuntime
+        let path = isMouseSource(runtime.state.activeSession?.source)
+            ? runtime.currentPath
+            : (mouseDrawDiagnostic?.path ?? [])
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(L10n.string("gestureTest.mouseRuntimeInstruction"))
+                .font(.headline)
+            GesturePathPreview(path: path)
+                .frame(maxHeight: .infinity)
+            if let diagnostic = mouseDrawDiagnostic {
+                Label(
+                    trackpadOutcomeText(diagnostic.outcome),
+                    systemImage: trackpadOutcomeSymbol(diagnostic.outcome)
+                )
+                .font(.caption)
+            } else {
+                Text(L10n.string("gestureTest.mouseRuntimeWaiting"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private var resultPanel: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 10) {
@@ -239,7 +301,9 @@ struct GestureTestView: View {
     private var activeDrawEvaluation: GestureRecognitionEvaluation? {
         switch inputMode {
         case .mouseDraw:
-            return evaluation
+            return mouseCaptureMode == .canvas
+                ? evaluation
+                : mouseDrawDiagnostic?.evaluation
         case .modifierDraw:
             return modifierDrawDiagnostic?.evaluation
         case .directTrackpad:
@@ -250,7 +314,9 @@ struct GestureTestView: View {
     private var activeDrawRawPointCount: Int {
         switch inputMode {
         case .mouseDraw:
-            return rawPointCount
+            return mouseCaptureMode == .canvas
+                ? rawPointCount
+                : (mouseDrawDiagnostic?.path.count ?? 0)
         case .modifierDraw:
             return modifierDrawDiagnostic?.path.count ?? 0
         case .directTrackpad:
@@ -385,6 +451,17 @@ struct GestureTestView: View {
                     .foregroundStyle(.green)
                     .font(.caption)
             }
+            if candidate.templateEvaluations.count > 1 {
+                Text(
+                    String(
+                        format: L10n.string("gestureTest.winningSample"),
+                        locale: L10n.locale,
+                        candidate.winningTemplateIndex + 1
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
         }
         .padding(9)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
@@ -413,6 +490,9 @@ struct GestureTestView: View {
                     NSWorkspace.shared.activateFileViewerSelecting([logStore.logURL])
                 }
                 .disabled(!didSaveLog)
+                Button(L10n.string("gestureTest.replayLog")) {
+                    replayLog()
+                }
                 Button(L10n.string("gestureTest.close")) {
                     dismiss()
                 }
@@ -428,12 +508,17 @@ struct GestureTestView: View {
                     .font(.caption)
                     .foregroundStyle(.red)
             }
+            if let replaySummary {
+                Text(replaySummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
     @ViewBuilder
     private var footer: some View {
-        if inputMode == .mouseDraw {
+        if inputMode != .directTrackpad {
             logFooter
         } else {
             HStack(alignment: .center, spacing: 12) {
@@ -482,12 +567,96 @@ struct GestureTestView: View {
         let entry = GestureTestLogEntry(
             sessionID: sessionID,
             rawPath: rawPath,
-            evaluation: result
+            evaluation: result,
+            source: .canvas
         )
+        if diagnosticSession != nil {
+            appendLog(entry)
+        }
+    }
+
+    private func consumeRuntimeDiagnostic() {
+        guard diagnosticSession != nil,
+              let diagnostic = appState.gestureRuntime.lastDrawDiagnostic
+        else { return }
+        let source: GestureTestLogSource
+        let activation: DrawActivation
+        switch (inputMode, mouseCaptureMode, diagnostic.source) {
+        case (.mouseDraw, .runtime, .mouse(let button)):
+            source = .mouseRuntime
+            activation = .mouse(GestureTrigger(button: button))
+        case (.modifierDraw, _, .modifier(let key)):
+            source = .modifierRuntime
+            activation = .modifier(key)
+        default:
+            return
+        }
+        if let evaluation = diagnostic.evaluation {
+            appendLog(GestureTestLogEntry(
+                sessionID: sessionID,
+                rawPath: diagnostic.path,
+                evaluation: evaluation,
+                source: source,
+                activation: activation,
+                configurationRevision: diagnostic.configurationRevision
+            ))
+        } else if diagnostic.outcome == .cancelled {
+            do {
+                appendLog(try GestureTestLogEntry(
+                    sessionID: sessionID,
+                    cancelledDiagnostic: diagnostic
+                ))
+            } catch {
+                logError = error.localizedDescription
+            }
+        }
+    }
+
+    private func appendLog(_ entry: GestureTestLogEntry) {
         do {
             try logStore.append(entry)
             didSaveLog = true
             logError = nil
+        } catch {
+            logError = error.localizedDescription
+        }
+    }
+
+    private func replayLog() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedFileTypes = ["jsonl", "json"]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            let reports = try GestureTestLogReplay.replay(contentsOf: url)
+            let exact = reports.filter { $0.fidelity == .exact }.count
+            let current = reports.filter {
+                $0.fidelity == .currentAlgorithmReevaluation
+            }.count
+            let unavailable = reports.filter {
+                $0.fidelity == .unavailable || $0.fidelity == .nonrecognition
+            }.count
+            let mismatches = reports.filter(\.hasMismatch).count
+            replaySummary = String(
+                format: L10n.string("gestureTest.replaySummary"),
+                locale: L10n.locale,
+                exact,
+                current,
+                unavailable,
+                mismatches
+            )
+            logError = nil
+        } catch let error as GestureTestLogReadError {
+            switch error {
+            case .invalidLine(let line, let detail):
+                logError = String(
+                    format: L10n.string("gestureTest.replayReadLineError"),
+                    locale: L10n.locale,
+                    line,
+                    detail
+                )
+            }
         } catch {
             logError = error.localizedDescription
         }
@@ -549,9 +718,24 @@ struct GestureTestView: View {
         return diagnostic
     }
 
+    private var mouseDrawDiagnostic: GestureDrawDiagnostic? {
+        guard let diagnostic = appState.gestureRuntime.lastDrawDiagnostic,
+              isMouseSource(diagnostic.source)
+        else {
+            return nil
+        }
+        return diagnostic
+    }
+
     private func isModifierSource(_ source: GestureInputSource?) -> Bool {
         guard let source else { return false }
         if case .modifier = source { return true }
+        return false
+    }
+
+    private func isMouseSource(_ source: GestureInputSource?) -> Bool {
+        guard let source else { return false }
+        if case .mouse = source { return true }
         return false
     }
 }

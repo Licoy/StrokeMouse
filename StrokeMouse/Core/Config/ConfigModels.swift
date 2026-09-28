@@ -225,20 +225,62 @@ enum DrawActivation: Codable, Equatable, Sendable {
 }
 
 struct DrawnGesture: Codable, Equatable, Sendable {
+    static let maximumSampleCount = 5
+
     var activation: DrawActivation
     var points: [CodablePoint]
     /// Optional shared activation for mouse-drawn profiles. Missing legacy
     /// values decode as `nil`, keeping existing profiles mouse-only.
     var trackpadModifierKey: GestureModifierKey?
+    /// Additional recordings of the same gesture. The primary `points` path
+    /// remains stable for compatibility with older versions.
+    var additionalPaths: [[CodablePoint]]
+
+    var allPaths: [[CodablePoint]] {
+        [points] + additionalPaths
+    }
 
     init(
         activation: DrawActivation,
         points: [CodablePoint],
-        trackpadModifierKey: GestureModifierKey? = nil
+        trackpadModifierKey: GestureModifierKey? = nil,
+        additionalPaths: [[CodablePoint]] = []
     ) {
         self.activation = activation
         self.points = points
         self.trackpadModifierKey = trackpadModifierKey
+        self.additionalPaths = additionalPaths
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        activation = try container.decode(DrawActivation.self, forKey: .activation)
+        points = try container.decode([CodablePoint].self, forKey: .points)
+        trackpadModifierKey = try container.decodeIfPresent(
+            GestureModifierKey.self,
+            forKey: .trackpadModifierKey
+        )
+        additionalPaths = try container.decodeIfPresent(
+            [[CodablePoint]].self,
+            forKey: .additionalPaths
+        ) ?? []
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(activation, forKey: .activation)
+        try container.encode(points, forKey: .points)
+        try container.encodeIfPresent(
+            trackpadModifierKey,
+            forKey: .trackpadModifierKey
+        )
+        if !additionalPaths.isEmpty {
+            try container.encode(additionalPaths, forKey: .additionalPaths)
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case activation, points, trackpadModifierKey, additionalPaths
     }
 }
 

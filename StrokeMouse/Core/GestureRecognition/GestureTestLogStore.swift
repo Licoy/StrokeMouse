@@ -36,7 +36,9 @@ struct GestureTestLogMatchDiagnostics: Codable, Sendable, Equatable {
 
     init(_ diagnostics: TemplateMatcher.Diagnostics, finalScore: Double) {
         matchingMode = diagnostics.mode?.rawValue
-        distance = diagnostics.distance
+        // A non-finite distance means the matcher did not produce a usable
+        // distance; represent that explicitly instead of making JSON fail.
+        distance = diagnostics.distance.flatMap { $0.isFinite ? $0 : nil }
         rotationDegrees = diagnostics.rotationDegrees
         rawGeometryScore = diagnostics.rawGeometryScore
         self.finalScore = finalScore
@@ -55,16 +57,49 @@ struct GestureTestLogMatchDiagnostics: Codable, Sendable, Equatable {
     }
 }
 
+enum GestureTestLogSource: String, Codable, Equatable, Sendable {
+    case canvas
+    case mouseRuntime
+    case modifierRuntime
+}
+
+enum GestureTestLogEvaluationTier: String, Codable, Equatable, Sendable {
+    case application
+    case group
+    case global
+}
+
+enum GestureTestLogOutcome: String, Codable, Equatable, Sendable {
+    case recognition
+    case cancelled
+}
+
+enum GestureTestLogEntryError: Error, Equatable {
+    case notCancelled
+    case unsupportedSource
+}
+
+struct GestureTestLogTemplateEvaluation: Codable, Sendable {
+    let finalScore: Double
+    let shapeScore: Double
+    let structuralMismatch: StrokeStructureMatcher.Mismatch?
+    let diagnostics: GestureTestLogMatchDiagnostics?
+}
+
 struct GestureTestLogCandidate: Codable, Sendable {
     let profileID: UUID
     let profileName: String
     let score: Double
     let shapeScore: Double
     let structuralMismatch: StrokeStructureMatcher.Mismatch?
-    /// Normalized 32-point template; optional so schema-v1/v2 lines remain decodable.
+    /// Normalized sampled template; optional so schema-v1/v2 lines remain decodable.
     let templatePath: [CodablePoint]?
     /// Exact persisted template; optional so schema-v1/v2/v3/v4 lines remain decodable.
     let sourceTemplatePath: [CodablePoint]?
+    /// All exact persisted templates, in profile order; added in schema v6.
+    let sourceTemplatePaths: [[CodablePoint]]?
+    let winningTemplateIndex: Int?
+    let templateEvaluations: [GestureTestLogTemplateEvaluation]?
     let diagnostics: GestureTestLogMatchDiagnostics?
 }
 
@@ -72,8 +107,16 @@ struct GestureTestLogEntry: Codable, Sendable {
     let schemaVersion: Int
     let timestamp: Date
     let sessionID: UUID
+    /// Added in schema v6. Legacy entries have no trustworthy input source.
+    let source: GestureTestLogSource?
+    let activation: DrawActivation?
+    let outcome: GestureTestLogOutcome?
+    let algorithmVersion: String?
+    let configurationRevision: UInt64?
+    /// Candidates contain only this already-selected scope tier.
+    let evaluationTier: GestureTestLogEvaluationTier?
     let selectedTrigger: MouseTriggerButton
-    let decision: GestureEvaluationDecision
+    let decision: GestureEvaluationDecision?
     let acceptedProfileID: UUID?
     let acceptedProfileName: String?
     /// Optional so schema-v1/v2/v3 lines remain decodable.
@@ -87,13 +130,31 @@ struct GestureTestLogEntry: Codable, Sendable {
         sessionID: UUID,
         rawPath: [CGPoint],
         evaluation: GestureRecognitionEvaluation,
+        source: GestureTestLogSource = .canvas,
+        activation: DrawActivation? = nil,
+        configurationRevision: UInt64? = nil,
         timestamp: Date = Date()
     ) {
         let accepted = evaluation.acceptedCandidate
-        schemaVersion = 5
+        schemaVersion = 6
         self.timestamp = timestamp
         self.sessionID = sessionID
-        selectedTrigger = evaluation.button
+        self.source = source
+        let resolvedActivation = activation ?? .mouse(
+            GestureTrigger(button: evaluation.button)
+        )
+        self.activation = resolvedActivation
+        outcome = .recognition
+        algorithmVersion = TemplateMatcher.algorithmVersion
+        self.configurationRevision = configurationRevision
+        evaluationTier = evaluation.candidates.first.map {
+            Self.evaluationTier(for: $0.profile.scope)
+        }
+        if case .mouse(let trigger) = resolvedActivation {
+            selectedTrigger = trigger.button
+        } else {
+            selectedTrigger = evaluation.button
+        }
         decision = evaluation.decision
         acceptedProfileID = accepted?.profile.id
         acceptedProfileName = accepted?.profile.name
@@ -105,14 +166,30 @@ struct GestureTestLogEntry: Codable, Sendable {
             count: Constants.freePathSampleCount
         ) ?? []).map(CodablePoint.init)
         candidates = evaluation.candidates.map { candidate in
-            GestureTestLogCandidate(
+            let allSourcePaths = Self.sourceTemplatePaths(for: candidate.profile)
+            return GestureTestLogCandidate(
                 profileID: candidate.profile.id,
                 profileName: candidate.profile.name,
                 score: candidate.score,
                 shapeScore: candidate.shapeScore,
                 structuralMismatch: candidate.structuralMismatch,
                 templatePath: Self.normalizedTemplatePath(for: candidate.profile),
-                sourceTemplatePath: Self.sourceTemplatePath(for: candidate.profile),
+                sourceTemplatePath: allSourcePaths?.first,
+                sourceTemplatePaths: allSourcePaths,
+                winningTemplateIndex: candidate.winningTemplateIndex,
+                templateEvaluations: candidate.templateEvaluations.map { item in
+                    GestureTestLogTemplateEvaluation(
+                        finalScore: item.score,
+                        shapeScore: item.shapeScore,
+                        structuralMismatch: item.structuralMismatch,
+                        diagnostics: item.diagnostics.map {
+                            GestureTestLogMatchDiagnostics(
+                                $0,
+                                finalScore: item.score
+                            )
+                        }
+                    )
+                },
                 diagnostics: candidate.diagnostics.map {
                     GestureTestLogMatchDiagnostics($0, finalScore: candidate.score)
                 }
@@ -120,11 +197,60 @@ struct GestureTestLogEntry: Codable, Sendable {
         }
     }
 
-    private static func sourceTemplatePath(
+    init(
+        sessionID: UUID,
+        cancelledDiagnostic diagnostic: GestureDrawDiagnostic,
+        timestamp: Date = Date()
+    ) throws {
+        guard diagnostic.evaluation == nil,
+              diagnostic.outcome == .cancelled
+        else {
+            throw GestureTestLogEntryError.notCancelled
+        }
+        let resolvedSource: GestureTestLogSource
+        let resolvedActivation: DrawActivation
+        switch diagnostic.source {
+        case .mouse(let button):
+            resolvedSource = .mouseRuntime
+            resolvedActivation = .mouse(GestureTrigger(button: button))
+            selectedTrigger = button
+        case .modifier(let key):
+            resolvedSource = .modifierRuntime
+            resolvedActivation = .modifier(key)
+            selectedTrigger = .right
+        case .multitouch:
+            throw GestureTestLogEntryError.unsupportedSource
+        }
+        schemaVersion = 6
+        self.timestamp = timestamp
+        self.sessionID = sessionID
+        source = resolvedSource
+        activation = resolvedActivation
+        outcome = .cancelled
+        algorithmVersion = TemplateMatcher.algorithmVersion
+        configurationRevision = diagnostic.configurationRevision
+        evaluationTier = nil
+        decision = nil
+        acceptedProfileID = nil
+        acceptedProfileName = nil
+        policy = nil
+        metrics = Self.metrics(
+            for: diagnostic.path,
+            pathLength: PathSimplifier.pathLength(diagnostic.path)
+        )
+        rawPath = diagnostic.path.map(CodablePoint.init)
+        sampledPath = (UnistrokeGeometry.resampledPath(
+            diagnostic.path,
+            count: Constants.freePathSampleCount
+        ) ?? []).map(CodablePoint.init)
+        candidates = []
+    }
+
+    private static func sourceTemplatePaths(
         for profile: GestureProfile
-    ) -> [CodablePoint]? {
+    ) -> [[CodablePoint]]? {
         guard case .drawn(let drawn) = profile.input else { return nil }
-        return drawn.points
+        return drawn.allPaths
     }
 
     private static func normalizedTemplatePath(
@@ -155,6 +281,16 @@ struct GestureTestLogEntry: Codable, Sendable {
             width: Double(width),
             height: Double(height)
         )
+    }
+
+    private static func evaluationTier(
+        for scope: AppScope
+    ) -> GestureTestLogEvaluationTier {
+        switch scope {
+        case .apps: return .application
+        case .group: return .group
+        case .global: return .global
+        }
     }
 }
 
@@ -196,6 +332,52 @@ struct GestureTestLogStore {
             handle.closeFile()
             throw error
         }
+    }
+
+    func readEntries() throws -> [GestureTestLogEntry] {
+        let data = try Data(contentsOf: logURL)
+        return try data.split(separator: 0x0A, omittingEmptySubsequences: false)
+            .enumerated()
+            .compactMap { offset, line in
+                guard line.contains(where: { !$0.isASCIIWhitespace }) else {
+                    return nil
+                }
+                do {
+                    let entry = try JSONDecoder.gestureTestDecoder.decode(
+                        GestureTestLogEntry.self,
+                        from: Data(line)
+                    )
+                    try GestureTestLogReplay.validate(entry)
+                    return entry
+                } catch {
+                    throw GestureTestLogReadError.invalidLine(
+                        line: offset + 1,
+                        detail: error.localizedDescription
+                    )
+                }
+            }
+    }
+}
+
+enum GestureTestLogReadError: Error, Equatable, LocalizedError {
+    case invalidLine(line: Int, detail: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidLine(let line, let detail):
+            return String(
+                format: L10n.string("gestureTest.replayReadLineError"),
+                locale: L10n.locale,
+                line,
+                detail
+            )
+        }
+    }
+}
+
+private extension UInt8 {
+    var isASCIIWhitespace: Bool {
+        self == 0x20 || self == 0x09 || self == 0x0D
     }
 }
 

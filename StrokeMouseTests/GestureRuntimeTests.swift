@@ -1389,6 +1389,10 @@ final class GestureRuntimeTests: XCTestCase {
             .modifier(.function)
         )
         XCTAssertEqual(runtime.lastDrawDiagnostic?.outcome, .noMatch)
+        XCTAssertEqual(runtime.lastDrawDiagnostic?.configurationRevision, 1)
+        let diagnosticID = runtime.lastDrawDiagnostic?.id
+        await drainMainActor()
+        XCTAssertEqual(runtime.lastDrawDiagnostic?.id, diagnosticID)
         diagnostic.end()
     }
 
@@ -1570,6 +1574,7 @@ final class GestureRuntimeTests: XCTestCase {
         await drainMainActor()
         XCTAssertNil(runtime.state.activeSession)
         XCTAssertEqual(runtime.state.lastOutcome, .cancelled)
+        XCTAssertNil(runtime.lastDrawDiagnostic)
 
         XCTAssertFalse(mouse.press(.right, at: CGPoint(x: 10, y: 10)))
         modifier.release(.function)
@@ -1580,6 +1585,60 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(runtime.state.activeSession?.source, .mouse(.right))
         mouse.release(.right, at: CGPoint(x: 10, y: 10))
         await drainMainActor()
+    }
+
+    func testDiagnosticModifierCancellationProducesOneLogEntry() async throws {
+        let modifier = RuntimeModifierEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            modifierEventTap: modifier,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        let profile = GestureProfile(
+            name: "Modifier",
+            input: .drawn(DrawnGesture(
+                activation: .modifier(.option),
+                points: PathTemplates.up
+            ))
+        )
+        try runtime.apply(configuration(
+            revision: 17,
+            enabled: true,
+            profiles: [profile]
+        ))
+        let diagnosticSession = runtime.beginDiagnostics()
+        defer { diagnosticSession.end() }
+
+        modifier.press(.option, at: CGPoint(x: 10, y: 10))
+        await drainMainActor()
+        modifier.interrupt(.option)
+        await drainMainActor()
+
+        let diagnostic = try XCTUnwrap(runtime.lastDrawDiagnostic)
+        XCTAssertEqual(diagnostic.outcome, .cancelled)
+        XCTAssertNil(diagnostic.evaluation)
+        XCTAssertEqual(diagnostic.configurationRevision, 17)
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "GestureRuntimeCancelLog-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = GestureTestLogStore(
+            logURL: directory.appendingPathComponent("log.jsonl")
+        )
+        try store.append(GestureTestLogEntry(
+            sessionID: UUID(),
+            cancelledDiagnostic: diagnostic
+        ))
+
+        let entries = try store.readEntries()
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries.first?.outcome, .cancelled)
+        XCTAssertNil(entries.first?.decision)
     }
 
     func testAlreadyReleasedInputDrainsInterruptedGateImmediately()

@@ -35099,6 +35099,1110 @@
         }
       }
     },
+    "gestureTest.captureMode": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capture Method"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "采集方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "擷取方式"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캡처 방식"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得方法"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Способ записи"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode de capture"
+          }
+        }
+      }
+    },
+    "gestureTest.capture.canvas": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Draw on Canvas"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画布绘制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "畫布繪製"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캔버스에 그리기"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャンバス描画"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Рисование на холсте"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dessin sur la zone"
+          }
+        }
+      }
+    },
+    "gestureTest.capture.runtime": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Gesture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实际绘制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實際繪製"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 제스처"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実際の描画"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Реальный жест"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geste réel"
+          }
+        }
+      }
+    },
+    "gestureTest.mouseRuntimeInstruction": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Draw the gesture with its configured mouse trigger; the result will appear and be logged when you finish."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用已配置的鼠标触发键实际绘制，完成后将显示并记录结果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用已設定的滑鼠觸發鍵實際繪製，完成後將顯示並記錄結果"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "설정된 마우스 트리거로 제스처를 그리면 완료 후 결과가 표시되고 기록됩니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定済みのマウストリガーで実際に描画すると、完了後に結果が表示され記録されます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нарисуйте жест с настроенным триггером мыши; после завершения результат появится на экране и будет записан."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dessinez le geste avec le déclencheur de souris configuré ; le résultat s’affichera et sera enregistré à la fin."
+          }
+        }
+      }
+    },
+    "gestureTest.mouseRuntimeWaiting": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for a live mouse gesture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待实际鼠标绘制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待實際滑鼠繪製"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실제 마우스 제스처 대기 중"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実際のマウス描画を待機中"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ожидание реального жеста мышью"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En attente d’un geste réel à la souris"
+          }
+        }
+      }
+    },
+    "gestureTest.winningSample": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Winning Sample %d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "胜出样本 %d"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "勝出樣本 %d"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "최고 일치 샘플 %d"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "採用サンプル %d"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лучший образец %d"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échantillon retenu %d"
+          }
+        }
+      }
+    },
+    "gestureTest.replayLog": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replay Log"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重放日志"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重放日誌"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "로그 재생"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログを再生"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повтор журнала"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relire le journal"
+          }
+        }
+      }
+    },
+    "gestureTest.replaySummary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exact %d, reevaluated with current algorithm %d, unavailable %d, mismatched %d"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "精确 %d，当前算法重评 %d，不可重放 %d，不一致 %d"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "精確 %d，目前演算法重評 %d，無法重放 %d，不一致 %d"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정확 %d, 현재 알고리즘으로 재평가 %d, 재생 불가 %d, 불일치 %d"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完全一致 %d、現行アルゴリズムで再評価 %d、再生不可 %d、不一致 %d"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Точно: %d, переоценено текущим алгоритмом: %d, недоступно: %d, расхождений: %d"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exact : %d, réévalué avec l’algorithme actuel : %d, indisponible : %d, incohérent : %d"
+          }
+        }
+      }
+    },
+    "gestureTest.replayReadLineError": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not read line %d: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取第 %d 行：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取第 %d 行：%@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d번째 줄을 읽을 수 없음: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d行目を読み込めません：%@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать строку %d: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire la ligne %d : %@"
+          }
+        }
+      }
+    },
+    "gestureTest.matchMode.curveOrderedPath": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordered curve matching"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有序曲线匹配"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有序曲線比對"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "순서 기반 곡선 일치"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "順序付き曲線マッチング"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Упорядоченное сопоставление кривой"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Correspondance ordonnée de courbe"
+          }
+        }
+      }
+    },
+    "editor.samples.empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No gesture samples"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚无手势样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚無手勢樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제스처 샘플 없음"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ジェスチャサンプルがありません"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет образцов жеста"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun échantillon de geste"
+          }
+        }
+      }
+    },
+    "editor.samples.recordFirst": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record First Sample"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制第一个样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "錄製第一個樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "첫 샘플 기록"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初のサンプルを記録"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записать первый образец"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer le premier échantillon"
+          }
+        }
+      }
+    },
+    "editor.samples.recommendation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One sample is enough to save; three samples are recommended for better recognition."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制一个样本即可保存，建议录制三个以提升识别效果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "錄製一個樣本即可儲存，建議錄製三個以提升辨識效果"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 하나로 저장할 수 있으며, 인식률을 높이려면 세 개를 권장합니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1つのサンプルで保存できますが、認識精度を高めるには3つを推奨します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для сохранения достаточно одного образца; для лучшего распознавания рекомендуется три."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un échantillon suffit pour enregistrer ; trois sont recommandés pour améliorer la reconnaissance."
+          }
+        }
+      }
+    },
+    "editor.samples.primary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "主要樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メイン"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Основной"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Principal"
+          }
+        }
+      }
+    },
+    "editor.samples.sample": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sample"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプル"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Образец"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échantillon"
+          }
+        }
+      }
+    },
+    "editor.samples.add": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Sample"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 추가"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプルを追加"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить образец"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un échantillon"
+          }
+        }
+      }
+    },
+    "editor.samples.rerecord": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-record"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重录当前"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新錄製"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 기록"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再記録"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перезаписать"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réenregistrer"
+          }
+        }
+      }
+    },
+    "editor.samples.makePrimary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set as Primary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设为主样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設為主要樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "기본으로 설정"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メインに設定"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сделать основным"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Définir comme principal"
+          }
+        }
+      }
+    },
+    "editor.samples.delete": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Sample"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 삭제"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプルを削除"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить образец"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer l’échantillon"
+          }
+        }
+      }
+    },
+    "editor.samples.useRecording": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use Recording"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用此次录制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用此次錄製"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 기록 사용"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この記録を使用"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать запись"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser l’enregistrement"
+          }
+        }
+      }
+    },
+    "editor.samples.rerecordTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-record Sample"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重录当前样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新錄製目前樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "샘플 다시 기록"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サンプルを再記録"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перезапись образца"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réenregistrer l’échantillon"
+          }
+        }
+      }
+    },
+    "editor.samples.addTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Gesture Sample"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "追加手势样本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增手勢樣本"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제스처 샘플 추가"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ジェスチャサンプルを追加"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить образец жеста"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter un échantillon de geste"
+          }
+        }
+      }
+    },
+    "config.failure.tooManyDrawnSamples": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drawn gesture %@ may contain at most five samples."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "绘制手势 %@ 最多可包含五个样本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繪製手勢 %@ 最多可包含五個樣本。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그리기 제스처 %@에는 샘플을 최대 5개까지 포함할 수 있습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "描画ジェスチャ %@ に含められるサンプルは最大5つです。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Рисованный жест %@ может содержать не более пяти образцов."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le geste dessiné %@ peut contenir au maximum cinq échantillons."
+          }
+        }
+      }
+    },
+    "config.failure.zeroLengthDrawnPath": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each sample in drawn gesture %@ must contain a non-zero-length path."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "绘制手势 %@ 的每个样本都必须包含非零长度的轨迹。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繪製手勢 %@ 的每個樣本都必須包含非零長度的軌跡。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그리기 제스처 %@의 각 샘플에는 길이가 0이 아닌 경로가 있어야 합니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "描画ジェスチャ %@ の各サンプルには長さが0ではない軌跡が必要です。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Каждый образец рисованного жеста %@ должен содержать траекторию ненулевой длины."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque échantillon du geste dessiné %@ doit contenir un tracé de longueur non nulle."
+          }
+        }
+      }
+    },
     "config.failure.invalidAppPolicy": {
       "localizations": {
         "en": {
@@ -35143,6 +36247,83 @@
             "value": "Règle d’app invalide ou en double : %@"
           }
         }
+      }
+    },
+    "gestureTest.replay.validation.unsupportedSchema": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Unsupported gesture log schema version %d."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "不支持手势日志架构版本 %d。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "不支援手勢日誌架構版本 %d。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "지원하지 않는 제스처 로그 스키마 버전 %d입니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ジェスチャログのスキーマバージョン %d はサポートされていません。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Версия схемы журнала жестов %d не поддерживается."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "La version %d du schéma du journal de gestes n’est pas prise en charge."}}
+      }
+    },
+    "gestureTest.replay.validation.invalidRawPath": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "The recorded path contains an invalid numeric point."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "记录的轨迹包含无效数值点。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "記錄的軌跡包含無效數值點。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기록된 경로에 잘못된 숫자 좌표가 있습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "記録された軌跡に無効な数値の点が含まれています。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Записанная траектория содержит точку с недопустимым числовым значением."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Le tracé enregistré contient un point numérique invalide."}}
+      }
+    },
+    "gestureTest.replay.validation.invalidMetrics": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "The recorded path metrics contain an invalid number."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "记录的轨迹指标包含无效数值。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "記錄的軌跡指標包含無效數值。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기록된 경로 지표에 잘못된 숫자가 있습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "記録された軌跡の指標に無効な数値が含まれています。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Метрики записанной траектории содержат недопустимое число."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Les mesures du tracé enregistré contiennent un nombre invalide."}}
+      }
+    },
+    "gestureTest.replay.validation.invalidPolicy": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "The recorded recognition policy is invalid."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "记录的识别策略无效。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "記錄的辨識策略無效。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "기록된 인식 정책이 잘못되었습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "記録された認識ポリシーが無効です。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Записанная политика распознавания недопустима."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "La règle de reconnaissance enregistrée est invalide."}}
+      }
+    },
+    "gestureTest.replay.validation.invalidMetadata": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "The replay metadata is incomplete."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重放元数据不完整。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重播中繼資料不完整。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "재생 메타데이터가 완전하지 않습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "再生メタデータが不完全です。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Метаданные воспроизведения неполны."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Les métadonnées de relecture sont incomplètes."}}
+      }
+    },
+    "gestureTest.replay.validation.duplicateProfileID": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "The replay log contains duplicate profile ID %@."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重放日志包含重复的配置 ID %@。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重播日誌包含重複的設定檔 ID %@。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "재생 로그에 중복된 프로필 ID %@가 있습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "再生ログに重複するプロファイルID %@ が含まれています。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Журнал воспроизведения содержит повторяющийся ID профиля %@."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Le journal de relecture contient l’identifiant de profil %@ en double."}}
+      }
+    },
+    "gestureTest.replay.validation.invalidCandidate": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Replay candidate %@ contains invalid templates or scores."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "重放候选 %@ 包含无效模板或分数。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "重播候選項 %@ 包含無效範本或分數。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "재생 후보 %@에 잘못된 템플릿 또는 점수가 있습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "再生候補 %@ に無効なテンプレートまたはスコアが含まれています。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Кандидат воспроизведения %@ содержит недопустимые шаблоны или оценки."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Le candidat de relecture %@ contient des modèles ou des scores invalides."}}
       }
     }
   },

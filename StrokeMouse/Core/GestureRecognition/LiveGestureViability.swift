@@ -48,6 +48,7 @@ enum LiveGestureViability {
         guard !preparedTemplates.isEmpty else { return .unlikely }
 
         let preparedStroke = TemplateMatcher.prepare(path)
+        let hope = hopeThreshold(matchThreshold: matchThreshold)
         var bestHopeScore = 0.0
         var hasRecoverableCandidate = false
 
@@ -56,16 +57,34 @@ enum LiveGestureViability {
                 stroke: preparedStroke,
                 template: template
             )
+            // A curve's current straight suffix can still turn later. Other
+            // terminal overruns have already overshot the template structure.
+            let recoverableCurveSuffix = match.structuralMismatch == .terminalOverrun
+                && template.curveSignature?.isCurve == true
+                && !template.flexibleSingleTurn
+                && preparedStroke.curveSignature.map { strokeSignature in
+                    template.curveSignature.map {
+                        strokeSignature.hasExcessTerminalStraight(relativeTo: $0)
+                    } ?? false
+                } ?? false
+            let baseHopeScore = max(match.shapeScore, match.score)
+            let usesCurveMatching = template.curveSignature?.isCurve == true
+                && !template.flexibleSingleTurn
+            let prefixMeetsHope = usesCurveMatching && baseHopeScore < hope
+                && TemplateMatcher.liveCurvePrefixMeetsThreshold(
+                    stroke: preparedStroke,
+                    template: template,
+                    threshold: hope
+                )
             // Raw shape keeps incomplete prefixes hopeful. Once structure is
             // compatible, also honor the canonical score used at release time.
             bestHopeScore = max(
                 bestHopeScore,
-                max(match.shapeScore, match.score)
+                prefixMeetsHope ? hope : baseHopeScore
             )
-            // terminalOverrun is the one structural miss that is irreversible
-            // mid-stroke (path already overshot the template end).
-            if match.structuralMismatch != .terminalOverrun {
+            if match.structuralMismatch != .terminalOverrun || recoverableCurveSuffix {
                 hasRecoverableCandidate = true
+                if bestHopeScore >= hope { return .viable }
             }
         }
 
@@ -73,7 +92,6 @@ enum LiveGestureViability {
             return .unlikely
         }
 
-        let hope = hopeThreshold(matchThreshold: matchThreshold)
         return bestHopeScore >= hope ? .viable : .unlikely
     }
 

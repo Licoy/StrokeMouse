@@ -26,7 +26,9 @@ final class GestureTestLogStoreTests: XCTestCase {
             evaluation: evaluation
         )
 
-        XCTAssertEqual(entry.schemaVersion, 5)
+        XCTAssertEqual(entry.schemaVersion, 6)
+        XCTAssertEqual(entry.source, .canvas)
+        XCTAssertEqual(entry.algorithmVersion, TemplateMatcher.algorithmVersion)
         let policy = try XCTUnwrap(entry.policy)
         XCTAssertEqual(policy.minimumPathLength, 0)
         XCTAssertEqual(policy.matchThreshold, Constants.freePathMatchThreshold)
@@ -34,10 +36,16 @@ final class GestureTestLogStoreTests: XCTestCase {
         let diagnostics = try XCTUnwrap(entry.candidates.first?.diagnostics)
         let templatePath = try XCTUnwrap(entry.candidates.first?.templatePath)
         let sourceTemplatePath = try XCTUnwrap(entry.candidates.first?.sourceTemplatePath)
+        let sourceTemplatePaths = try XCTUnwrap(
+            entry.candidates.first?.sourceTemplatePaths
+        )
         XCTAssertEqual(
             sourceTemplatePath,
             GestureRecognitionTestSupport.recordedNarrowPeak.map(CodablePoint.init)
         )
+        XCTAssertEqual(sourceTemplatePaths, [sourceTemplatePath])
+        XCTAssertEqual(entry.candidates.first?.winningTemplateIndex, 0)
+        XCTAssertEqual(entry.candidates.first?.templateEvaluations?.count, 1)
         XCTAssertEqual(templatePath.count, Constants.freePathSampleCount)
         XCTAssertEqual(templatePath.map(\.x).reduce(0, +), 0, accuracy: 1e-10)
         XCTAssertEqual(templatePath.map(\.y).reduce(0, +), 0, accuracy: 1e-10)
@@ -224,45 +232,50 @@ final class GestureTestLogStoreTests: XCTestCase {
         XCTAssertNil(entry.candidates.first?.sourceTemplatePath)
     }
 
-    func testSchemaV5RoundTripPreservesExactSourceTemplatePath() throws {
-        let sourceTemplatePath = [
-            CodablePoint(x: -12.25, y: 4.5),
-            CodablePoint(x: 0.125, y: 100.75),
-            CodablePoint(x: 87.5, y: -9.625)
-        ]
-        let profile = GestureProfile(
-            name: "Exact template",
-            pattern: .freePath(sourceTemplatePath),
-            action: .none
+    func testDecodesSchemaV5FixtureWithoutV6ReplayFields() throws {
+        let data = Data(
+            """
+            {
+              "schemaVersion": 5,
+              "timestamp": "2026-09-20T00:00:00Z",
+              "sessionID": "10000000-0000-0000-0000-000000000001",
+              "selectedTrigger": "right",
+              "decision": "accepted",
+              "acceptedProfileID": "20000000-0000-0000-0000-000000000002",
+              "acceptedProfileName": "Legacy v5",
+              "policy": {
+                "minimumPathLength": 0,
+                "matchThreshold": 0.8,
+                "minimumLeadOverSecond": 0.1
+              },
+              "metrics": {"pointCount": 2, "pathLength": 10, "width": 10, "height": 0},
+              "rawPath": [{"x": 0, "y": 0}, {"x": 10, "y": 0}],
+              "sampledPath": [{"x": 0, "y": 0}, {"x": 10, "y": 0}],
+              "candidates": [{
+                "profileID": "20000000-0000-0000-0000-000000000002",
+                "profileName": "Legacy v5",
+                "score": 1,
+                "shapeScore": 1,
+                "sourceTemplatePath": [{"x": 0, "y": 0}, {"x": 10, "y": 0}]
+              }]
+            }
+            """.utf8
         )
-        let rawPath = sourceTemplatePath.map(\.cgPoint)
-        let evaluation = GestureRecognitionEvaluator.evaluate(
-            path: rawPath,
-            profiles: [profile],
-            button: .right,
-            policy: .standard(minimumPathLength: 0)
-        )
-        let entry = GestureTestLogEntry(
-            sessionID: UUID(),
-            rawPath: rawPath,
-            evaluation: evaluation
-        )
-
-        let data = try JSONEncoder.gestureTestEncoder.encode(entry)
         let decoded = try JSONDecoder.gestureTestDecoder.decode(
             GestureTestLogEntry.self,
             from: data
         )
 
         XCTAssertEqual(decoded.schemaVersion, 5)
-        XCTAssertEqual(decoded.rawPath, entry.rawPath)
-        XCTAssertEqual(decoded.sampledPath, entry.sampledPath)
-        XCTAssertEqual(decoded.candidates.first?.sourceTemplatePath, sourceTemplatePath)
-        XCTAssertEqual(
-            decoded.candidates.first?.sourceTemplatePath,
-            entry.candidates.first?.sourceTemplatePath
-        )
-        XCTAssertEqual(try JSONEncoder.gestureTestEncoder.encode(decoded), data)
+        XCTAssertNil(decoded.source)
+        XCTAssertNil(decoded.activation)
+        XCTAssertNil(decoded.algorithmVersion)
+        XCTAssertNil(decoded.configurationRevision)
+        XCTAssertNil(decoded.evaluationTier)
+        XCTAssertEqual(decoded.candidates.first?.sourceTemplatePath?.count, 2)
+        XCTAssertNil(decoded.candidates.first?.sourceTemplatePaths)
+        XCTAssertNil(decoded.candidates.first?.winningTemplateIndex)
+        XCTAssertNil(decoded.candidates.first?.templateEvaluations)
     }
 
     func testStructuralRejectionLeavesFinalGeometryDiagnosticsEmpty() throws {
@@ -322,5 +335,30 @@ final class GestureTestLogStoreTests: XCTestCase {
 
         XCTAssertThrowsError(try store.append(entry))
         try? FileManager.default.removeItem(at: directory)
+    }
+
+    func testReaderReportsMalformedJSONLineNumber() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "GestureTestLogStoreTests-\(UUID().uuidString)",
+                isDirectory: true
+            )
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("gesture-test-log.jsonl")
+        let valid = """
+        {"schemaVersion":1,"timestamp":"2026-07-16T00:00:00Z","sessionID":"10000000-0000-0000-0000-000000000001","selectedTrigger":"right","decision":"noCandidates","metrics":{"pointCount":2,"pathLength":10,"width":10,"height":0},"rawPath":[{"x":0,"y":0},{"x":10,"y":0}],"sampledPath":[],"candidates":[]}
+        """
+        try Data("\(valid)\n{broken}\n".utf8).write(to: url)
+
+        XCTAssertThrowsError(try GestureTestLogStore(logURL: url).readEntries()) {
+            guard case .invalidLine(let line, _) = $0 as? GestureTestLogReadError else {
+                return XCTFail("Expected a line-numbered read error, got \($0)")
+            }
+            XCTAssertEqual(line, 2)
+        }
     }
 }

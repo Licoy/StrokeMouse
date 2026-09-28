@@ -4,10 +4,13 @@ import Foundation
 /// Direction-sensitive, ordered unistroke matching based on the published
 /// $1/$N recognizer family. License notices ship with the app resources.
 enum TemplateMatcher {
+    static let algorithmVersion = "curve-signature-v2"
+
     enum MatchingMode: String, Sendable {
         case singleTurnCanonical
         case simpleSegmentCanonical
         case orderedPath
+        case curveOrderedPath
     }
 
     struct SegmentDiagnostics: Sendable {
@@ -40,6 +43,7 @@ enum TemplateMatcher {
         let sampleCount: Int
         let shapeSamples: [CGPoint]?
         let extraction: StrokeStructureExtraction
+        let curveSignature: CurvePathSignature?
         /// Template-side flag; derived purely from these points so it can be
         /// precomputed regardless of which side the path ends up on.
         let flexibleSingleTurn: Bool
@@ -61,6 +65,7 @@ enum TemplateMatcher {
             sampleCount: sampleCount,
             shapeSamples: UnistrokeGeometry.resampledPath(points, count: sampleCount),
             extraction: extraction,
+            curveSignature: CurvePathSignature.make(points),
             flexibleSingleTurn: flexibleSingleTurn
         )
     }
@@ -69,11 +74,25 @@ enum TemplateMatcher {
         let score: Double
         let distance: Double
         let rotationDegrees: Int
+        let structuralMismatch: StrokeStructureMatcher.Mismatch?
+
+        init(
+            score: Double,
+            distance: Double,
+            rotationDegrees: Int,
+            structuralMismatch: StrokeStructureMatcher.Mismatch? = nil
+        ) {
+            self.score = score
+            self.distance = distance
+            self.rotationDegrees = rotationDegrees
+            self.structuralMismatch = structuralMismatch
+        }
     }
 
     private static let nearOneDimensionalRatio: CGFloat = 0.25
     private static let rotationToleranceDegrees = 12
     private static let scoreDistanceScale = 0.18
+    private static let curveScoreDistanceScale = 0.24
     /// Keeps the existing 55° turn budget meaningful after intermediate segments
     /// are intentionally removed from a rounded-turn canonical path.
     private static let singleTurnScoreDistanceScale = 0.36
@@ -107,6 +126,15 @@ enum TemplateMatcher {
         template: PreparedPath,
         sampleCount: Int = Constants.freePathSampleCount
     ) -> Evaluation {
+        if template.curveSignature?.isCurve == true,
+           !template.flexibleSingleTurn {
+            return evaluateCurve(
+                stroke: stroke,
+                template: template,
+                sampleCount: sampleCount
+            )
+        }
+
         let rawGeometry = orderedSimilarity(
             sampledStroke: shapeSamples(of: stroke, sampleCount: sampleCount),
             sampledTemplate: shapeSamples(of: template, sampleCount: sampleCount),
@@ -166,6 +194,82 @@ enum TemplateMatcher {
         )
     }
 
+    private static func evaluateCurve(
+        stroke: PreparedPath,
+        template: PreparedPath,
+        sampleCount: Int
+    ) -> Evaluation {
+        let optimisticGeometry = orderedSimilarity(
+            sampledStroke: shapeSamples(of: stroke, sampleCount: sampleCount),
+            sampledTemplate: shapeSamples(of: template, sampleCount: sampleCount),
+            sampleCount: sampleCount
+        )
+        let structure = StrokeStructureMatcher.evaluate(
+            stroke.points,
+            template.points,
+            strokeExtraction: stroke.extraction,
+            templateExtraction: template.extraction,
+            templateFlexibleSingleTurn: template.flexibleSingleTurn
+        )
+        guard let strokeSignature = stroke.curveSignature,
+              let templateSignature = template.curveSignature else {
+            return curveRejection(
+                structure: structure,
+                mismatch: .segmentCount,
+                shapeScore: optimisticGeometry.score
+            )
+        }
+        if let mismatch = strokeSignature.mismatch(with: templateSignature) {
+            return curveRejection(
+                structure: structure,
+                mismatch: mismatch,
+                shapeScore: optimisticGeometry.score
+            )
+        }
+
+        let geometry = curveSimilarity(
+            sampledStroke: shapeSamples(of: stroke, sampleCount: sampleCount),
+            sampledTemplate: shapeSamples(of: template, sampleCount: sampleCount),
+            sampleCount: sampleCount
+        )
+        if let mismatch = geometry.structuralMismatch {
+            return curveRejection(
+                structure: structure,
+                mismatch: mismatch,
+                shapeScore: geometry.score
+            )
+        }
+        return Evaluation(
+            score: geometry.score,
+            shapeScore: geometry.score,
+            structuralMismatch: nil,
+            diagnostics: diagnostics(
+                structure: structure,
+                finalSimilarity: geometry,
+                rawGeometryScore: geometry.score,
+                forceOrderedPath: true
+            )
+        )
+    }
+
+    private static func curveRejection(
+        structure: StrokeStructureMatcher.Evaluation,
+        mismatch: StrokeStructureMatcher.Mismatch,
+        shapeScore: Double
+    ) -> Evaluation {
+        Evaluation(
+            score: 0,
+            shapeScore: shapeScore,
+            structuralMismatch: mismatch,
+            diagnostics: diagnostics(
+                structure: structure,
+                finalSimilarity: nil,
+                rawGeometryScore: shapeScore,
+                forceOrderedPath: true
+            )
+        )
+    }
+
     /// Ordered $1-style point similarity after $N-style 1D/2D normalization.
     static func similarity(
         _ stroke: [CGPoint],
@@ -173,6 +277,69 @@ enum TemplateMatcher {
         sampleCount: Int = Constants.freePathSampleCount
     ) -> Double {
         orderedSimilarity(stroke, template, sampleCount: sampleCount).score
+    }
+
+    /// Optimistic HUD-only score against plausible prefixes of a curve.
+    /// Final matching never calls this path.
+    static func liveCurvePrefixScore(
+        stroke: PreparedPath,
+        template: PreparedPath
+    ) -> Double {
+        guard template.curveSignature?.isCurve == true,
+              !template.flexibleSingleTurn,
+              stroke.curveSignature != nil else { return 0 }
+        return [0.20, 0.35, 0.50, 0.65, 0.80].reduce(0) { best, fraction in
+            let prefix = UnistrokeGeometry.trimmingTerminalFraction(
+                template.points,
+                CGFloat(1 - fraction)
+            )
+            let evaluation = curveSimilarity(
+                sampledStroke: shapeSamples(
+                    of: stroke,
+                    sampleCount: Constants.freePathSampleCount
+                ),
+                sampledTemplate: UnistrokeGeometry.resampledPath(
+                    prefix,
+                    count: Constants.freePathSampleCount
+                ),
+                sampleCount: Constants.freePathSampleCount,
+                usesAlignment: false
+            )
+            return max(best, evaluation.score)
+        }
+    }
+
+    /// Threshold-only HUD check. Position distance is a lower bound for the
+    /// final position-plus-tangent cost, so an over-budget rotation can stop
+    /// before tangent work without changing the viability result.
+    static func liveCurvePrefixMeetsThreshold(
+        stroke: PreparedPath,
+        template: PreparedPath,
+        threshold: Double
+    ) -> Bool {
+        guard threshold > 0, threshold < 1,
+              template.curveSignature?.isCurve == true,
+              !template.flexibleSingleTurn,
+              let sampledStroke = shapeSamples(
+                of: stroke,
+                sampleCount: Constants.freePathSampleCount
+              ) else { return false }
+        let maximumDistance = -log(threshold) * scoreDistanceScale
+        return [0.20, 0.35, 0.50, 0.65, 0.80].contains { fraction in
+            let prefix = UnistrokeGeometry.trimmingTerminalFraction(
+                template.points,
+                CGFloat(1 - fraction)
+            )
+            guard let sampledTemplate = UnistrokeGeometry.resampledPath(
+                prefix,
+                count: Constants.freePathSampleCount
+            ) else { return false }
+            return curvePrefixMeetsThreshold(
+                sampledStroke: sampledStroke,
+                sampledTemplate: sampledTemplate,
+                maximumDistance: maximumDistance
+            )
+        }
     }
 
     private static func shapeSamples(
@@ -196,6 +363,92 @@ enum TemplateMatcher {
             sampleCount: sampleCount,
             distanceScale: distanceScale
         )
+    }
+
+    private static func curveSimilarity(
+        sampledStroke: [CGPoint]?,
+        sampledTemplate: [CGPoint]?,
+        sampleCount: Int,
+        usesAlignment: Bool = true
+    ) -> SimilarityEvaluation {
+        guard sampleCount > 8, let sampledStroke, let sampledTemplate,
+              let normalizedTemplate = UnistrokeGeometry.normalize(
+                  sampledTemplate,
+                  uniform: true
+              ) else {
+            return SimilarityEvaluation(score: 0, distance: .infinity, rotationDegrees: 0)
+        }
+
+        let center = UnistrokeGeometry.centroid(sampledStroke)
+        var bestPreliminaryDistance = Double.infinity
+        var bestCandidate: [CGPoint]?
+        var bestRotation = 0
+        for degrees in -rotationToleranceDegrees...rotationToleranceDegrees {
+            guard let candidate = UnistrokeGeometry.rotatedNormalized(
+                sampledStroke,
+                around: center,
+                radians: CGFloat(degrees) * .pi / 180,
+                uniform: true
+            ) else { continue }
+            let position = orderedPointDistance(
+                candidate,
+                normalizedTemplate,
+                abandonAverageAbove: bestPreliminaryDistance
+            )
+            guard position.isFinite else { continue }
+            let tangent = CurvePathSignature.tangentDistance(candidate, normalizedTemplate)
+            let distance = position + tangent * 0.08
+            if distance < bestPreliminaryDistance {
+                bestPreliminaryDistance = distance
+                bestCandidate = candidate
+                bestRotation = degrees
+            }
+        }
+        guard let bestCandidate else {
+            return SimilarityEvaluation(score: 0, distance: .infinity, rotationDegrees: 0)
+        }
+        let bestDistance = usesAlignment
+            ? CurvePathSignature.alignedDistance(bestCandidate, normalizedTemplate)
+            : bestPreliminaryDistance
+        let distanceScale = usesAlignment ? curveScoreDistanceScale : scoreDistanceScale
+        let endpointMismatch = usesAlignment
+            ? CurvePathSignature.endpointMismatch(bestCandidate, normalizedTemplate)
+            : nil
+        return SimilarityEvaluation(
+            score: min(1, max(0, exp(-bestDistance / distanceScale))),
+            distance: bestDistance,
+            rotationDegrees: bestRotation,
+            structuralMismatch: endpointMismatch
+        )
+    }
+
+    private static func curvePrefixMeetsThreshold(
+        sampledStroke: [CGPoint],
+        sampledTemplate: [CGPoint],
+        maximumDistance: Double
+    ) -> Bool {
+        guard let normalizedTemplate = UnistrokeGeometry.normalize(
+            sampledTemplate,
+            uniform: true
+        ) else { return false }
+        let center = UnistrokeGeometry.centroid(sampledStroke)
+        for degrees in -rotationToleranceDegrees...rotationToleranceDegrees {
+            guard let candidate = UnistrokeGeometry.rotatedNormalized(
+                sampledStroke,
+                around: center,
+                radians: CGFloat(degrees) * .pi / 180,
+                uniform: true
+            ) else { continue }
+            let position = orderedPointDistance(
+                candidate,
+                normalizedTemplate,
+                abandonAverageAbove: maximumDistance
+            )
+            guard position.isFinite else { continue }
+            let tangent = CurvePathSignature.tangentDistance(candidate, normalizedTemplate)
+            if position + tangent * 0.08 <= maximumDistance { return true }
+        }
+        return false
     }
 
     private static func orderedSimilarity(
@@ -313,9 +566,11 @@ enum TemplateMatcher {
     private static func diagnostics(
         structure: StrokeStructureMatcher.Evaluation,
         finalSimilarity: SimilarityEvaluation?,
-        rawGeometryScore: Double
+        rawGeometryScore: Double,
+        forceOrderedPath: Bool = false
     ) -> Diagnostics {
         let mode: MatchingMode? = finalSimilarity.map { _ in
+            if forceOrderedPath { return .curveOrderedPath }
             if structure.usesFlexibleSingleTurn {
                 return .singleTurnCanonical
             }

@@ -211,6 +211,24 @@ final class TemplateMatcherRobustnessTests: XCTestCase {
         }
     }
 
+    func testFigureEightMatchesSamplingAndAspectVariations() {
+        let template = figureEight(sampleCount: 128)
+        let variants = [
+            figureEight(sampleCount: 73, width: 0.92, height: 1.08, phaseWarp: 0.94),
+            figureEight(sampleCount: 211, width: 1.08, height: 0.90, phaseWarp: 1.07),
+        ]
+
+        for (index, stroke) in variants.enumerated() {
+            let evaluation = TemplateMatcher.evaluate(stroke, template)
+            XCTAssertNil(evaluation.structuralMismatch, "variant=\(index)")
+            XCTAssertGreaterThanOrEqual(
+                evaluation.score,
+                Constants.freePathMatchThreshold,
+                "variant=\(index), evaluation=\(evaluation)"
+            )
+        }
+    }
+
     func testPeakScoreIsContinuousAcrossWidthApexAndRotationSweeps() {
         assertContinuousSweep(stride(from: CGFloat(110), through: 170, by: 2)) { width in
             Support.peak(self.variation(width: width, apex: 0.52))
@@ -344,5 +362,21 @@ final class TemplateMatcherRobustnessTests: XCTestCase {
             y: sin(baseAngle - halfTurn) * halfLength
         )
         return [.zero, midpoint] + Array(Support.complexVertices.dropFirst())
+    }
+
+    private func figureEight(
+        sampleCount: Int,
+        width: CGFloat = 1,
+        height: CGFloat = 1,
+        phaseWarp: CGFloat = 1
+    ) -> [CGPoint] {
+        (0..<sampleCount).map { index in
+            let progress = CGFloat(index) / CGFloat(sampleCount - 1)
+            let phase = pow(progress, phaseWarp) * 2 * .pi
+            return CGPoint(
+                x: sin(phase) * 120 * width,
+                y: sin(phase * 2) * 80 * height
+            )
+        }
     }
 }

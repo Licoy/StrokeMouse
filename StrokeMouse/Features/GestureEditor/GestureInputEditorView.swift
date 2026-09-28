@@ -28,36 +28,61 @@ private enum DirectTransformKind: String, CaseIterable, Identifiable {
 
 struct GestureInputEditorView: View {
     @Binding var input: GestureInput
-    @Binding var pathPoints: [CodablePoint]
+    @Binding var sampleState: GestureSampleEditorState
 
     /// Shared label column so option controls share one left edge.
     private let directLabelColumnWidth: CGFloat = 88
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker(
-                L10n.string("editor.inputSource"),
-                selection: inputKind
-            ) {
-                ForEach(GestureEditorInputKind.allCases) { kind in
-                    Text(L10n.string(kind.titleKey)).tag(kind)
-                }
-            }
-            .pickerStyle(.segmented)
+            inputSourceControl
 
             switch input {
             case .drawn(let drawn):
-                drawnEditor(drawn)
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        drawnEditor(drawn)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.trailing, 4)
+                }
             case .trackpad(let gesture):
                 directEditor(gesture)
             }
         }
     }
 
+    private var inputSourceControl: some View {
+        ViewThatFits(in: .horizontal) {
+            Picker(
+                L10n.string("editor.inputSource"),
+                selection: inputKind
+            ) {
+                inputSourceOptions
+            }
+            .pickerStyle(.segmented)
+            .controlSize(.small)
+
+            Picker(
+                L10n.string("editor.inputSource"),
+                selection: inputKind
+            ) {
+                inputSourceOptions
+            }
+            .pickerStyle(.menu)
+        }
+    }
+
+    @ViewBuilder
+    private var inputSourceOptions: some View {
+        ForEach(GestureEditorInputKind.allCases) { kind in
+            Text(L10n.string(kind.titleKey)).tag(kind)
+        }
+    }
+
     @ViewBuilder
     private func drawnEditor(_ drawn: DrawnGesture) -> some View {
-        GestureRecorderView(path: $pathPoints)
-            .frame(maxHeight: .infinity)
+        GestureSampleEditorView(state: $sampleState)
 
         switch drawn.activation {
         case .mouse:
@@ -261,15 +286,13 @@ struct GestureInputEditorView: View {
             set: { kind in
                 switch kind {
                 case .mouseDraw:
-                    input = .drawn(DrawnGesture(
+                    input = .drawn(sampleState.drawnGesture(
                         activation: .mouse(.default),
-                        points: pathPoints,
                         trackpadModifierKey: nil
                     ))
                 case .modifierDraw:
-                    input = .drawn(DrawnGesture(
-                        activation: .modifier(.function),
-                        points: pathPoints
+                    input = .drawn(sampleState.drawnGesture(
+                        activation: .modifier(.function)
                     ))
                 case .directTrackpad:
                     input = .trackpad(.swipe(.three, .up))
@@ -288,9 +311,8 @@ struct GestureInputEditorView: View {
             },
             set: { button in
                 guard case .drawn(let drawn) = input else { return }
-                input = .drawn(DrawnGesture(
+                input = .drawn(sampleState.drawnGesture(
                     activation: .mouse(GestureTrigger(button: button)),
-                    points: pathPoints,
                     trackpadModifierKey: drawn.trackpadModifierKey
                 ))
             }
@@ -309,9 +331,8 @@ struct GestureInputEditorView: View {
                 guard case .drawn(let drawn) = input,
                       case .mouse(let trigger) = drawn.activation
                 else { return }
-                input = .drawn(DrawnGesture(
+                input = .drawn(sampleState.drawnGesture(
                     activation: .mouse(trigger),
-                    points: pathPoints,
                     trackpadModifierKey: isEnabled
                         ? (drawn.trackpadModifierKey ?? .function)
                         : nil
@@ -332,9 +353,8 @@ struct GestureInputEditorView: View {
                 guard case .drawn(let drawn) = input,
                       case .mouse(let trigger) = drawn.activation
                 else { return }
-                input = .drawn(DrawnGesture(
+                input = .drawn(sampleState.drawnGesture(
                     activation: .mouse(trigger),
-                    points: pathPoints,
                     trackpadModifierKey: key
                 ))
             }
@@ -350,9 +370,8 @@ struct GestureInputEditorView: View {
                 return key
             },
             set: { key in
-                input = .drawn(DrawnGesture(
-                    activation: .modifier(key),
-                    points: pathPoints
+                input = .drawn(sampleState.drawnGesture(
+                    activation: .modifier(key)
                 ))
             }
         )
@@ -503,4 +522,5 @@ struct GestureInputEditorView: View {
             }
         )
     }
+
 }

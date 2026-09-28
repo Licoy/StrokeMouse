@@ -64,3 +64,7 @@ Ad-hoc signatures pin Accessibility TCC to each binary **cdhash**. Sparkle updat
 A fixed self-signed identity pins TCC to the **certificate**, so grants survive updates signed with the same identity.
 
 Still **not** notarized: first launch may need right-click Open / Open Anyway.
+
+## Configuration compatibility
+
+Gesture profiles with multiple drawn samples remain readable by older StrokeMouse versions because the primary path is unchanged. However, if an older version saves that profile, it does not know about `additionalPaths` and will discard the extra samples. Keep a backup and avoid editing or re-saving multi-sample profiles in older releases.

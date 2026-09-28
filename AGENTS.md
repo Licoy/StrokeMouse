@@ -152,8 +152,8 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 1. 输入统一保存在 `GestureProfile.input`：`.drawn` 包含鼠标或单修饰键 activation 与 points；`.trackpad` 包含手指数、family 和方向 / 次数
 2. 鼠标或修饰键按下 → 采样路径 → 位移超过 `minStrokeDistance` 才算有效；鼠标短按回放点击，修饰键短路径直接结束
 3. 绘制结束 → 仅在同 activation 的候选中匹配：
-   - `freePath`：有序弧长重采样 + 1D/2D 归一化 + `±12°` 有限旋转匹配 ≥ 当前全局匹配阈值（默认 `freePathMatchThreshold`）
-   - 显著段数 / 连续转角作为不可补偿的结构门控；不使用镜像、逆序或 near-miss 兜底
+   - `freePath`：每条手势保存 1–5 个样本（建议 3 个），各样本独立匹配并取最高分；新录制先按弧长重采样为 128 点，再统一归一化
+   - 曲线样本使用有序曲线签名、首尾锚定的有限有序对齐及位置 / 多尺度切线评分，直线 / 折线沿用 1D/2D 归一化、`±12°` 有限旋转与结构门控；不使用开放头尾、镜像、逆序或 near-miss 兜底
 4. 触控手势支持 34 类：三至五指单击 / 双击 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝
 5. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零
 6. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
