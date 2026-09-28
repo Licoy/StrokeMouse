@@ -1,5 +1,5 @@
 /** App marketing version — keep in sync with project.yml MARKETING_VERSION */
-export const APP_VERSION = '0.0.29'
+export const APP_VERSION = '0.0.30'
 
 /**
  * Built-in preset actions shown on the homepage strip.
