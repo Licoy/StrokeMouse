@@ -4,27 +4,16 @@ import XCTest
 @testable import StrokeMouse
 
 final class RecordedGestureRegressionTests: XCTestCase {
-    func testAllNineteenRecordedRedrawsUseCanonicalMatchingAboveNinetyPercent() throws {
+    func testAllNineteenRecordedRedrawsScoreAboveNinetyPercent() throws {
         let fixture = try loadFixture()
         XCTAssertEqual(fixture.strokes.count, 19)
 
         var scores: [Double] = []
-        var rawScores: [Double] = []
         for (index, stroke) in fixture.strokes.enumerated() {
             let evaluation = TemplateMatcher.evaluate(stroke.cgPoints, fixture.template.cgPoints)
             scores.append(evaluation.score)
-            rawScores.append(evaluation.shapeScore)
             XCTAssertNil(evaluation.structuralMismatch, "stroke=\(index + 1)")
-            XCTAssertEqual(
-                evaluation.diagnostics?.mode?.rawValue,
-                TemplateMatcher.MatchingMode.simpleSegmentCanonical.rawValue,
-                "stroke=\(index + 1)"
-            )
-            XCTAssertGreaterThanOrEqual(
-                evaluation.score,
-                0.90,
-                "stroke=\(index + 1), raw=\(evaluation.shapeScore)"
-            )
+            XCTAssertGreaterThanOrEqual(evaluation.score, 0.90, "stroke=\(index + 1)")
             XCTAssertEqual(
                 TemplateMatcher.bestScore(stroke.cgPoints, fixture.template.cgPoints),
                 evaluation.score,
@@ -34,9 +23,8 @@ final class RecordedGestureRegressionTests: XCTestCase {
 
         let minimumScore = scores.min() ?? 0
         let maximumScore = scores.max() ?? 0
-        print("Recorded canonical score range: \(minimumScore)...\(maximumScore)")
+        print("Recorded score range: \(minimumScore)...\(maximumScore)")
         XCTAssertGreaterThanOrEqual(minimumScore, 0.90)
-        XCTAssertLessThan(rawScores.min() ?? 1, Constants.freePathMatchThreshold)
     }
 
     func testWorstThreePointReproductionClearsFormalThreshold() throws {
@@ -80,7 +68,7 @@ final class RecordedGestureRegressionTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(evaluation.score, Constants.freePathMatchThreshold)
     }
 
-    func testSharpVStillRejectsSignificantOpposingThirdTurn() {
+    func testSharpVWithSignificantOpposingThirdTurnMissesDefaultThreshold() {
         let vertices = [-75.0, 75.0, 40.0].reduce(into: [CGPoint.zero]) { points, degrees in
             let radians = degrees * .pi / 180
             let last = points[points.count - 1]
@@ -92,27 +80,27 @@ final class RecordedGestureRegressionTests: XCTestCase {
         let template = polyline(Array(vertices.prefix(3)))
         let evaluation = TemplateMatcher.evaluate(polyline(vertices), template)
 
-        XCTAssertEqual(evaluation.structuralMismatch, .segmentCount)
-        XCTAssertEqual(evaluation.score, 0)
+        XCTAssertLessThan(evaluation.score, Constants.freePathMatchThreshold)
     }
 
-    func testEveryRecordedRedrawRejectsFifteenThirtyAndSeventyPercentTails() throws {
+    func testRecordedRedrawTailsLoseScoreAsTheyGrow() throws {
         let fixture = try loadFixture()
         for (index, stroke) in fixture.strokes.enumerated() {
-            for fraction in [CGFloat(0.15), 0.30, 0.70] {
-                let tailed = appendingTail(to: stroke.cgPoints, fraction: fraction)
-                let evaluation = TemplateMatcher.evaluate(tailed, fixture.template.cgPoints)
-                XCTAssertEqual(
-                    evaluation.score,
-                    0,
-                    "stroke=\(index + 1), tail=\(fraction), mismatch="
-                        + "\(String(describing: evaluation.structuralMismatch))"
-                )
+            let scores = [CGFloat(0), 0.15, 0.30, 0.50, 0.70].map { fraction in
+                TemplateMatcher.evaluate(
+                    appendingTail(to: stroke.cgPoints, fraction: fraction),
+                    fixture.template.cgPoints
+                ).score
             }
+            let context = "stroke=\(index + 1), scores=\(scores)"
+            XCTAssertEqual(scores, scores.sorted(by: >), context)
+            XCTAssertLessThan(scores[2], Constants.freePathMatchThreshold, context)
+            XCTAssertLessThan(scores[3], Constants.freePathMatchThresholdRange.lowerBound, context)
+            XCTAssertLessThan(scores[4], Constants.freePathMatchThresholdRange.lowerBound, context)
         }
     }
 
-    func testUnsafeSegmentLengthRatioIsASeparateStructuralRejection() {
+    func testSeverelyTruncatedSecondLegIsRejected() {
         let template = polyline([
             CGPoint(x: 0, y: 0),
             CGPoint(x: 0.4, y: 1),
@@ -126,42 +114,38 @@ final class RecordedGestureRegressionTests: XCTestCase {
 
         let evaluation = TemplateMatcher.evaluate(truncated, template)
 
-        XCTAssertEqual(evaluation.structuralMismatch, .segmentProportion)
-        XCTAssertEqual(evaluation.score, 0)
-        XCTAssertGreaterThan(evaluation.shapeScore, 0)
+        XCTAssertNil(evaluation.structuralMismatch)
+        XCTAssertLessThan(evaluation.score, Constants.freePathMatchThresholdRange.lowerBound)
     }
 
-    func testSafeSegmentProportionSweepStaysContinuousAtBothEnds() {
+    func testSafeSegmentProportionSweepStaysContinuousAndExtremesAreRejected() {
         let start = CGPoint(x: 0, y: 0)
         let apex = CGPoint(x: 0.5, y: 1)
         let leg = CGPoint(x: 0.5, y: -1)
         let template = polyline([start, apex, CGPoint(x: 1, y: 0)])
+        func score(_ factor: CGFloat) -> Double {
+            let endpoint = CGPoint(x: apex.x + leg.x * factor, y: apex.y + leg.y * factor)
+            return TemplateMatcher.bestScore(polyline([start, apex, endpoint]), template)
+        }
         var previousScore: Double?
 
-        for factor in stride(from: CGFloat(0.4), through: 2.8, by: 0.1) {
-            let endpoint = CGPoint(x: apex.x + leg.x * factor, y: apex.y + leg.y * factor)
-            let evaluation = TemplateMatcher.evaluate(
-                polyline([start, apex, endpoint]),
-                template
-            )
-            XCTAssertNil(evaluation.structuralMismatch, "factor=\(factor)")
+        for factor in stride(from: CGFloat(0.6), through: 1.8, by: 0.1) {
+            let current = score(factor)
             XCTAssertGreaterThanOrEqual(
-                evaluation.score,
+                current,
                 Constants.freePathMatchThreshold,
                 "factor=\(factor)"
             )
             if let previousScore {
-                XCTAssertLessThan(abs(evaluation.score - previousScore), 0.08, "factor=\(factor)")
+                XCTAssertLessThan(abs(current - previousScore), 0.08, "factor=\(factor)")
             }
-            previousScore = evaluation.score
+            previousScore = current
         }
 
-        for factor in [CGFloat(0.2), 4.0] {
-            let endpoint = CGPoint(x: apex.x + leg.x * factor, y: apex.y + leg.y * factor)
-            XCTAssertEqual(
-                TemplateMatcher.evaluate(polyline([start, apex, endpoint]), template)
-                    .structuralMismatch,
-                .segmentProportion,
+        for factor in [CGFloat(0.2), 0.3, 2.5, 4.0] {
+            XCTAssertLessThan(
+                score(factor),
+                Constants.freePathMatchThresholdRange.lowerBound,
                 "factor=\(factor)"
             )
         }

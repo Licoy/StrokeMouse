@@ -34,21 +34,10 @@ enum Constants {
     static let freePathMatchThresholdStep: Double = 0.01
     /// Minimum score lead over second-best to accept (when ≥2 candidates).
     static let freePathMinLeadOverSecond: Double = 0.06
-    /// Resample free-path paths to this many points while matching.
+    /// Arc-length samples per path while matching (see `ElasticPathMatcher`).
     static let freePathSampleCount = 64
     /// Preserve extra detail in newly recorded free-path templates.
     static let freePathRecordingSampleCount = 128
-    /// Structural signature sampling and simplification in normalized space.
-    static let freePathStructureSampleCount = 64
-    static let freePathStructureSimplifyEpsilon: CGFloat = 0.04
-    static let freePathTerminalProbeEpsilon: CGFloat = 0.015
-    static let freePathShortSegmentFraction: CGFloat = 0.09
-    static let freePathSegmentProportionRange: ClosedRange<CGFloat> = 0.5...2.0
-    static let freePathMergeAngleDegrees = 20.0
-    static let freePathStartAngleDegrees = 30.0
-    static let freePathLineAngleDegrees = 15.0
-    static let freePathEndAngleDegrees = 45.0
-    static let freePathTurnAngleDegrees = 55.0
 
     static let defaultHUDLineWidth: CGFloat = 4
     static let defaultHUDStartPointRadius: CGFloat = 7

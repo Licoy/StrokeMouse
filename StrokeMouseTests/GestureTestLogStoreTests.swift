@@ -49,9 +49,11 @@ final class GestureTestLogStoreTests: XCTestCase {
         XCTAssertEqual(templatePath.count, Constants.freePathSampleCount)
         XCTAssertEqual(templatePath.map(\.x).reduce(0, +), 0, accuracy: 1e-10)
         XCTAssertEqual(templatePath.map(\.y).reduce(0, +), 0, accuracy: 1e-10)
-        XCTAssertEqual(diagnostics.matchingMode, "simpleSegmentCanonical")
-        XCTAssertEqual(diagnostics.strokeSegments.count, 2)
-        XCTAssertEqual(diagnostics.templateSegments.count, 2)
+        XCTAssertEqual(diagnostics.matchingMode, "elasticPath")
+        XCTAssertEqual(diagnostics.distance ?? 1, 0, accuracy: 1e-12)
+        XCTAssertNil(diagnostics.rotationDegrees)
+        XCTAssertTrue(diagnostics.strokeSegments.isEmpty)
+        XCTAssertTrue(diagnostics.templateSegments.isEmpty)
         XCTAssertEqual(diagnostics.finalScore, entry.candidates.first?.score)
 
         try store.append(entry)
@@ -278,20 +280,15 @@ final class GestureTestLogStoreTests: XCTestCase {
         XCTAssertNil(decoded.candidates.first?.templateEvaluations)
     }
 
-    func testStructuralRejectionLeavesFinalGeometryDiagnosticsEmpty() throws {
-        let template = GestureRecognitionTestSupport.recordedNarrowPeak
+    func testInvalidTemplateIsLoggedWithMismatchAndWithoutGeometry() throws {
         let profile = GestureProfile(
-            name: "Peak",
-            pattern: .freePath(template.map(CodablePoint.init)),
+            name: "Collapsed",
+            pattern: .freePath([CodablePoint(x: 0.5, y: 0.5), CodablePoint(x: 0.5, y: 0.5)]),
             action: .none
         )
-        let rejected = GestureRecognitionTestSupport.appendingTail(
-            to: template,
-            lengthFraction: 0.30,
-            angleDegrees: 0
-        )
+        let stroke = GestureRecognitionTestSupport.recordedNarrowPeak
         let evaluation = GestureRecognitionEvaluator.evaluate(
-            path: rejected,
+            path: stroke,
             profiles: [profile],
             button: .right,
             policy: .standard(minimumPathLength: 0)
@@ -299,19 +296,14 @@ final class GestureTestLogStoreTests: XCTestCase {
 
         let entry = GestureTestLogEntry(
             sessionID: UUID(),
-            rawPath: rejected,
+            rawPath: stroke,
             evaluation: evaluation
         )
         let candidate = try XCTUnwrap(entry.candidates.first)
-        let diagnostics = try XCTUnwrap(candidate.diagnostics)
 
         XCTAssertEqual(candidate.score, 0)
-        XCTAssertNotNil(candidate.structuralMismatch)
-        XCTAssertNil(diagnostics.matchingMode)
-        XCTAssertNil(diagnostics.distance)
-        XCTAssertNil(diagnostics.rotationDegrees)
-        XCTAssertGreaterThan(diagnostics.rawGeometryScore, 0)
-        XCTAssertEqual(diagnostics.finalScore, 0)
+        XCTAssertEqual(candidate.structuralMismatch, .invalidTemplate)
+        XCTAssertNil(candidate.diagnostics)
     }
 
     func testAppendThrowsWhenParentPathIsAFile() throws {

@@ -113,12 +113,9 @@ final class GestureTestLogReplayTests: XCTestCase {
 
     func testInfiniteDiagnosticDistanceIsOmittedAndEncodingSucceeds() throws {
         let diagnostics = TemplateMatcher.Diagnostics(
-            mode: .orderedPath,
+            mode: .elasticPath,
             distance: .infinity,
-            rotationDegrees: 0,
-            rawGeometryScore: 0.5,
-            strokeSegments: [],
-            templateSegments: []
+            rawGeometryScore: 0.5
         )
         let logged = GestureTestLogMatchDiagnostics(
             diagnostics,

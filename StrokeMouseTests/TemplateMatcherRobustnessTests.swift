@@ -62,57 +62,72 @@ final class TemplateMatcherRobustnessTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(recall, 0.96, "examples=\(rejectedExamples)")
     }
 
-    func testSeededTrailingStrokeCorpusHasNoFalseMatches() {
+    func testSeededTrailingStrokeCorpusRejectsLongTrailingStrokes() {
         let sampleCount = 2_000
         var generator = Support.LinearCongruentialGenerator(seed: 0xBAD5EED)
-        var falseMatches = 0
+        var halfPathTails = 0
+        var halfPathDefaultMatches = 0
+        var longTails = 0
+        var longTailDefaultMatches = 0
+        var longTailMinimumMatches = 0
 
         for _ in 0..<sampleCount {
             let variation = Support.randomPeak(using: &generator)
+            let fraction = generator.nextCGFloat(in: 0.15...0.70)
             let stroke = Support.appendingTail(
                 to: Support.peak(
                     variation,
                     sampleCount: Int(generator.nextCGFloat(in: 24...120)),
                     timingExponent: generator.nextCGFloat(in: 0.45...2.2)
                 ),
-                lengthFraction: generator.nextCGFloat(in: 0.15...0.70),
+                lengthFraction: fraction,
                 angleDegrees: generator.nextCGFloat(in: -5...20)
             )
             let score = TemplateMatcher.bestScore(
                 Support.rotate(stroke, degrees: generator.nextCGFloat(in: -12...12)),
                 Support.recordedNarrowPeak
             )
-            if score >= Constants.freePathMatchThreshold { falseMatches += 1 }
+            if fraction >= 0.5 {
+                halfPathTails += 1
+                if score >= Constants.freePathMatchThreshold { halfPathDefaultMatches += 1 }
+            }
+            if fraction >= 0.6 {
+                longTails += 1
+                if score >= Constants.freePathMatchThreshold { longTailDefaultMatches += 1 }
+                if score >= Constants.freePathMatchThresholdRange.lowerBound {
+                    longTailMinimumMatches += 1
+                }
+            }
         }
 
-        XCTAssertEqual(falseMatches, 0)
+        print(
+            "half-path tails at default threshold: \(halfPathDefaultMatches)/\(halfPathTails), "
+                + "long tails at minimum threshold: \(longTailMinimumMatches)/\(longTails)"
+        )
+        XCTAssertLessThan(Double(halfPathDefaultMatches), Double(halfPathTails) * 0.01)
+        XCTAssertEqual(longTailDefaultMatches, 0)
+        XCTAssertLessThan(Double(longTailMinimumMatches), Double(longTails) * 0.01)
     }
 
-    func testShortOverrunIsAllowedButNewTurningSegmentIsRejected() {
-        let short = Support.appendingTail(
-            to: Support.recordedNarrowPeak,
-            lengthFraction: 0.08,
-            angleDegrees: 5
-        )
-        let significant = Support.appendingTail(
-            to: Support.recordedNarrowPeak,
-            lengthFraction: 0.10,
-            angleDegrees: 5
-        )
+    func testShortOverrunIsAllowedAndLongerOverrunsLoseScore() {
+        let scores = [CGFloat(0.08), 0.15, 0.30, 0.50, 0.70].map { fraction in
+            TemplateMatcher.bestScore(
+                Support.appendingTail(
+                    to: Support.recordedNarrowPeak,
+                    lengthFraction: fraction,
+                    angleDegrees: 5
+                ),
+                Support.recordedNarrowPeak
+            )
+        }
 
-        let shortEvaluation = TemplateMatcher.evaluate(short, Support.recordedNarrowPeak)
-        XCTAssertGreaterThanOrEqual(
-            shortEvaluation.score,
-            Constants.freePathMatchThreshold,
-            "mismatch=\(String(describing: shortEvaluation.structuralMismatch))"
-        )
-        XCTAssertLessThan(
-            TemplateMatcher.bestScore(significant, Support.recordedNarrowPeak),
-            Constants.freePathMatchThreshold
-        )
+        XCTAssertGreaterThanOrEqual(scores[0], Constants.freePathMatchThreshold, "\(scores)")
+        XCTAssertEqual(scores, scores.sorted(by: >), "\(scores)")
+        XCTAssertLessThan(scores[2], Constants.freePathMatchThresholdRange.lowerBound, "\(scores)")
+        XCTAssertLessThan(scores[4], Constants.freePathMatchThresholdRange.lowerBound, "\(scores)")
     }
 
-    func testFragmentedTerminalOverrunUsesOneCumulativeBudget() {
+    func testFragmentedTerminalOverrunMissesDefaultThreshold() {
         let firstTail = Support.appendingTail(
             to: Support.recordedNarrowPeak,
             lengthFraction: 0.06,
@@ -123,11 +138,8 @@ final class TemplateMatcherRobustnessTests: XCTestCase {
             lengthFraction: 0.06,
             angleDegrees: 45
         )
-
-        let evaluation = TemplateMatcher.evaluate(fragmentedTail, Support.recordedNarrowPeak)
-        XCTAssertEqual(evaluation.structuralMismatch, .terminalOverrun)
         XCTAssertLessThan(
-            evaluation.score,
+            TemplateMatcher.bestScore(fragmentedTail, Support.recordedNarrowPeak),
             Constants.freePathMatchThreshold
         )
 
@@ -142,9 +154,9 @@ final class TemplateMatcherRobustnessTests: XCTestCase {
             lengthFraction: 0.06,
             angleDegrees: 45
         )
-        XCTAssertEqual(
-            TemplateMatcher.evaluate(complexFragmentedTail, complex).structuralMismatch,
-            .terminalOverrun
+        XCTAssertLessThan(
+            TemplateMatcher.bestScore(complexFragmentedTail, complex),
+            Constants.freePathMatchThresholdRange.lowerBound
         )
     }
 

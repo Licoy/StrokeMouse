@@ -2577,282 +2577,6 @@
         }
       }
     },
-    "gestureTest.matchScore": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Final"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最终分"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最終分"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "최종"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最終スコア"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Итог"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Score final"
-          }
-        }
-      }
-    },
-    "gestureTest.shapeScore": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geometry"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "几何分"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "幾何分"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "기하"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "幾何スコア"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Геометрия"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Géométrie"
-          }
-        }
-      }
-    },
-    "gestureTest.matchMode.singleTurnCanonical": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Flexible single-turn matching"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "弹性单转弯匹配"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "彈性單轉彎匹配"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "유연한 단일 회전 일치"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "柔軟な単一ターン照合"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Гибкое сопоставление с одним поворотом"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Correspondance souple à un virage"
-          }
-        }
-      }
-    },
-    "gestureTest.matchMode.simpleSegmentCanonical": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Segment-aligned matching"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分段对齐匹配"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分段對齊匹配"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "구간 정렬 일치"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "セグメント整列照合"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сопоставление по сегментам"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Correspondance alignée sur les segments"
-          }
-        }
-      }
-    },
-    "gestureTest.matchMode.orderedPath": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordered-path matching"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "有序全路径匹配"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "有序全路徑匹配"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "순서 경로 일치"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "順序付きパス照合"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сопоставление упорядоченной траектории"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Correspondance du tracé ordonné"
-          }
-        }
-      }
-    },
-    "gestureTest.structurePassed": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Structure Passed"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "结构门控通过"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "結構門控透過"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "구조 검사 통과"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "構造チェック通過"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Структура пройдена"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Structure validée"
-          }
-        }
-      }
-    },
     "gestureTest.structure.invalidStroke": {
       "localizations": {
         "en": {
@@ -3778,43 +3502,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lower values are more sensitive and may conflict with similar gestures. Structural safety checks always remain enabled."
+            "value": "Lower values are more sensitive and may conflict with similar gestures. Reversed, mirrored or clearly incomplete strokes are still rejected."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "数值越低越容易触发，也越可能与相似手势冲突；结构安全检查始终启用。"
+            "value": "数值越低越容易触发，也越可能与相似手势冲突；反向、镜像或明显不完整的轨迹仍会被拒绝。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "數值越低越容易觸發，也越可能與相似手勢衝突；結構安全檢查始終啟用。"
+            "value": "數值越低越容易觸發，也越可能與相似手勢衝突；反向、鏡像或明顯不完整的軌跡仍會被拒絕。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "값이 낮을수록 더 민감하며 비슷한 제스처와 충돌할 수 있고, 구조 안전 검사는 항상 켜져 있습니다."
+            "value": "값이 낮을수록 더 민감하며 비슷한 제스처와 충돌할 수 있고, 반대 방향·좌우 반전·명확히 불완전한 궤적은 여전히 거부됩니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "値を下げると反応しやすくなりますが、似たジェスチャと衝突しやすくなります。構造上の安全チェックは常に有効です。"
+            "value": "値を下げると反応しやすくなりますが、似たジェスチャと衝突しやすくなります。逆方向・左右反転・明らかに不完全な軌跡は引き続き拒否されます。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Меньшие значения повышают чувствительность и могут конфликтовать с похожими жестами; структурные проверки безопасности всегда остаются включёнными."
+            "value": "Меньшие значения повышают чувствительность и могут конфликтовать с похожими жестами; обратные, зеркальные и явно незавершённые траектории по-прежнему отклоняются."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Une valeur plus basse est plus sensible et peut entrer en conflit avec des gestes similaires ; les contrôles structurels de sécurité restent toujours actifs."
+            "value": "Une valeur plus basse est plus sensible et peut entrer en conflit avec des gestes similaires ; les tracés inversés, en miroir ou nettement incomplets restent refusés."
           }
         }
       }
@@ -35513,48 +35237,48 @@
         }
       }
     },
-    "gestureTest.matchMode.curveOrderedPath": {
+    "gestureTest.matchMode.elasticPath": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ordered curve matching"
+            "value": "Elastic path matching"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "有序曲线匹配"
+            "value": "弹性轨迹匹配"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "有序曲線比對"
+            "value": "彈性軌跡比對"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "순서 기반 곡선 일치"
+            "value": "탄력적 경로 일치"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "順序付き曲線マッチング"
+            "value": "弾性軌跡マッチング"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Упорядоченное сопоставление кривой"
+            "value": "Эластичное сопоставление траектории"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Correspondance ordonnée de courbe"
+            "value": "Correspondance élastique du tracé"
           }
         }
       }

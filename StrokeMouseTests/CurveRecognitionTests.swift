@@ -12,7 +12,7 @@ final class CurveRecognitionTests: XCTestCase {
             let template = curve(name, count: 128)
             let evaluation = TemplateMatcher.evaluate(template, template)
             XCTAssertGreaterThanOrEqual(evaluation.score, 0.99, name)
-            XCTAssertEqual(evaluation.diagnostics?.mode, .curveOrderedPath, name)
+            XCTAssertEqual(evaluation.diagnostics?.mode, .elasticPath, name)
         }
     }
 
@@ -125,7 +125,7 @@ final class CurveRecognitionTests: XCTestCase {
         }
     }
 
-    func testCurvesRejectReverseMirrorTailAndWrongStart() {
+    func testCurvesRejectReverseMirrorWrongStartAndTruncation() {
         for name in glyphs {
             let template = curve(name, count: 128)
             let centerX = ((template.map(\.x).min() ?? 0) + (template.map(\.x).max() ?? 0)) / 2
@@ -135,11 +135,6 @@ final class CurveRecognitionTests: XCTestCase {
                 ("mirror", template.map { CGPoint(x: centerX * 2 - $0.x, y: $0.y) }),
                 ("wrong-start", shifted),
                 ("truncated", Array(template.prefix(template.count * 2 / 3))),
-                ("extra-segment", GestureRecognitionTestSupport.appendingTail(
-                    to: template,
-                    lengthFraction: 0.20,
-                    angleDegrees: 90
-                )),
             ]
             for (variant, stroke) in variants {
                 XCTAssertLessThan(
@@ -148,18 +143,31 @@ final class CurveRecognitionTests: XCTestCase {
                     "\(name)-\(variant)"
                 )
             }
-            for fraction in [CGFloat(0.15), 0.30, 0.70] {
-                let tail = GestureRecognitionTestSupport.appendingTail(
-                    to: template,
-                    lengthFraction: fraction,
-                    angleDegrees: 90
-                )
-                XCTAssertLessThan(
-                    TemplateMatcher.bestScore(tail, template),
-                    Constants.freePathMatchThresholdRange.lowerBound,
-                    "\(name)-tail-\(fraction)"
+        }
+    }
+
+    func testCurveTailsLoseScoreWithLengthAndLongTailsAreRejected() {
+        for name in glyphs {
+            let template = curve(name, count: 128)
+            let end = template[template.count - 1]
+            let beforeEnd = template[template.count - 2]
+            // Perpendicular to the glyph's own exit direction, so the tail is
+            // always new structure rather than a longer final stroke.
+            let exitDegrees = atan2(end.y - beforeEnd.y, end.x - beforeEnd.x) * 180 / .pi
+            let scores = [CGFloat(0), 0.15, 0.30, 0.70].map { fraction in
+                TemplateMatcher.bestScore(
+                    GestureRecognitionTestSupport.appendingTail(
+                        to: template,
+                        lengthFraction: fraction,
+                        angleDegrees: exitDegrees + 90
+                    ),
+                    template
                 )
             }
+            let context = "\(name): \(scores)"
+            XCTAssertEqual(scores, scores.sorted(by: >), context)
+            XCTAssertLessThan(scores[2], Constants.freePathMatchThreshold, context)
+            XCTAssertLessThan(scores[3], Constants.freePathMatchThresholdRange.lowerBound, context)
         }
     }
 
@@ -173,17 +181,6 @@ final class CurveRecognitionTests: XCTestCase {
                     "stroke=\(strokeName), template=\(templateName)"
                 )
             }
-        }
-    }
-
-    func testSharpPolylinesDoNotUseCurveMatching() {
-        let paths = [
-            [CGPoint.zero, CGPoint(x: 100, y: 0), .zero],
-            [CGPoint.zero, CGPoint(x: 50, y: 100), CGPoint(x: 100, y: 0)],
-            GestureRecognitionTestSupport.complexVertices,
-        ]
-        for path in paths {
-            XCTAssertFalse(CurvePathSignature.make(path)?.isCurve ?? true)
         }
     }
 

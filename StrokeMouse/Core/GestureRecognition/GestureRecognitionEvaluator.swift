@@ -88,7 +88,7 @@ struct GestureCandidateEvaluation: Sendable {
     let profile: GestureProfile
     let score: Double
     let shapeScore: Double
-    let structuralMismatch: StrokeStructureMatcher.Mismatch?
+    let structuralMismatch: TemplateMatcher.Mismatch?
     let diagnostics: TemplateMatcher.Diagnostics?
     let winningTemplateIndex: Int
     let templateEvaluations: [TemplateMatcher.Evaluation]
@@ -97,7 +97,7 @@ struct GestureCandidateEvaluation: Sendable {
         profile: GestureProfile,
         score: Double,
         shapeScore: Double,
-        structuralMismatch: StrokeStructureMatcher.Mismatch?,
+        structuralMismatch: TemplateMatcher.Mismatch?,
         diagnostics: TemplateMatcher.Diagnostics?,
         winningTemplateIndex: Int = 0,
         templateEvaluations: [TemplateMatcher.Evaluation] = []

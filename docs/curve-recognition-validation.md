@@ -1,6 +1,8 @@
 # 曲线识别验证报告
 
 > **历史快照（curve-signature-v1）**：本文记录 v1 合成语料设计与当时的 607 项测试、性能结果，其中“没有真实轨迹”和“不使用有限对齐”等描述已不代表当前实现；真实同形 a 数据、`curve-signature-v2` 有限有序对齐及最新验证见 [真实小写 a 曲线识别修复](./real-a-recognition-fix.md)。
+>
+> 当前实现为 `elastic-path-v3`，已移除曲线 / 折线分通道与结构门控，见 [弹性轨迹识别](./elastic-path-recognition.md)。
 
 ## 范围与证据边界
 

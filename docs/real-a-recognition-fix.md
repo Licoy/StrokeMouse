@@ -1,5 +1,7 @@
 # 真实小写 a 曲线识别修复
 
+> **历史快照（curve-signature-v2）**：当前实现为 `elastic-path-v3`，已移除曲线 / 折线分通道与结构门控；该 fixture 在新算法下的结果见 [弹性轨迹识别](./elastic-path-recognition.md)。
+
 ## 问题与证据
 
 开发回归数据来自 `RecordedCurveAGestureFixture.json`，其中 1–7、10、11 共 9 条经轨迹外观复核为同形小写 a；8、9 保留为 `unknownIntent`，几何上与 a 不等价，但没有推断用户当时想画什么。这 9 条同形 a 来自同一批已知数据，不是独立盲测。

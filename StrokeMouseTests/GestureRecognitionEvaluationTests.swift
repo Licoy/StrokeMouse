@@ -228,31 +228,28 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
         XCTAssertNil(result.acceptedCandidate)
     }
 
-    func testEqualFinalScoresSortByRawGeometryBeforeUUID() {
-        let vertical = GestureProfile(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-            name: "Vertical",
-            pattern: .freePath(PathTemplates.up)
-        )
-        let horizontal = GestureProfile(
+    func testEqualScoresSortByProfileID() {
+        let template = PathTemplates.up
+        let later = GestureProfile(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
-            name: "Horizontal",
-            pattern: .freePath(PathTemplates.right)
+            name: "Later",
+            pattern: .freePath(template)
+        )
+        let earlier = GestureProfile(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "Earlier",
+            pattern: .freePath(template)
         )
 
         let result = GestureRecognitionEvaluator.evaluate(
-            path: GestureRecognitionTestSupport.recordedNarrowPeak,
-            profiles: [vertical, horizontal],
+            path: template.map(\.cgPoint),
+            profiles: [later, earlier],
             button: .right,
             policy: .standard(minimumPathLength: 0)
         )
 
-        XCTAssertEqual(result.candidates.map(\.score), [0, 0])
-        XCTAssertEqual(result.candidates.first?.profile.id, horizontal.id)
-        XCTAssertGreaterThan(
-            result.candidates[0].shapeScore,
-            result.candidates[1].shapeScore
-        )
+        XCTAssertEqual(result.candidates[0].score, result.candidates[1].score)
+        XCTAssertEqual(result.candidates.map(\.profile.id), [earlier.id, later.id])
     }
 
     func testRepeatedEvaluationWithTemplateCacheIsDeterministic() {
@@ -294,35 +291,30 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
 
         let edited = GestureTemplateCache.shared.prepared(id: id, points: down)
         XCTAssertEqual(edited.points, down)
-        XCTAssertEqual(edited.shapeSamples, TemplateMatcher.prepare(down).shapeSamples)
+        XCTAssertEqual(edited.profile?.points, TemplateMatcher.prepare(down).profile?.points)
 
         let cached = GestureTemplateCache.shared.prepared(id: id, points: down)
         XCTAssertEqual(cached.points, down)
-        XCTAssertEqual(cached.shapeSamples, edited.shapeSamples)
+        XCTAssertEqual(cached.profile?.points, edited.profile?.points)
     }
 
-    func testStructuralMismatchIsAvailableForDiagnostics() {
-        let template = GestureRecognitionTestSupport.recordedNarrowPeak
+    func testInvalidTemplateMismatchIsAvailableForDiagnostics() {
         let profile = GestureProfile(
-            name: "Peak",
-            pattern: .freePath(template.map(CodablePoint.init))
-        )
-        let tailed = GestureRecognitionTestSupport.appendingTail(
-            to: template,
-            lengthFraction: 0.4,
-            angleDegrees: 10
+            name: "Collapsed",
+            pattern: .freePath([CodablePoint(x: 0.5, y: 0.5), CodablePoint(x: 0.5, y: 0.5)])
         )
 
         let result = GestureRecognitionEvaluator.evaluate(
-            path: tailed,
+            path: GestureRecognitionTestSupport.recordedNarrowPeak,
             profiles: [profile],
             button: .right,
             policy: .standard(minimumPathLength: 0)
         )
 
         XCTAssertEqual(result.decision, .belowThreshold)
-        XCTAssertNotNil(result.candidates.first?.structuralMismatch)
-        XCTAssertGreaterThan(result.candidates.first?.shapeScore ?? 0, 0)
+        XCTAssertEqual(result.candidates.first?.score, 0)
+        XCTAssertEqual(result.candidates.first?.structuralMismatch, .invalidTemplate)
+        XCTAssertNil(result.candidates.first?.diagnostics)
     }
 
     func testIdenticalTopCandidatesAreRejectedAsAmbiguous() {

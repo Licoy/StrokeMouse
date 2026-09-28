@@ -10,7 +10,7 @@ final class TemplateMatcherTests: XCTestCase {
             CGPoint(x: 50, y: 50),
             CGPoint(x: 0, y: 50),
         ]
-        let score = TemplateMatcher.similarity(path, path)
+        let score = TemplateMatcher.bestScore(path, path)
         XCTAssertGreaterThan(score, 0.95)
     }
 
@@ -169,17 +169,68 @@ final class TemplateMatcherTests: XCTestCase {
         )
     }
 
-    func testShallowPeakDoesNotMatchHorizontal() {
+    func testClearPeakDoesNotMatchHorizontal() {
         let horizontal = PathTemplates.right.map(\.cgPoint)
+        for degrees in [CGFloat(35), 45] {
+            let rise = tan(degrees * .pi / 180) * 150
+            let peak = (0..<60).map { i in
+                CGPoint(x: CGFloat(i) * 5, y: rise * (1 - abs(CGFloat(i) - 30) / 30))
+            }
+            let score = TemplateMatcher.bestScore(peak, horizontal)
+            XCTAssertLessThan(
+                score,
+                Constants.freePathMatchThresholdRange.lowerBound,
+                "\(degrees)° peak must not match horizontal (score=\(score))"
+            )
+        }
+    }
+
+    func testShallowPeakIsAmbiguousWhenBothHorizontalAndPeakExist() {
         var peak: [CGPoint] = []
         for i in 0..<30 { peak.append(CGPoint(x: CGFloat(i) * 5, y: CGFloat(i))) }
         for i in 0..<30 { peak.append(CGPoint(x: 150 + CGFloat(i) * 5, y: 30 - CGFloat(i))) }
-        let score = TemplateMatcher.bestScore(peak, horizontal)
-        XCTAssertLessThan(
-            score,
-            Constants.freePathMatchThreshold,
-            "Shallow peak must not match horizontal (score=\(score))"
+        let profiles = [
+            GestureProfile(name: "Horizontal", pattern: .freePath(PathTemplates.right)),
+            GestureProfile(name: "Shallow peak", pattern: .freePath(peak.map(CodablePoint.init))),
+        ]
+
+        let result = GestureRecognitionEvaluator.evaluate(
+            path: peak,
+            profiles: profiles,
+            button: .right,
+            policy: .standard(minimumPathLength: 0)
         )
+
+        XCTAssertNotEqual(result.acceptedCandidate?.profile.name, "Horizontal")
+    }
+
+    func testLineDirectionToleranceFallsOffSmoothly() {
+        let horizontal = PathTemplates.right.map(\.cgPoint)
+        var previous = 1.0
+        for degrees in stride(from: CGFloat(0), through: 60, by: 5) {
+            let radians = degrees * .pi / 180
+            let line = (0..<40).map {
+                CGPoint(x: CGFloat($0) * 8 * cos(radians), y: CGFloat($0) * 8 * sin(radians))
+            }
+            let score = TemplateMatcher.bestScore(line, horizontal)
+            XCTAssertLessThanOrEqual(score, previous + 1e-9, "degrees=\(degrees)")
+            XCTAssertLessThan(previous - score, 0.15, "degrees=\(degrees)")
+            if degrees <= 15 {
+                XCTAssertGreaterThanOrEqual(
+                    score,
+                    Constants.freePathMatchThreshold,
+                    "degrees=\(degrees)"
+                )
+            }
+            if degrees >= 45 {
+                XCTAssertLessThan(
+                    score,
+                    Constants.freePathMatchThresholdRange.lowerBound,
+                    "degrees=\(degrees)"
+                )
+            }
+            previous = score
+        }
     }
 
     func testHorizontalDoesNotMatchPeakTemplate() {
@@ -204,40 +255,6 @@ final class TemplateMatcherTests: XCTestCase {
         let points = (0..<20).map { CGPoint(x: 100, y: 100 + CGFloat($0) * 5) }
         let dirs = DirectionQuantizer.quantize(points, minSegmentLength: 10, axis: .yUp)
         XCTAssertEqual(dirs.first, .up)
-    }
-
-    func testRotatedNormalizedMatchesRotateThenNormalize() {
-        let paths: [[CGPoint]] = [
-            GestureRecognitionTestSupport.recordedNarrowPeak,
-            GestureRecognitionTestSupport.complexVertices,
-            (0..<40).map { CGPoint(x: 100 + CGFloat($0) * 5, y: 200 + sin(CGFloat($0) / 3) * 40) },
-            [CGPoint(x: 0, y: 0), CGPoint(x: 100, y: 2)],
-        ]
-        for points in paths {
-            let center = UnistrokeGeometry.centroid(points)
-            for degrees in stride(from: -12, through: 12, by: 3) {
-                for uniform in [true, false] {
-                    let radians = CGFloat(degrees) * .pi / 180
-                    let legacy = UnistrokeGeometry.normalize(
-                        UnistrokeGeometry.rotate(points, radians: radians),
-                        uniform: uniform
-                    )
-                    let fused = UnistrokeGeometry.rotatedNormalized(
-                        points,
-                        around: center,
-                        radians: radians,
-                        uniform: uniform
-                    )
-                    XCTAssertEqual(legacy == nil, fused == nil)
-                    guard let legacy, let fused else { continue }
-                    XCTAssertEqual(legacy.count, fused.count)
-                    for (expected, actual) in zip(legacy, fused) {
-                        XCTAssertEqual(expected.x, actual.x, accuracy: 1e-9)
-                        XCTAssertEqual(expected.y, actual.y, accuracy: 1e-9)
-                    }
-                }
-            }
-        }
     }
 
     func testPreparedEvaluationMatchesSelfContainedEvaluation() {

@@ -39,21 +39,13 @@ struct GestureTestLogMatchDiagnostics: Codable, Sendable, Equatable {
         // A non-finite distance means the matcher did not produce a usable
         // distance; represent that explicitly instead of making JSON fail.
         distance = diagnostics.distance.flatMap { $0.isFinite ? $0 : nil }
-        rotationDegrees = diagnostics.rotationDegrees
+        // Rotation search and segment signatures belonged to the structural
+        // matchers; the fields stay so earlier log lines keep decoding.
+        rotationDegrees = nil
         rawGeometryScore = diagnostics.rawGeometryScore
         self.finalScore = finalScore
-        strokeSegments = diagnostics.strokeSegments.map {
-            GestureTestLogSegmentDiagnostics(
-                angleDegrees: $0.angleDegrees,
-                lengthFraction: $0.lengthFraction
-            )
-        }
-        templateSegments = diagnostics.templateSegments.map {
-            GestureTestLogSegmentDiagnostics(
-                angleDegrees: $0.angleDegrees,
-                lengthFraction: $0.lengthFraction
-            )
-        }
+        strokeSegments = []
+        templateSegments = []
     }
 }
 
@@ -82,7 +74,7 @@ enum GestureTestLogEntryError: Error, Equatable {
 struct GestureTestLogTemplateEvaluation: Codable, Sendable {
     let finalScore: Double
     let shapeScore: Double
-    let structuralMismatch: StrokeStructureMatcher.Mismatch?
+    let structuralMismatch: TemplateMatcher.Mismatch?
     let diagnostics: GestureTestLogMatchDiagnostics?
 }
 
@@ -91,7 +83,7 @@ struct GestureTestLogCandidate: Codable, Sendable {
     let profileName: String
     let score: Double
     let shapeScore: Double
-    let structuralMismatch: StrokeStructureMatcher.Mismatch?
+    let structuralMismatch: TemplateMatcher.Mismatch?
     /// Normalized sampled template; optional so schema-v1/v2 lines remain decodable.
     let templatePath: [CodablePoint]?
     /// Exact persisted template; optional so schema-v1/v2/v3/v4 lines remain decodable.

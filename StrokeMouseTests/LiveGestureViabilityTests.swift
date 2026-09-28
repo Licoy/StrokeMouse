@@ -103,6 +103,8 @@ final class LiveGestureViabilityTests: XCTestCase {
             CGPoint(x: 240, y: 320),
             CGPoint(x: 260, y: 280),
             CGPoint(x: 280, y: 240),
+            CGPoint(x: 300, y: 200),
+            CGPoint(x: 320, y: 160),
         ]
         let profile = GestureProfile(
             name: "Single turn",
@@ -120,7 +122,7 @@ final class LiveGestureViabilityTests: XCTestCase {
         XCTAssertEqual(finalEvaluation.decision, .accepted)
 
         var hysteresis = LiveGestureViability.Hysteresis()
-        for pathCount in [2, 5, 9] {
+        for pathCount in [2, 5, 9, 11] {
             let observed = LiveGestureViability.evaluate(
                 path: Array(redraw.prefix(pathCount)),
                 preparedTemplates: [preparedTemplate],

@@ -153,30 +153,14 @@ final class RecordedCurveAGestureTests: XCTestCase {
         let fixture = try loadFixture()
         let target = try XCTUnwrap(fixture.candidates.first { $0.role == .target })
         let preparedTemplate = TemplateMatcher.prepare(target.template.cgPoints)
-        let hope = LiveGestureViability.hopeThreshold(
-            matchThreshold: fixture.policy.matchThreshold
-        )
 
         for sample in fixture.samples where sample.intent == .reviewedLowercaseA {
             let raw = sample.rawPath.cgPoints
             var hysteresis = LiveGestureViability.Hysteresis()
-            var sawHopefulRecoverableSuffix = false
             for count in stride(from: 4, through: raw.count, by: 4) {
                 let prefix = Array(raw.prefix(count))
                 guard PathSimplifier.pathLength(prefix) >= fixture.policy.minimumPathLength else {
                     continue
-                }
-                let preparedPrefix = TemplateMatcher.prepare(prefix)
-                let match = TemplateMatcher.evaluate(
-                    stroke: preparedPrefix,
-                    template: preparedTemplate
-                )
-                let prefixHope = TemplateMatcher.liveCurvePrefixScore(
-                    stroke: preparedPrefix,
-                    template: preparedTemplate
-                )
-                if match.structuralMismatch == .terminalOverrun, prefixHope >= hope {
-                    sawHopefulRecoverableSuffix = true
                 }
                 let observed = LiveGestureViability.evaluate(
                     path: prefix,
@@ -192,12 +176,9 @@ final class RecordedCurveAGestureTests: XCTestCase {
                 XCTAssertNotEqual(
                     hysteresis.state,
                     .unlikely,
-                    "sample=\(sample.id), count=\(count), shape=\(match.shapeScore), "
-                        + "prefixHope=\(prefixHope), mismatch="
-                        + "\(String(describing: match.structuralMismatch))"
+                    "sample=\(sample.id), count=\(count)"
                 )
             }
-            XCTAssertTrue(sawHopefulRecoverableSuffix, sample.id)
         }
     }
 
@@ -209,12 +190,6 @@ final class RecordedCurveAGestureTests: XCTestCase {
         let centerX = points.map(\.x).reduce(0, +) / CGFloat(points.count)
         let pathLength = PathSimplifier.pathLength(points)
         let endpoint = try XCTUnwrap(points.last)
-        let extraTail = (1...12).map { index in
-            return CGPoint(
-                x: endpoint.x + pathLength * 0.2 * CGFloat(index) / 12,
-                y: endpoint.y
-            )
-        }
         let sharpSegment = (1...12).map { index in
             CGPoint(
                 x: endpoint.x,
@@ -232,7 +207,6 @@ final class RecordedCurveAGestureTests: XCTestCase {
             ("mirror-non-equivalent", points.map { CGPoint(x: centerX * 2 - $0.x, y: $0.y) }),
             ("prefix-35-percent", Array(points.prefix(max(2, points.count * 35 / 100)))),
             ("truncated-70-percent", Array(points.prefix(max(2, points.count * 70 / 100)))),
-            ("extra-tail-20-percent", points + extraTail),
             ("additional-sharp-segment", points + sharpSegment),
             ("long-tail-70-percent", points + longTail),
         ]
@@ -268,7 +242,7 @@ final class RecordedCurveAGestureTests: XCTestCase {
         }
     }
 
-    func testEndpointAdditionsCannotTriggerTargetAtDefaultOrMinimumThreshold() throws {
+    func testEndpointAdditionsDegradeGraduallyAndLargeOnesCannotTrigger() throws {
         let fixture = try loadFixture()
         let target = try XCTUnwrap(fixture.candidates.first { $0.role == .target })
         let profile = makeProfile(target)
@@ -276,58 +250,63 @@ final class RecordedCurveAGestureTests: XCTestCase {
         let length = PathSimplifier.pathLength(template)
         let first = try XCTUnwrap(template.first)
         let last = try XCTUnwrap(template.last)
-        let leadAngle = CGFloat(75) * .pi / 180
-        let leadStart = CGPoint(
-            x: first.x - cos(leadAngle) * length * 0.10,
-            y: first.y - sin(leadAngle) * length * 0.10
-        )
-        let lead = (0..<24).map { index in
-            let progress = CGFloat(index) / 24
-            return CGPoint(
-                x: leadStart.x + (first.x - leadStart.x) * progress,
-                y: leadStart.y + (first.y - leadStart.y) * progress
+        func lead(_ fraction: CGFloat) -> [CGPoint] {
+            let angle = CGFloat(75) * .pi / 180
+            let start = CGPoint(
+                x: first.x - cos(angle) * length * fraction,
+                y: first.y - sin(angle) * length * fraction
             )
-        }
-        let tailAngle = CGFloat(70) * .pi / 180
-        let tail = (1...24).map { index in
-            let progress = CGFloat(index) / 24
-            return CGPoint(
-                x: last.x + cos(tailAngle) * length * 0.12 * progress,
-                y: last.y + sin(tailAngle) * length * 0.12 * progress
-            )
-        }
-        let variants = [
-            ("prepend-10-percent-75-degrees", (lead + template).scaled(by: 200)),
-            ("tail-12-percent-70-degrees", (template + tail).scaled(by: 200)),
-        ]
-
-        for threshold in [0.70, Constants.freePathMatchThresholdRange.lowerBound] {
-            let policy = GestureRecognitionPolicy(
-                minimumPathLength: fixture.policy.minimumPathLength,
-                matchThreshold: threshold,
-                minimumLeadOverSecond: fixture.policy.minimumLeadOverSecond
-            )
-            for (name, path) in variants {
-                let evaluation = GestureRecognitionEvaluator.evaluateDrawn(
-                    path: path,
-                    profiles: [profile],
-                    policy: policy
+            return (0..<24).map { index in
+                let progress = CGFloat(index) / 24
+                return CGPoint(
+                    x: start.x + (first.x - start.x) * progress,
+                    y: start.y + (first.y - start.y) * progress
                 )
-                XCTAssertGreaterThanOrEqual(evaluation.pathLength, policy.minimumPathLength, name)
-                XCTAssertNotEqual(
-                    evaluation.decision,
-                    .accepted,
-                    "\(name), threshold=\(threshold), "
-                        + targetSummary(evaluation, targetID: profile.id)
-                )
-                XCTAssertNil(evaluation.acceptedCandidate, name)
             }
+        }
+        func tail(_ fraction: CGFloat) -> [CGPoint] {
+            let angle = CGFloat(70) * .pi / 180
+            return (1...24).map { index in
+                let progress = CGFloat(index) / 24
+                return CGPoint(
+                    x: last.x + cos(angle) * length * fraction * progress,
+                    y: last.y + sin(angle) * length * fraction * progress
+                )
+            }
+        }
+        func decision(_ path: [CGPoint], threshold: Double) -> GestureEvaluationDecision {
+            GestureRecognitionEvaluator.evaluateDrawn(
+                path: path.scaled(by: 200),
+                profiles: [profile],
+                policy: GestureRecognitionPolicy(
+                    minimumPathLength: fixture.policy.minimumPathLength,
+                    matchThreshold: threshold,
+                    minimumLeadOverSecond: fixture.policy.minimumLeadOverSecond
+                )
+            ).decision
+        }
+
+        // A short entry or exit hook is ordinary hand motion and still triggers.
+        for fraction in [CGFloat(0.05), 0.08] {
+            XCTAssertEqual(decision(lead(fraction) + template, threshold: 0.70), .accepted)
+            XCTAssertEqual(decision(template + tail(fraction), threshold: 0.70), .accepted)
+        }
+        // A quarter of the path or more is a different gesture.
+        for fraction in [CGFloat(0.25), 0.35, 0.50] {
+            let minimum = Constants.freePathMatchThresholdRange.lowerBound
+            XCTAssertNotEqual(decision(lead(fraction) + template, threshold: minimum), .accepted)
+            XCTAssertNotEqual(decision(template + tail(fraction), threshold: minimum), .accepted)
+        }
+        for addition in [{ lead($0) + template }, { template + tail($0) }] {
+            let scores = [CGFloat(0.05), 0.10, 0.20, 0.30, 0.50].map {
+                TemplateMatcher.bestScore(addition($0), template)
+            }
+            XCTAssertEqual(scores, scores.sorted(by: >), "\(scores)")
         }
     }
 
-    func testUTailsRemainRejectedAcrossSeededJitterAndSamplingDensity() throws {
+    func testUTailsArePenalizedByHowMuchTheyChangeTheShape() throws {
         let template = uCurve(count: 128)
-        let templateSignature = try XCTUnwrap(CurvePathSignature.make(template))
         let cases: [(UInt64, CGFloat, Int)] = [
             (0x1515, 0.1, 64),
             (0x2020, 0.1, 97),
@@ -336,12 +315,21 @@ final class RecordedCurveAGestureTests: XCTestCase {
             (0x6565, 0.5, 97),
             (0x8080, 0.5, 160),
         ]
+        let variants: [(String, CGFloat, CGFloat, Bool)] = [
+            // A longer final arm is still the same U.
+            ("collinear-15", 0.15, 90, true),
+            ("collinear-20", 0.20, 90, true),
+            // A new direction or a doubled arm is not.
+            ("sideways-30", 0.30, 0, false),
+            ("reversed-20", 0.20, -90, false),
+            ("collinear-70", 0.70, 90, false),
+        ]
 
-        for fraction in [CGFloat(0.15), 0.20] {
+        for (name, fraction, angle, tolerated) in variants {
             let tailed = GestureRecognitionTestSupport.appendingTail(
                 to: template,
                 lengthFraction: fraction,
-                angleDegrees: 90
+                angleDegrees: angle
             )
             for (seed, jitter, sampleCount) in cases {
                 let stroke = try perturbed(
@@ -352,22 +340,17 @@ final class RecordedCurveAGestureTests: XCTestCase {
                     sampleCount: sampleCount,
                     seed: seed
                 )
-                let signature = try XCTUnwrap(CurvePathSignature.make(stroke))
-                let evaluation = TemplateMatcher.evaluate(stroke, template)
-                let context = "tail=\(fraction), jitter=\(jitter), count=\(sampleCount)"
-
-                XCTAssertGreaterThan(
-                    signature.terminalStraightTurnCount,
-                    templateSignature.terminalStraightTurnCount + 4,
-                    context
-                )
-                XCTAssertEqual(signature.mismatch(with: templateSignature), .terminalOverrun, context)
-                XCTAssertEqual(evaluation.structuralMismatch, .terminalOverrun, context)
-                XCTAssertLessThan(
-                    evaluation.score,
-                    Constants.freePathMatchThresholdRange.lowerBound,
-                    context
-                )
+                let score = TemplateMatcher.bestScore(stroke, template)
+                let context = "\(name), jitter=\(jitter), count=\(sampleCount), score=\(score)"
+                if tolerated {
+                    XCTAssertGreaterThanOrEqual(score, Constants.freePathMatchThreshold, context)
+                } else {
+                    XCTAssertLessThan(
+                        score,
+                        Constants.freePathMatchThresholdRange.lowerBound,
+                        context
+                    )
+                }
             }
         }
     }
@@ -376,22 +359,12 @@ final class RecordedCurveAGestureTests: XCTestCase {
         let template = uCurve(count: 128)
         let preparedTemplate = TemplateMatcher.prepare(template)
         let prefix = Array(template.prefix(32))
-        let preparedPrefix = TemplateMatcher.prepare(prefix)
-        let prefixMatch = TemplateMatcher.evaluate(
-            stroke: preparedPrefix,
-            template: preparedTemplate
-        )
-        let prefixHope = TemplateMatcher.liveCurvePrefixScore(
-            stroke: preparedPrefix,
-            template: preparedTemplate
-        )
-        let hope = LiveGestureViability.hopeThreshold(
-            matchThreshold: Constants.freePathMatchThreshold
-        )
 
         XCTAssertGreaterThanOrEqual(PathSimplifier.pathLength(prefix), 40)
-        XCTAssertEqual(prefixMatch.structuralMismatch, .terminalOverrun)
-        XCTAssertGreaterThanOrEqual(prefixHope, hope)
+        XCTAssertLessThan(
+            TemplateMatcher.bestScore(prefix, template),
+            Constants.freePathMatchThresholdRange.lowerBound
+        )
         XCTAssertEqual(
             LiveGestureViability.evaluate(
                 path: prefix,
@@ -404,19 +377,20 @@ final class RecordedCurveAGestureTests: XCTestCase {
 
         let finishedTail = GestureRecognitionTestSupport.appendingTail(
             to: template,
-            lengthFraction: 0.20,
-            angleDegrees: 90
+            lengthFraction: 0.30,
+            angleDegrees: 0
         )
-        let finalMatch = TemplateMatcher.evaluate(finishedTail, template)
-        XCTAssertEqual(finalMatch.structuralMismatch, .terminalOverrun)
-        XCTAssertLessThan(finalMatch.score, Constants.freePathMatchThresholdRange.lowerBound)
+        XCTAssertLessThan(
+            TemplateMatcher.bestScore(finishedTail, template),
+            Constants.freePathMatchThresholdRange.lowerBound
+        )
 
         let polyline = PathTemplates.polyline(
             GestureRecognitionTestSupport.complexVertices
         ).map(\.cgPoint).scaled(by: 200)
         let polylineTail = GestureRecognitionTestSupport.appendingTail(
             to: polyline,
-            lengthFraction: 0.20,
+            lengthFraction: 0.50,
             angleDegrees: 5
         )
         XCTAssertGreaterThanOrEqual(PathSimplifier.pathLength(polylineTail), 40)
@@ -550,10 +524,9 @@ final class RecordedCurveAGestureTests: XCTestCase {
         guard let target = evaluation.candidates.first(where: { $0.profile.id == targetID }) else {
             return "missing"
         }
-        return "score=\(target.score), shape=\(target.shapeScore), mismatch="
+        return "score=\(target.score), mismatch="
             + "\(String(describing: target.structuralMismatch)), distance="
-            + "\(String(describing: target.diagnostics?.distance)), rotation="
-            + "\(String(describing: target.diagnostics?.rotationDegrees))"
+            + "\(String(describing: target.diagnostics?.distance))"
     }
 
     private func perturbed(
@@ -802,14 +775,14 @@ private struct RecordedCurveARecordedEvaluation: Decodable {
 private struct RecordedCurveAMatch: Decodable {
     let score: Double
     let shapeScore: Double
-    let structuralMismatch: StrokeStructureMatcher.Mismatch?
+    let structuralMismatch: TemplateMatcher.Mismatch?
 }
 
 private struct RecordedCurveACompetitorMatch: Decodable {
     let id: String
     let score: Double
     let shapeScore: Double
-    let structuralMismatch: StrokeStructureMatcher.Mismatch?
+    let structuralMismatch: TemplateMatcher.Mismatch?
 }
 
 private struct HistoricalCurveALogEntry: Encodable {

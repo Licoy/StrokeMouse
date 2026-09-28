@@ -427,10 +427,6 @@ struct GestureTestView: View {
                 Text(candidate.score, format: .percent.precision(.fractionLength(1)))
                     .monospacedDigit()
             }
-            HStack(spacing: 12) {
-                diagnosticMetric("gestureTest.matchScore", value: candidate.score)
-                diagnosticMetric("gestureTest.shapeScore", value: candidate.shapeScore)
-            }
             if let mode = candidate.diagnostics?.mode {
                 Label(
                     L10n.string("gestureTest.matchMode.\(mode.rawValue)"),
@@ -446,10 +442,6 @@ struct GestureTestView: View {
                 )
                 .foregroundStyle(.orange)
                 .font(.caption)
-            } else {
-                Label(L10n.string("gestureTest.structurePassed"), systemImage: "checkmark")
-                    .foregroundStyle(.green)
-                    .font(.caption)
             }
             if candidate.templateEvaluations.count > 1 {
                 Text(
@@ -465,16 +457,6 @@ struct GestureTestView: View {
         }
         .padding(9)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-    }
-
-    private func diagnosticMetric(_ key: String, value: Double) -> some View {
-        HStack(spacing: 3) {
-            Text(L10n.string(key))
-            Text(value, format: .percent.precision(.fractionLength(1)))
-                .monospacedDigit()
-        }
-        .font(.caption)
-        .foregroundStyle(.secondary)
     }
 
     private var logFooter: some View {

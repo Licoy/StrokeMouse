@@ -11,10 +11,10 @@ enum LiveViabilityState: String, Equatable, Sendable {
 
 /// Pure live-viability scoring for in-progress drawn strokes.
 ///
-/// Uses optimistic similarity: raw shape keeps incomplete prefixes hopeful,
-/// while a structurally compatible path also uses the canonical score that
-/// end-of-stroke recognition would see. Final acceptance still remains in
-/// `GestureRecognitionEvaluator`.
+/// A path stays viable while it can still become at least one candidate: it
+/// either already matches a whole template or matches one of its leading
+/// portions at the optimistic hope threshold. Final acceptance still remains
+/// in `GestureRecognitionEvaluator`.
 enum LiveGestureViability {
     struct Hysteresis: Equatable, Sendable {
         var state: LiveViabilityState = .viable
@@ -49,50 +49,14 @@ enum LiveGestureViability {
 
         let preparedStroke = TemplateMatcher.prepare(path)
         let hope = hopeThreshold(matchThreshold: matchThreshold)
-        var bestHopeScore = 0.0
-        var hasRecoverableCandidate = false
-
-        for template in preparedTemplates {
-            let match = TemplateMatcher.evaluate(
+        let viable = preparedTemplates.contains { template in
+            TemplateMatcher.liveMeetsThreshold(
                 stroke: preparedStroke,
-                template: template
+                template: template,
+                threshold: hope
             )
-            // A curve's current straight suffix can still turn later. Other
-            // terminal overruns have already overshot the template structure.
-            let recoverableCurveSuffix = match.structuralMismatch == .terminalOverrun
-                && template.curveSignature?.isCurve == true
-                && !template.flexibleSingleTurn
-                && preparedStroke.curveSignature.map { strokeSignature in
-                    template.curveSignature.map {
-                        strokeSignature.hasExcessTerminalStraight(relativeTo: $0)
-                    } ?? false
-                } ?? false
-            let baseHopeScore = max(match.shapeScore, match.score)
-            let usesCurveMatching = template.curveSignature?.isCurve == true
-                && !template.flexibleSingleTurn
-            let prefixMeetsHope = usesCurveMatching && baseHopeScore < hope
-                && TemplateMatcher.liveCurvePrefixMeetsThreshold(
-                    stroke: preparedStroke,
-                    template: template,
-                    threshold: hope
-                )
-            // Raw shape keeps incomplete prefixes hopeful. Once structure is
-            // compatible, also honor the canonical score used at release time.
-            bestHopeScore = max(
-                bestHopeScore,
-                prefixMeetsHope ? hope : baseHopeScore
-            )
-            if match.structuralMismatch != .terminalOverrun || recoverableCurveSuffix {
-                hasRecoverableCandidate = true
-                if bestHopeScore >= hope { return .viable }
-            }
         }
-
-        if !hasRecoverableCandidate {
-            return .unlikely
-        }
-
-        return bestHopeScore >= hope ? .viable : .unlikely
+        return viable ? .viable : .unlikely
     }
 
     /// Debounce viable → unlikely; recover to viable immediately when hope returns.
