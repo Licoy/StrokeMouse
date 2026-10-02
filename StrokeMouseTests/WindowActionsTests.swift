@@ -205,8 +205,91 @@ final class WindowActionsTests: XCTestCase {
         }
     }
 
-    func testShortcutPreparesActivatesAndVerifiesBeforePosting() async throws {
+    func testFocusedActiveWindowSkipsUnsupportedWindowOperations() async throws {
         let system = RecordingGestureTargetSystemClient()
+        system.windowFocused = true
+        system.activeStates = [true]
+        system.setMainError = GestureTargetError.axOperationFailed(
+            operation: .setMainWindow,
+            code: .attributeUnsupported
+        )
+        system.raiseError = GestureTargetError.axOperationFailed(
+            operation: .raiseWindow,
+            code: .attributeUnsupported
+        )
+        let actions = WindowActions(system: system)
+        let chord = ShortcutChord(modifiers: [.command, .option], keyCode: 42)
+
+        try await actions.performShortcut(
+            keyCode: 42,
+            modifiers: 7,
+            orderedChord: chord,
+            target: makeTargetContext()
+        )
+
+        XCTAssertEqual(system.operations, [
+            .validateWindow,
+            .isWindowFocused,
+            .isApplicationActive,
+            .verifyFocusedWindow,
+            .postShortcut(keyCode: 42, modifiers: 7, orderedChord: chord),
+        ])
+    }
+
+    func testFocusedBackgroundWindowOnlyActivatesBeforePosting() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowFocused = true
+        system.activeStates = [false, true]
+        let actions = WindowActions(
+            system: system,
+            activationTimeout: .seconds(1),
+            pollInterval: .milliseconds(1)
+        )
+
+        try await actions.performShortcut(
+            keyCode: 42,
+            modifiers: 7,
+            target: makeTargetContext()
+        )
+
+        XCTAssertEqual(system.operations, [
+            .validateWindow,
+            .isWindowFocused,
+            .isApplicationActive,
+            .activateApplication,
+            .isApplicationActive,
+            .verifyFocusedWindow,
+            .postShortcut(keyCode: 42, modifiers: 7),
+        ])
+    }
+
+    func testDifferentFocusedWindowInActiveApplicationRaisesFrozenWindow() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowFocused = false
+        system.activeStates = [true]
+        let actions = WindowActions(system: system)
+
+        try await actions.performShortcut(
+            keyCode: 42,
+            modifiers: 7,
+            target: makeTargetContext()
+        )
+
+        XCTAssertEqual(system.operations, [
+            .validateWindow,
+            .isWindowFocused,
+            .setMainWindow,
+            .raiseWindow,
+            .activateApplication,
+            .isApplicationActive,
+            .verifyFocusedWindow,
+            .postShortcut(keyCode: 42, modifiers: 7),
+        ])
+    }
+
+    func testDifferentFocusedBackgroundWindowKeepsFullPreparationSequence() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowFocused = false
         system.activeStates = [false, true]
         let actions = WindowActions(
             system: system,
@@ -224,6 +307,7 @@ final class WindowActionsTests: XCTestCase {
 
         XCTAssertEqual(system.operations, [
             .validateWindow,
+            .isWindowFocused,
             .setMainWindow,
             .raiseWindow,
             .activateApplication,
@@ -232,6 +316,108 @@ final class WindowActionsTests: XCTestCase {
             .verifyFocusedWindow,
             .postShortcut(keyCode: 42, modifiers: 7, orderedChord: chord),
         ])
+    }
+
+    func testFocusChangeAfterBackgroundActivationFailsWithoutSendingShortcut() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowFocused = true
+        system.activeStates = [false, true]
+        system.verifyError = GestureTargetError.focusedWindowMismatch(101)
+        let actions = WindowActions(
+            system: system,
+            activationTimeout: .seconds(1),
+            pollInterval: .milliseconds(1)
+        )
+
+        do {
+            try await actions.performShortcut(
+                keyCode: 42,
+                modifiers: 7,
+                target: makeTargetContext()
+            )
+            XCTFail("Expected focus change to fail")
+        } catch GestureTargetError.focusedWindowMismatch(let pid) {
+            XCTAssertEqual(pid, 101)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(system.operations, [
+            .validateWindow,
+            .isWindowFocused,
+            .isApplicationActive,
+            .activateApplication,
+            .isApplicationActive,
+            .verifyFocusedWindow,
+        ])
+    }
+
+    func testFocusQueryFailureStopsBeforeWindowOperationsOrPosting() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.focusQueryError = GestureTargetError.axOperationFailed(
+            operation: .copyFocusedWindowForVerification,
+            code: .cannotComplete
+        )
+        let actions = WindowActions(system: system)
+
+        await assertShortcutAXFailure(
+            actions,
+            operation: .copyFocusedWindowForVerification,
+            code: .cannotComplete
+        )
+
+        XCTAssertEqual(system.operations, [.validateWindow, .isWindowFocused])
+    }
+
+    func testWindowPreparationFailuresNeverPostShortcut() async {
+        let failures: [(TargetSystemOperation, (RecordingGestureTargetSystemClient) -> Void)] = [
+            (.setMainWindow, { $0.setMainError = GestureTargetError.axOperationFailed(
+                operation: .setMainWindow,
+                code: .cannotComplete
+            ) }),
+            (.raiseWindow, { $0.raiseError = GestureTargetError.axOperationFailed(
+                operation: .raiseWindow,
+                code: .cannotComplete
+            ) }),
+        ]
+
+        for (failedOperation, configure) in failures {
+            let system = RecordingGestureTargetSystemClient()
+            system.windowFocused = false
+            configure(system)
+            let actions = WindowActions(system: system)
+
+            await assertShortcutAXFailure(
+                actions,
+                operation: failedOperation == .setMainWindow
+                    ? .setMainWindow
+                    : .raiseWindow,
+                code: .cannotComplete
+            )
+
+            XCTAssertEqual(system.operations.last, failedOperation)
+            XCTAssertFalse(system.operations.contains { operation in
+                if case .postShortcut = operation { return true }
+                return false
+            })
+        }
+    }
+
+    func testInvalidFrozenWindowStopsShortcutBeforeFocusQuery() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.validateError = GestureTargetError.axOperationFailed(
+            operation: .validateWindow,
+            code: .cannotComplete
+        )
+        let actions = WindowActions(system: system)
+
+        await assertShortcutAXFailure(
+            actions,
+            operation: .validateWindow,
+            code: .cannotComplete
+        )
+
+        XCTAssertEqual(system.operations, [.validateWindow])
     }
 
     func testActivationRejectionNeverPostsShortcut() async {
@@ -331,6 +517,7 @@ final class WindowActionsTests: XCTestCase {
             .validateWindow,
             .pressWindowControl(.fullscreen),
             .validateWindow,
+            .isWindowFocused,
             .setMainWindow,
             .raiseWindow,
             .activateApplication,
@@ -417,6 +604,28 @@ final class WindowActionsTests: XCTestCase {
                 : nil
         )
     }
+
+    private func assertShortcutAXFailure(
+        _ actions: WindowActions,
+        operation expectedOperation: GestureTargetAXOperation,
+        code expectedCode: AXError,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) async {
+        do {
+            try await actions.performShortcut(
+                keyCode: 42,
+                modifiers: 7,
+                target: makeTargetContext()
+            )
+            XCTFail("Expected shortcut to fail", file: file, line: line)
+        } catch GestureTargetError.axOperationFailed(let operation, let code) {
+            XCTAssertEqual(operation, expectedOperation, file: file, line: line)
+            XCTAssertEqual(code, expectedCode, file: file, line: line)
+        } catch {
+            XCTFail("Unexpected error: \(error)", file: file, line: line)
+        }
+    }
 }
 
 private enum TargetSystemOperation: Equatable {
@@ -428,6 +637,7 @@ private enum TargetSystemOperation: Equatable {
     case raiseWindow
     case activateApplication
     case isApplicationActive
+    case isWindowFocused
     case verifyFocusedWindow
     case postShortcut(
         keyCode: UInt16,
@@ -444,6 +654,11 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     var validateError: Error?
     var hideError: Error?
     var activeError: Error?
+    var windowFocused = false
+    var focusQueryError: Error?
+    var setMainError: Error?
+    var raiseError: Error?
+    var verifyError: Error?
     private(set) var operations: [TargetSystemOperation] = []
     private(set) var targets: [GestureTargetContext] = []
 
@@ -471,10 +686,12 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
 
     func setMainWindow(_ target: GestureTargetContext) throws {
         record(.setMainWindow, target: target)
+        if let setMainError { throw setMainError }
     }
 
     func raiseWindow(_ target: GestureTargetContext) throws {
         record(.raiseWindow, target: target)
+        if let raiseError { throw raiseError }
     }
 
     func activateApplication(_ target: GestureTargetContext) -> Bool {
@@ -489,8 +706,15 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
         return activeStates.removeFirst()
     }
 
+    func isWindowFocused(_ target: GestureTargetContext) throws -> Bool {
+        record(.isWindowFocused, target: target)
+        if let focusQueryError { throw focusQueryError }
+        return windowFocused
+    }
+
     func verifyFocusedWindow(_ target: GestureTargetContext) throws {
         record(.verifyFocusedWindow, target: target)
+        if let verifyError { throw verifyError }
     }
 
     func postShortcut(

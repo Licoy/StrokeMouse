@@ -152,7 +152,7 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         try validateApplication(target).isActive
     }
 
-    func verifyFocusedWindow(_ target: GestureTargetContext) throws {
+    func isWindowFocused(_ target: GestureTargetContext) throws -> Bool {
         let window = try target.requireWindow().element
         let appElement = AXUIElementCreateApplication(target.processIdentifier)
         let focused = try GestureTargetAXAccessor.copyElement(
@@ -162,7 +162,11 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
                 operation: .copyFocusedWindowForVerification
             )
         )
-        guard CFEqual(focused, window) else {
+        return CFEqual(focused, window)
+    }
+
+    func verifyFocusedWindow(_ target: GestureTargetContext) throws {
+        guard try isWindowFocused(target) else {
             throw GestureTargetError.focusedWindowMismatch(target.processIdentifier)
         }
     }

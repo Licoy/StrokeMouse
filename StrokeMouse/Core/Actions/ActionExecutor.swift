@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import OSLog
 
 enum ActionExecutionError: LocalizedError {
     case appNotFound(String)
@@ -57,6 +58,11 @@ struct MacApplicationSwitcher: ApplicationSwitching {
 @MainActor
 @Observable
 final class ActionExecutor {
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.strokemouse.app",
+        category: "ActionExecutor"
+    )
+
     private(set) var lastError: String?
     private(set) var lastActionSummary: String?
 
@@ -81,6 +87,19 @@ final class ActionExecutor {
         do {
             try await perform(action, target: target)
         } catch {
+            if let targetError = error as? GestureTargetError,
+               case .axOperationFailed(let operation, let code) = targetError
+            {
+                let context = target.context
+                let processIdentifier = context.map {
+                    String($0.processIdentifier)
+                } ?? "unknown"
+                let bundleIdentifier = context?.bundleIdentifier ?? "unknown"
+                let policy = context?.policy.rawValue ?? "unknown"
+                Self.logger.error(
+                    "AX action failed operation=\(operation.rawValue, privacy: .public) code=\(code.rawValue, privacy: .public) pid=\(processIdentifier, privacy: .public) bundleID=\(bundleIdentifier, privacy: .public) policy=\(policy, privacy: .public)"
+                )
+            }
             lastError = error.localizedDescription
             throw error
         }

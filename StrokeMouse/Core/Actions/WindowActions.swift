@@ -14,6 +14,7 @@ protocol GestureTargetSystemClient: AnyObject {
     func raiseWindow(_ target: GestureTargetContext) throws
     func activateApplication(_ target: GestureTargetContext) -> Bool
     func isApplicationActive(_ target: GestureTargetContext) throws -> Bool
+    func isWindowFocused(_ target: GestureTargetContext) throws -> Bool
     func verifyFocusedWindow(_ target: GestureTargetContext) throws
     func postShortcut(
         keyCode: UInt16,
@@ -81,12 +82,21 @@ struct WindowActions: GestureTargetActionPlatform {
             return
         }
         try system.validateWindow(target)
-        try system.setMainWindow(target)
-        try system.raiseWindow(target)
-        guard system.activateApplication(target) else {
-            throw GestureTargetError.activationFailed(target.processIdentifier)
+        if try system.isWindowFocused(target) {
+            if try !system.isApplicationActive(target) {
+                guard system.activateApplication(target) else {
+                    throw GestureTargetError.activationFailed(target.processIdentifier)
+                }
+                try await waitUntilActive(target)
+            }
+        } else {
+            try system.setMainWindow(target)
+            try system.raiseWindow(target)
+            guard system.activateApplication(target) else {
+                throw GestureTargetError.activationFailed(target.processIdentifier)
+            }
+            try await waitUntilActive(target)
         }
-        try await waitUntilActive(target)
         try system.verifyFocusedWindow(target)
         try system.postShortcut(
             keyCode: keyCode,
