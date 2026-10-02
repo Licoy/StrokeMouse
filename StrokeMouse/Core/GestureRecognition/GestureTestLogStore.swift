@@ -12,11 +12,14 @@ struct GestureTestLogRecognitionPolicy: Codable, Sendable, Equatable {
     let minimumPathLength: Double
     let matchThreshold: Double
     let minimumLeadOverSecond: Double
+    /// Added in schema v7; missing legacy values retain reject behavior.
+    let ambiguityResolution: GestureAmbiguityResolution?
 
     init(_ policy: GestureRecognitionPolicy) {
         minimumPathLength = Double(policy.minimumPathLength)
         matchThreshold = policy.matchThreshold
         minimumLeadOverSecond = policy.minimumLeadOverSecond
+        ambiguityResolution = policy.ambiguityResolution
     }
 }
 
@@ -128,7 +131,7 @@ struct GestureTestLogEntry: Codable, Sendable {
         timestamp: Date = Date()
     ) {
         let accepted = evaluation.acceptedCandidate
-        schemaVersion = 6
+        schemaVersion = 7
         self.timestamp = timestamp
         self.sessionID = sessionID
         self.source = source
@@ -213,7 +216,7 @@ struct GestureTestLogEntry: Codable, Sendable {
         case .multitouch:
             throw GestureTestLogEntryError.unsupportedSource
         }
-        schemaVersion = 6
+        schemaVersion = 7
         self.timestamp = timestamp
         self.sessionID = sessionID
         source = resolvedSource

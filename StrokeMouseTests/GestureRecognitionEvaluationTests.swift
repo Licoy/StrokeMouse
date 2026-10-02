@@ -252,6 +252,36 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
         XCTAssertEqual(result.candidates.map(\.profile.id), [earlier.id, later.id])
     }
 
+    func testChooseBestTieWinnerDoesNotDependOnInputOrder() {
+        let template = PathTemplates.up
+        let later = GestureProfile(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            name: "Later",
+            pattern: .freePath(template)
+        )
+        let earlier = GestureProfile(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+            name: "Earlier",
+            pattern: .freePath(template)
+        )
+        let policy = GestureRecognitionPolicy(
+            minimumPathLength: 0,
+            ambiguityResolution: .chooseBest
+        )
+
+        for profiles in [[later, earlier], [earlier, later]] {
+            let result = GestureRecognitionEvaluator.evaluate(
+                path: template.map(\.cgPoint),
+                profiles: profiles,
+                button: .right,
+                policy: policy
+            )
+
+            XCTAssertEqual(result.decision, .accepted)
+            XCTAssertEqual(result.acceptedCandidate?.profile.id, earlier.id)
+        }
+    }
+
     func testRepeatedEvaluationWithTemplateCacheIsDeterministic() {
         let profiles = [
             GestureProfile(name: "Up", pattern: .freePath(PathTemplates.up)),
@@ -359,18 +389,27 @@ final class GestureRecognitionEvaluationTests: XCTestCase {
         )
         let profiles = [globalUp, globalDown, chromeUp, chromeDown]
 
-        for (path, expected) in [
-            (PathTemplates.up, chromeUp),
-            (PathTemplates.down, chromeDown),
-        ] {
-            let result = GestureRecognitionEvaluator.evaluateDrawn(
-                path: path.map(\.cgPoint),
-                profiles: profiles,
-                policy: .standard(minimumPathLength: 0)
-            )
+        let policies = [
+            GestureRecognitionPolicy.standard(minimumPathLength: 0),
+            GestureRecognitionPolicy(
+                minimumPathLength: 0,
+                ambiguityResolution: .chooseBest
+            ),
+        ]
+        for policy in policies {
+            for (path, expected) in [
+                (PathTemplates.up, chromeUp),
+                (PathTemplates.down, chromeDown),
+            ] {
+                let result = GestureRecognitionEvaluator.evaluateDrawn(
+                    path: path.map(\.cgPoint),
+                    profiles: profiles,
+                    policy: policy
+                )
 
-            XCTAssertEqual(result.decision, .accepted)
-            XCTAssertEqual(result.acceptedCandidate?.profile.id, expected.id)
+                XCTAssertEqual(result.decision, .accepted)
+                XCTAssertEqual(result.acceptedCandidate?.profile.id, expected.id)
+            }
         }
     }
 

@@ -2577,6 +2577,52 @@
         }
       }
     },
+    "gestureTest.policyMetrics.chooseBest": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Threshold %d%% · Run highest score when candidates are close"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "阈值 %d%% · 候选接近时执行最高分"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閾值 %d%% · 候選接近時執行最高分"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "임계값 %d%% · 후보가 비슷하면 최고 점수 실행"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "しきい値 %d%% · 候補が近い場合は最高スコアを実行"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Порог %d%% · при близких результатах выполнить лучший"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuil %d%% · exécuter le meilleur score si les résultats sont proches"
+          }
+        }
+      }
+    },
     "gestureTest.structure.invalidStroke": {
       "localizations": {
         "en": {
@@ -3449,6 +3495,50 @@
             "value": "Distance minimale de tracé"
           }
         }
+      }
+    },
+    "general.ambiguityResolution": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "When Candidates Are Too Close"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "候选结果过于接近时"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "候選結果過於接近時"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "후보 결과가 너무 비슷할 때"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "候補の結果が近すぎる場合"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Когда результаты кандидатов слишком близки"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Lorsque les résultats sont trop proches"}}
+      }
+    },
+    "general.ambiguityResolution.reject": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Do Not Run an Action"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "不执行动作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "不執行動作"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "동작 실행 안 함"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "アクションを実行しない"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Не выполнять действие"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Ne pas exécuter d’action"}}
+      }
+    },
+    "general.ambiguityResolution.chooseBest": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Run the Best-Matching Gesture"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "执行匹配度最高的手势"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "執行匹配度最高的手勢"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "일치도가 가장 높은 제스처 실행"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "一致度が最も高いジェスチャを実行"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Выполнить жест с наилучшим совпадением"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Exécuter le geste le mieux reconnu"}}
+      }
+    },
+    "general.ambiguityResolutionHint": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "The best candidate must still reach the match threshold. Choosing the best match may run another action with a similar path."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "最高分候选仍需达到匹配阈值；选择执行最高分时，可能会执行相似轨迹对应的其他动作。"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "最高分候選仍需達到匹配閾值；選擇執行最高分時，可能會執行相似軌跡對應的其他動作。"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "최고 점수 후보도 일치 임계값에 도달해야 하며, 최고 점수 실행을 선택하면 비슷한 궤적의 다른 동작이 실행될 수 있습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "最高スコアの候補も一致しきい値に達する必要があります。最高スコアを実行すると、似た軌跡に割り当てた別のアクションが実行される場合があります。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Лучший кандидат всё равно должен достичь порога совпадения; выбор лучшего результата может запустить другое действие с похожей траекторией."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Le meilleur résultat doit toujours atteindre le seuil de correspondance ; son exécution peut lancer une autre action associée à un tracé similaire."}}
       }
     },
     "general.matchThreshold": {

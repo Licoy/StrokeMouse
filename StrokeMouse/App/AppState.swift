@@ -283,6 +283,7 @@ final class AppState {
         if defaults.object(forKey: PreferenceKey.matchThreshold) == nil {
             defaults.set(Constants.freePathMatchThreshold, forKey: PreferenceKey.matchThreshold)
         }
+        _ = Self.ambiguityResolution(from: defaults, repairingInvalidValue: true)
         if defaults.object(forKey: PreferenceKey.appearance) == nil {
             defaults.set(AppearanceMode.system.rawValue, forKey: PreferenceKey.appearance)
         }
@@ -342,6 +343,14 @@ final class AppState {
         UserDefaults.standard.set(
             normalized,
             forKey: PreferenceKey.matchThreshold
+        )
+        applyCurrentGestureConfiguration()
+    }
+
+    func updateAmbiguityResolution(_ value: GestureAmbiguityResolution) {
+        UserDefaults.standard.set(
+            value.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
         )
         applyCurrentGestureConfiguration()
     }
@@ -442,8 +451,37 @@ final class AppState {
             appRules: GestureAppRules(
                 policies: configStore.appPolicies,
                 groups: configStore.appGroups
-            )
+            ),
+            ambiguityResolution: Self.ambiguityResolution(from: defaults)
         )
+    }
+
+    private static func ambiguityResolution(
+        from defaults: UserDefaults,
+        repairingInvalidValue: Bool = false
+    ) -> GestureAmbiguityResolution {
+        guard let raw = defaults.string(
+            forKey: PreferenceKey.ambiguityResolution
+        ) else {
+            if repairingInvalidValue {
+                defaults.set(
+                    GestureAmbiguityResolution.reject.rawValue,
+                    forKey: PreferenceKey.ambiguityResolution
+                )
+            }
+            return .reject
+        }
+        guard let resolution = GestureAmbiguityResolution(rawValue: raw) else {
+            NSLog("Invalid persisted ambiguity resolution: %@", raw)
+            if repairingInvalidValue {
+                defaults.set(
+                    GestureAmbiguityResolution.reject.rawValue,
+                    forKey: PreferenceKey.ambiguityResolution
+                )
+            }
+            return .reject
+        }
+        return resolution
     }
 
     /// Re-applies every portable setting after an atomic backup restore.

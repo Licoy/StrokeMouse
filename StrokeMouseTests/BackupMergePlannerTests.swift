@@ -207,6 +207,79 @@ final class BackupMergePlannerTests: XCTestCase {
         ])
     }
 
+    func testAmbiguityResolutionMergeHandlesLegacyAndCurrentBackups() throws {
+        let localDefaults = UserDefaults(
+            suiteName: "BackupMergePlannerTests-\(UUID().uuidString)"
+        )!
+        let destination = UserDefaults(
+            suiteName: "BackupMergePlannerTests-\(UUID().uuidString)"
+        )!
+        defer {
+            for key in localDefaults.dictionaryRepresentation().keys {
+                localDefaults.removeObject(forKey: key)
+            }
+            for key in destination.dictionaryRepresentation().keys {
+                destination.removeObject(forKey: key)
+            }
+        }
+        localDefaults.set(
+            GestureAmbiguityResolution.chooseBest.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
+        let local = PortableSettingsV1.capture(from: localDefaults)
+        var currentBackup = local
+        currentBackup.ambiguityResolution = GestureAmbiguityResolution.reject.rawValue
+        let legacyBackup = try removingAmbiguityResolution(from: currentBackup)
+
+        let legacyPlan = try BackupMergePlanner.plan(
+            local: file([]),
+            backup: file([]),
+            localSettings: local.mergeValues,
+            backupSettings: legacyBackup.mergeValues
+        )
+        XCTAssertFalse(legacyBackup.mergeValues.keys.contains(
+            "ambiguityResolution"
+        ))
+        XCTAssertTrue(legacyPlan.settingConflicts.isEmpty)
+        let legacyResolved = try local.replacingMergeValues(
+            legacyPlan.resolve().settings
+        )
+        try legacyResolved.apply(to: destination)
+        XCTAssertEqual(
+            destination.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
+
+        let currentPlan = try BackupMergePlanner.plan(
+            local: file([]),
+            backup: file([]),
+            localSettings: local.mergeValues,
+            backupSettings: currentBackup.mergeValues
+        )
+        XCTAssertEqual(
+            currentPlan.settingConflicts.map(\.key),
+            ["ambiguityResolution"]
+        )
+
+        let kept = try currentPlan.resolve(decisions: .init(settings: [
+            "ambiguityResolution": .keepLocal,
+        ]))
+        try local.replacingMergeValues(kept.settings).apply(to: destination)
+        XCTAssertEqual(
+            destination.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
+
+        let replaced = try currentPlan.resolve(decisions: .init(settings: [
+            "ambiguityResolution": .useBackup,
+        ]))
+        try local.replacingMergeValues(replaced.settings).apply(to: destination)
+        XCTAssertEqual(
+            destination.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.reject.rawValue
+        )
+    }
+
     func testUnsupportedVersionAndDuplicateIDsAreRejected() {
         XCTAssertThrowsError(try BackupMergePlanner.plan(
             local: GestureConfigFile(version: 99, gestures: []),
@@ -266,6 +339,20 @@ final class BackupMergePlannerTests: XCTestCase {
         GestureConfigFile(
             version: Constants.configVersion,
             gestures: gestures
+        )
+    }
+
+    private func removingAmbiguityResolution(
+        from settings: PortableSettingsV1
+    ) throws -> PortableSettingsV1 {
+        let data = try JSONEncoder().encode(settings)
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        object.removeValue(forKey: "ambiguityResolution")
+        return try JSONDecoder().decode(
+            PortableSettingsV1.self,
+            from: JSONSerialization.data(withJSONObject: object)
         )
     }
 

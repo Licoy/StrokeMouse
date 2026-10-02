@@ -6,6 +6,8 @@ import Foundation
 struct PortableSettingsV1: Codable, Equatable, Sendable {
     var minStrokeDistance: Double
     var matchThreshold: Double
+    /// Optional so backups written before this setting existed still decode.
+    var ambiguityResolution: String?
     var appearance: String
     var menuBarIconStyle: String
     var language: String
@@ -34,6 +36,9 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
                 key: PreferenceKey.matchThreshold,
                 fallback: Constants.freePathMatchThreshold
             ),
+            ambiguityResolution: defaults.string(
+                forKey: PreferenceKey.ambiguityResolution
+            ) ?? GestureAmbiguityResolution.reject.rawValue,
             appearance: defaults.string(forKey: PreferenceKey.appearance)
                 ?? AppearanceMode.system.rawValue,
             menuBarIconStyle: defaults.string(
@@ -108,6 +113,13 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
                 matchThreshold
             )
         }
+        if let ambiguityResolution,
+           GestureAmbiguityResolution(rawValue: ambiguityResolution) == nil
+        {
+            throw PortableSettingsValidationError.invalidAmbiguityResolution(
+                ambiguityResolution
+            )
+        }
         guard AppearanceMode(rawValue: appearance) != nil else {
             throw PortableSettingsValidationError.invalidAppearance(appearance)
         }
@@ -148,6 +160,11 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
         try validate()
         defaults.set(minStrokeDistance, forKey: PreferenceKey.minStrokeDistance)
         defaults.set(matchThreshold, forKey: PreferenceKey.matchThreshold)
+        defaults.set(
+            ambiguityResolution
+                ?? GestureAmbiguityResolution.reject.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
         defaults.set(appearance, forKey: PreferenceKey.appearance)
         defaults.set(menuBarIconStyle, forKey: PreferenceKey.menuBarIconStyle)
         defaults.set(language, forKey: PreferenceKey.language)
@@ -235,6 +252,7 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
 enum PortableSettingsValidationError: Error, Equatable, Sendable {
     case invalidMinStrokeDistance(Double)
     case invalidMatchThreshold(Double)
+    case invalidAmbiguityResolution(String)
     case invalidAppearance(String)
     case invalidMenuBarIconStyle(String)
     case invalidLanguage(String)

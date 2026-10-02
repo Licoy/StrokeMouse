@@ -133,7 +133,8 @@ enum GestureTestLogReplay {
         let policy = GestureRecognitionPolicy(
             minimumPathLength: CGFloat(recordedPolicy.minimumPathLength),
             matchThreshold: recordedPolicy.matchThreshold,
-            minimumLeadOverSecond: recordedPolicy.minimumLeadOverSecond
+            minimumLeadOverSecond: recordedPolicy.minimumLeadOverSecond,
+            ambiguityResolution: recordedPolicy.ambiguityResolution ?? .reject
         )
         let evaluation = GestureRecognitionEvaluator.evaluateDrawn(
             path: entry.rawPath.map(\.cgPoint),
@@ -158,7 +159,7 @@ enum GestureTestLogReplay {
     }
 
     static func validate(_ entry: GestureTestLogEntry) throws {
-        guard (1...6).contains(entry.schemaVersion) else {
+        guard (1...7).contains(entry.schemaVersion) else {
             throw GestureTestLogValidationError.unsupportedSchema(entry.schemaVersion)
         }
         guard entry.rawPath.allSatisfy({
@@ -173,7 +174,7 @@ enum GestureTestLogReplay {
         ].allSatisfy(\.isFinite) else {
             throw GestureTestLogValidationError.invalidMetrics
         }
-        if entry.schemaVersion == 6 {
+        if entry.schemaVersion >= 6 {
             guard entry.source != nil,
                   entry.activation != nil,
                   entry.outcome != nil,
@@ -184,7 +185,11 @@ enum GestureTestLogReplay {
             }
             switch entry.outcome {
             case .recognition:
-                guard entry.decision != nil, entry.policy != nil else {
+                guard entry.decision != nil,
+                      let policy = entry.policy,
+                      entry.schemaVersion < 7
+                        || policy.ambiguityResolution != nil
+                else {
                     throw GestureTestLogValidationError.invalidMetadata
                 }
             case .cancelled:
@@ -248,7 +253,7 @@ enum GestureTestLogReplay {
                     )
                 }
             }
-            if entry.schemaVersion == 6 {
+            if entry.schemaVersion >= 6 {
                 guard let paths = candidate.sourceTemplatePaths,
                       let index = candidate.winningTemplateIndex,
                       paths.indices.contains(index),
@@ -328,7 +333,8 @@ enum GestureTestLogReplay {
             policy: GestureRecognitionPolicy(
                 minimumPathLength: CGFloat(policy.minimumPathLength),
                 matchThreshold: policy.matchThreshold,
-                minimumLeadOverSecond: policy.minimumLeadOverSecond
+                minimumLeadOverSecond: policy.minimumLeadOverSecond,
+                ambiguityResolution: policy.ambiguityResolution ?? .reject
             )
         )
         let comparisons = compare(entry: entry, evaluation: evaluation)

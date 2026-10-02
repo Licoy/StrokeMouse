@@ -2,7 +2,7 @@ import Foundation
 
 extension PortableSettingsV1 {
     var mergeValues: [String: PortableSettingValue] {
-        [
+        var values: [String: PortableSettingValue] = [
             "minStrokeDistance": .number(minStrokeDistance),
             "matchThreshold": .number(matchThreshold),
             "appearance": .string(appearance),
@@ -21,6 +21,10 @@ extension PortableSettingsV1 {
             "showLiveMismatchFeedback": .bool(showLiveMismatchFeedback),
             "hudMismatchLineColor": .string(hudMismatchLineColor),
         ]
+        if let ambiguityResolution {
+            values["ambiguityResolution"] = .string(ambiguityResolution)
+        }
+        return values
     }
 
     func replacingMergeValues(
@@ -29,6 +33,12 @@ extension PortableSettingsV1 {
         var result = self
         result.minStrokeDistance = try values.number("minStrokeDistance")
         result.matchThreshold = try values.number("matchThreshold")
+        if let value = values["ambiguityResolution"] {
+            guard case .string(let rawValue) = value else {
+                throw ConfigurationSyncError.invalidStoredConfiguration
+            }
+            result.ambiguityResolution = rawValue
+        }
         result.appearance = try values.string("appearance")
         result.menuBarIconStyle = try values.string("menuBarIconStyle")
         result.language = try values.string("language")

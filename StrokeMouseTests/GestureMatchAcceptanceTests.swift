@@ -26,6 +26,24 @@ final class GestureMatchAcceptanceTests: XCTestCase {
         ))
     }
 
+    func testAmbiguityResolutionOnlyChangesMinimumLeadRequirement() {
+        XCTAssertFalse(GestureRecognitionEvaluator.shouldAccept(
+            bestScore: 0.975,
+            secondBestScore: 0.96,
+            policy: policy(ambiguityResolution: .reject)
+        ))
+        XCTAssertTrue(GestureRecognitionEvaluator.shouldAccept(
+            bestScore: 0.975,
+            secondBestScore: 0.96,
+            policy: policy(ambiguityResolution: .chooseBest)
+        ))
+        XCTAssertFalse(GestureRecognitionEvaluator.shouldAccept(
+            bestScore: 0.69,
+            secondBestScore: 0.10,
+            policy: policy(ambiguityResolution: .chooseBest)
+        ))
+    }
+
     func testRejectsClearLeaderBelowFormalThreshold() {
         XCTAssertFalse(GestureRuntime.shouldAcceptMatch(
             bestScore: 0.69,
@@ -52,6 +70,17 @@ final class GestureMatchAcceptanceTests: XCTestCase {
             minimumPathLength: 0,
             matchThreshold: threshold,
             minimumLeadOverSecond: Constants.freePathMinLeadOverSecond
+        )
+    }
+
+    private func policy(
+        ambiguityResolution: GestureAmbiguityResolution
+    ) -> GestureRecognitionPolicy {
+        GestureRecognitionPolicy(
+            minimumPathLength: 0,
+            matchThreshold: 0.70,
+            minimumLeadOverSecond: Constants.freePathMinLeadOverSecond,
+            ambiguityResolution: ambiguityResolution
         )
     }
 }

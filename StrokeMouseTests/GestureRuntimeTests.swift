@@ -1355,6 +1355,133 @@ final class GestureRuntimeTests: XCTestCase {
         }
     }
 
+    func testAmbiguityPolicyAndTargetFreezeForMouseAndModifierEvents()
+        async throws
+    {
+        let activations: [DrawActivation] = [
+            .mouse(.default),
+            .modifier(.function),
+        ]
+        let transitions: [(GestureAmbiguityResolution, GestureAmbiguityResolution)] = [
+            (.reject, .chooseBest),
+            (.chooseBest, .reject),
+        ]
+
+        for activation in activations {
+            for (initial, replacement) in transitions {
+                let mouse = RuntimeMouseEventSource()
+                let modifier = RuntimeModifierEventSource()
+                let platform = RuntimeActionPlatform()
+                let capturer = MutableRuntimeTargetCapturer(processIdentifier: 101)
+                let runtime = GestureRuntime(
+                    permissionManager: RuntimePermissionProvider(trusted: true),
+                    actionExecutor: ActionExecutor(targetPlatform: platform),
+                    targetCapturer: capturer,
+                    mouseEventTap: mouse,
+                    modifierEventTap: modifier,
+                    multitouchSourceFactory: { RuntimeMultitouchSource() }
+                )
+                let earlier = drawnShortcutProfile(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                    name: "Earlier",
+                    activation: activation
+                )
+                let later = drawnShortcutProfile(
+                    id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+                    name: "Later",
+                    activation: activation
+                )
+                var matchedIDs: [UUID] = []
+                runtime.onMatch = { matchedIDs.append($0.profile.id) }
+                try runtime.apply(configuration(
+                    revision: 1,
+                    enabled: true,
+                    profiles: [later, earlier],
+                    ambiguityResolution: initial
+                ))
+
+                beginDraw(activation, mouse: mouse, modifier: modifier)
+                await drainMainActor()
+                capturer.processIdentifier = 202
+                try runtime.apply(configuration(
+                    revision: 2,
+                    enabled: true,
+                    profiles: [later, earlier],
+                    ambiguityResolution: replacement
+                ))
+                endDraw(activation, mouse: mouse, modifier: modifier)
+                await drainMainActor()
+
+                if initial == .chooseBest {
+                    XCTAssertEqual(matchedIDs, [earlier.id])
+                    XCTAssertEqual(platform.shortcutProcessIdentifiers, [101])
+                } else {
+                    XCTAssertTrue(matchedIDs.isEmpty)
+                    XCTAssertTrue(platform.shortcutProcessIdentifiers.isEmpty)
+                }
+
+                beginDraw(activation, mouse: mouse, modifier: modifier)
+                await drainMainActor()
+                endDraw(activation, mouse: mouse, modifier: modifier)
+                await drainMainActor()
+
+                if replacement == .chooseBest {
+                    XCTAssertEqual(matchedIDs, [earlier.id])
+                    XCTAssertEqual(platform.shortcutProcessIdentifiers, [202])
+                } else {
+                    XCTAssertEqual(matchedIDs, [earlier.id])
+                    XCTAssertEqual(platform.shortcutProcessIdentifiers, [101])
+                }
+            }
+        }
+    }
+
+    func testDrawnDiagnosticsReportsChooseBestWithoutExecutingAction()
+        async throws
+    {
+        let mouse = RuntimeMouseEventSource()
+        let platform = RuntimeActionPlatform()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        let profiles = [
+            drawnShortcutProfile(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+                name: "Later",
+                activation: .mouse(.default)
+            ),
+            drawnShortcutProfile(
+                id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+                name: "Earlier",
+                activation: .mouse(.default)
+            ),
+        ]
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: profiles,
+            ambiguityResolution: .chooseBest
+        ))
+        let diagnostic = runtime.beginDiagnostics()
+        defer { diagnostic.end() }
+
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        await drainMainActor()
+        mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+
+        XCTAssertEqual(runtime.lastDrawDiagnostic?.evaluation?.decision, .accepted)
+        XCTAssertEqual(
+            runtime.lastDrawDiagnostic?.evaluation?.acceptedCandidate?.profile.id,
+            profiles[1].id
+        )
+        XCTAssertEqual(platform.shortcutCount, 0)
+    }
+
     func testDiagnosticModifierInputReportsNoMatchWithoutConfiguredProfile()
         async throws
     {
@@ -2104,7 +2231,8 @@ final class GestureRuntimeTests: XCTestCase {
         revision: UInt64,
         enabled: Bool,
         profiles: [GestureProfile],
-        appRules: GestureAppRules = .empty
+        appRules: GestureAppRules = .empty,
+        ambiguityResolution: GestureAmbiguityResolution = .reject
     ) -> GestureRuntimeConfiguration {
         GestureRuntimeConfiguration(
             revision: revision,
@@ -2115,8 +2243,56 @@ final class GestureRuntimeTests: XCTestCase {
             showsHUD: false,
             showsLiveMismatchFeedback: false,
             directTrackpadEnabled: true,
-            appRules: appRules
+            appRules: appRules,
+            ambiguityResolution: ambiguityResolution
         )
+    }
+
+    private func drawnShortcutProfile(
+        id: UUID,
+        name: String,
+        activation: DrawActivation
+    ) -> GestureProfile {
+        GestureProfile(
+            id: id,
+            name: name,
+            input: .drawn(DrawnGesture(
+                activation: activation,
+                points: PathTemplates.up
+            )),
+            action: .shortcut(
+                keyCode: 0,
+                modifiers: 0,
+                display: "A",
+                orderedChord: nil
+            )
+        )
+    }
+
+    private func beginDraw(
+        _ activation: DrawActivation,
+        mouse: RuntimeMouseEventSource,
+        modifier: RuntimeModifierEventSource
+    ) {
+        switch activation {
+        case .mouse:
+            XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        case .modifier(let key):
+            modifier.press(key, at: CGPoint(x: 20, y: 300))
+        }
+    }
+
+    private func endDraw(
+        _ activation: DrawActivation,
+        mouse: RuntimeMouseEventSource,
+        modifier: RuntimeModifierEventSource
+    ) {
+        switch activation {
+        case .mouse:
+            mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        case .modifier(let key):
+            modifier.release(key, at: CGPoint(x: 20, y: 100))
+        }
     }
 
     private func directProfile(

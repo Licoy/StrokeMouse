@@ -8,6 +8,8 @@ struct GeneralSettingsView: View {
     @AppStorage(PreferenceKey.gesturesEnabled) private var gesturesEnabled = true
     @AppStorage(PreferenceKey.minStrokeDistance) private var minStrokeDistance = Double(Constants.defaultMinStrokeDistance)
     @AppStorage(PreferenceKey.matchThreshold) private var matchThreshold = Constants.freePathMatchThreshold
+    @AppStorage(PreferenceKey.ambiguityResolution)
+    private var ambiguityResolution = GestureAmbiguityResolution.reject
     @AppStorage(PreferenceKey.appearance) private var appearanceRaw = AppearanceMode.system.rawValue
     @AppStorage(PreferenceKey.menuBarIconStyle) private var menuBarIconStyle = MenuBarIconStyle.default
     @AppStorage(PreferenceKey.language) private var languageRaw = LanguageOverride.system.rawValue
@@ -95,6 +97,26 @@ struct GeneralSettingsView: View {
                 }
 
                 Text(L10n.string("general.matchThresholdHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Picker(
+                    L10n.string("general.ambiguityResolution"),
+                    selection: $ambiguityResolution
+                ) {
+                    ForEach(GestureAmbiguityResolution.allCases, id: \.self) {
+                        resolution in
+                        Text(L10n.string(
+                            "general.ambiguityResolution.\(resolution.rawValue)"
+                        ))
+                        .tag(resolution)
+                    }
+                }
+                .onChange(of: ambiguityResolution) { _, newValue in
+                    appState.updateAmbiguityResolution(newValue)
+                }
+
+                Text(L10n.string("general.ambiguityResolutionHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {

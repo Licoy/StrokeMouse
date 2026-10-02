@@ -54,19 +54,27 @@ enum GestureEvaluationDecision: String, Codable, Sendable {
     case ambiguous
 }
 
+enum GestureAmbiguityResolution: String, Codable, CaseIterable, Sendable {
+    case reject
+    case chooseBest
+}
+
 struct GestureRecognitionPolicy: Sendable, Equatable {
     let minimumPathLength: CGFloat
     let matchThreshold: Double
     let minimumLeadOverSecond: Double
+    let ambiguityResolution: GestureAmbiguityResolution
 
     init(
         minimumPathLength: CGFloat,
         matchThreshold: Double = Constants.freePathMatchThreshold,
-        minimumLeadOverSecond: Double = Constants.freePathMinLeadOverSecond
+        minimumLeadOverSecond: Double = Constants.freePathMinLeadOverSecond,
+        ambiguityResolution: GestureAmbiguityResolution = .reject
     ) {
         self.minimumPathLength = minimumPathLength
         self.matchThreshold = Self.normalizedMatchThreshold(matchThreshold)
         self.minimumLeadOverSecond = minimumLeadOverSecond
+        self.ambiguityResolution = ambiguityResolution
     }
 
     static func standard(minimumPathLength: CGFloat) -> Self {
@@ -132,6 +140,7 @@ enum GestureRecognitionEvaluator {
         policy: GestureRecognitionPolicy = .standard(minimumPathLength: 0)
     ) -> Bool {
         guard bestScore >= policy.matchThreshold else { return false }
+        guard policy.ambiguityResolution == .reject else { return true }
         guard let secondBestScore else { return true }
         return bestScore - secondBestScore >= policy.minimumLeadOverSecond
     }

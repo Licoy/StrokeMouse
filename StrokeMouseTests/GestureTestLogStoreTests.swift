@@ -26,13 +26,14 @@ final class GestureTestLogStoreTests: XCTestCase {
             evaluation: evaluation
         )
 
-        XCTAssertEqual(entry.schemaVersion, 6)
+        XCTAssertEqual(entry.schemaVersion, 7)
         XCTAssertEqual(entry.source, .canvas)
         XCTAssertEqual(entry.algorithmVersion, TemplateMatcher.algorithmVersion)
         let policy = try XCTUnwrap(entry.policy)
         XCTAssertEqual(policy.minimumPathLength, 0)
         XCTAssertEqual(policy.matchThreshold, Constants.freePathMatchThreshold)
         XCTAssertEqual(policy.minimumLeadOverSecond, Constants.freePathMinLeadOverSecond)
+        XCTAssertEqual(policy.ambiguityResolution, .reject)
         let diagnostics = try XCTUnwrap(entry.candidates.first?.diagnostics)
         let templatePath = try XCTUnwrap(entry.candidates.first?.templatePath)
         let sourceTemplatePath = try XCTUnwrap(entry.candidates.first?.sourceTemplatePath)
@@ -274,10 +275,39 @@ final class GestureTestLogStoreTests: XCTestCase {
         XCTAssertNil(decoded.algorithmVersion)
         XCTAssertNil(decoded.configurationRevision)
         XCTAssertNil(decoded.evaluationTier)
+        XCTAssertNil(decoded.policy?.ambiguityResolution)
         XCTAssertEqual(decoded.candidates.first?.sourceTemplatePath?.count, 2)
         XCTAssertNil(decoded.candidates.first?.sourceTemplatePaths)
         XCTAssertNil(decoded.candidates.first?.winningTemplateIndex)
         XCTAssertNil(decoded.candidates.first?.templateEvaluations)
+    }
+
+    func testSchemaV7UnknownAmbiguityResolutionFailsDecoding() throws {
+        let evaluation = GestureRecognitionEvaluator.evaluateDrawn(
+            path: PathTemplates.up.map(\.cgPoint),
+            profiles: [GestureProfile(name: "Up", pattern: .freePath(PathTemplates.up))],
+            policy: .standard(minimumPathLength: 0)
+        )
+        let entry = GestureTestLogEntry(
+            sessionID: UUID(),
+            rawPath: PathTemplates.up.map(\.cgPoint),
+            evaluation: evaluation
+        )
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: JSONEncoder.gestureTestEncoder.encode(entry)
+            ) as? [String: Any]
+        )
+        var policy = try XCTUnwrap(object["policy"] as? [String: Any])
+        policy["ambiguityResolution"] = "unknown"
+        object["policy"] = policy
+
+        XCTAssertThrowsError(
+            try JSONDecoder.gestureTestDecoder.decode(
+                GestureTestLogEntry.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
+        )
     }
 
     func testInvalidTemplateIsLoggedWithMismatchAndWithoutGeometry() throws {

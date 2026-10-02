@@ -629,6 +629,10 @@ final class ConfigurationSyncTests: XCTestCase {
             true,
             forKey: PreferenceKey.directTrackpadEnabled
         )
+        harness.defaults.set(
+            GestureAmbiguityResolution.chooseBest.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
         try await connect(
             harness.sync,
             automatic: false,
@@ -641,6 +645,10 @@ final class ConfigurationSyncTests: XCTestCase {
         harness.defaults.set(
             false,
             forKey: PreferenceKey.directTrackpadEnabled
+        )
+        harness.defaults.set(
+            GestureAmbiguityResolution.reject.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
         )
         assertSuccess(await harness.sync.handle(.preview(backupID, nil)))
         XCTAssertTrue(
@@ -670,6 +678,10 @@ final class ConfigurationSyncTests: XCTestCase {
         XCTAssertTrue(harness.defaults.bool(
             forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
         ))
+        XCTAssertEqual(
+            harness.defaults.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
     }
 
     func testPreviewListsPrivilegedGestureNamesWithoutScriptBodies() async throws {
@@ -885,6 +897,10 @@ final class ConfigurationSyncTests: XCTestCase {
             true,
             forKey: PreferenceKey.directTrackpadEnabled
         )
+        harness.defaults.set(
+            GestureAmbiguityResolution.reject.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
         try await connect(
             harness.sync,
             automatic: false,
@@ -903,6 +919,10 @@ final class ConfigurationSyncTests: XCTestCase {
             false,
             forKey: PreferenceKey.directTrackpadEnabled
         )
+        harness.defaults.set(
+            GestureAmbiguityResolution.chooseBest.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
         assertSuccess(await harness.sync.handle(.preview(backupID, nil)))
         assertFailure(await harness.sync.handle(.restore(RestoreRequest(
             backupID: backupID,
@@ -919,8 +939,17 @@ final class ConfigurationSyncTests: XCTestCase {
         XCTAssertFalse(harness.defaults.bool(
             forKey: PreferenceKey.acceptedExperimentalTrackpadRisk
         ))
+        XCTAssertEqual(
+            harness.defaults.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
         let rollbackURL = try XCTUnwrap(harness.sync.state.lastRollbackURL)
         XCTAssertTrue(FileManager.default.fileExists(atPath: rollbackURL.path))
+        let rollback = try BackupCodec.decode(Data(contentsOf: rollbackURL))
+        XCTAssertEqual(
+            rollback.payload.settings?.ambiguityResolution,
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
     }
 
     func testOversizedHistoryItemIsNotDownloaded() async throws {

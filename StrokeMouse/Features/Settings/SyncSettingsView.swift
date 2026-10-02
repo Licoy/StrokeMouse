@@ -513,11 +513,11 @@ struct SyncSettingsView: View {
                     Text(settingTitle(conflict.key))
                         .font(.subheadline.weight(.medium))
                     LabeledContent(L10n.string("sync.merge.localValue")) {
-                        Text(settingValue(conflict.localValue))
+                        Text(settingValue(conflict.localValue, key: conflict.key))
                             .textSelection(.enabled)
                     }
                     LabeledContent(L10n.string("sync.merge.backupValue")) {
-                        Text(settingValue(conflict.backupValue))
+                        Text(settingValue(conflict.backupValue, key: conflict.key))
                             .textSelection(.enabled)
                     }
                     Picker("", selection: settingDecisionBinding(conflict.key)) {
@@ -966,6 +966,7 @@ struct SyncSettingsView: View {
         let existingKeys: [String: String] = [
             "minStrokeDistance": "general.minDistance",
             "matchThreshold": "general.matchThreshold",
+            "ambiguityResolution": "general.ambiguityResolution",
             "appearance": "general.appearanceMode",
             "menuBarIconStyle": "general.menuBarIconStyle",
             "language": "general.language",
@@ -985,7 +986,10 @@ struct SyncSettingsView: View {
         return L10n.string(existingKeys[key] ?? "sync.setting.unknown")
     }
 
-    private func settingValue(_ value: PortableSettingValue) -> String {
+    private func settingValue(
+        _ value: PortableSettingValue,
+        key: String
+    ) -> String {
         switch value {
         case .bool(let value):
             return L10n.string(value ? "common.yes" : "common.no")
@@ -995,6 +999,13 @@ struct SyncSettingsView: View {
                     .locale(appState.resolvedLocale)
             )
         case .string(let value):
+            if key == "ambiguityResolution",
+               let resolution = GestureAmbiguityResolution(rawValue: value)
+            {
+                return L10n.string(
+                    "general.ambiguityResolution.\(resolution.rawValue)"
+                )
+            }
             return value.isEmpty ? L10n.string("sync.value.empty") : value
         case .strings(let values):
             return values.isEmpty

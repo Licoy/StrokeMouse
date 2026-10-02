@@ -1831,7 +1831,8 @@ final class GestureRuntime {
     ) -> GestureRecognitionPolicy {
         GestureRecognitionPolicy(
             minimumPathLength: configuration.minimumStrokeDistance,
-            matchThreshold: configuration.pathMatchThreshold
+            matchThreshold: configuration.pathMatchThreshold,
+            ambiguityResolution: configuration.ambiguityResolution
         )
     }
 

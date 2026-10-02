@@ -2,7 +2,7 @@ import XCTest
 @testable import StrokeMouse
 
 final class GestureTestLogReplayTests: XCTestCase {
-    func testSchemaV6ExactlyReplaysMultiSampleAggregatedCandidate() throws {
+    func testSchemaV7ExactlyReplaysMultiSampleAggregatedCandidate() throws {
         let path = GestureRecognitionTestSupport.recordedNarrowPeak
         let profile = GestureProfile(
             name: "Multi",
@@ -29,7 +29,7 @@ final class GestureTestLogReplayTests: XCTestCase {
             from: JSONEncoder.gestureTestEncoder.encode(entry)
         )
 
-        XCTAssertEqual(decoded.schemaVersion, 6)
+        XCTAssertEqual(decoded.schemaVersion, 7)
         XCTAssertEqual(decoded.configurationRevision, 42)
         XCTAssertEqual(decoded.candidates.first?.sourceTemplatePaths?.count, 2)
         XCTAssertEqual(decoded.candidates.first?.winningTemplateIndex, 1)
@@ -46,6 +46,113 @@ final class GestureTestLogReplayTests: XCTestCase {
         XCTAssertFalse(report.hasMismatch)
     }
 
+    func testSchemaV7ExactlyReplaysBothAmbiguityResolutions() throws {
+        for resolution in [
+            GestureAmbiguityResolution.reject,
+            .chooseBest,
+        ] {
+            let entry = makeAmbiguousEntry(resolution: resolution)
+            let decoded = try JSONDecoder.gestureTestDecoder.decode(
+                GestureTestLogEntry.self,
+                from: JSONEncoder.gestureTestEncoder.encode(entry)
+            )
+
+            let report = GestureTestLogReplay.replay(decoded)
+
+            XCTAssertEqual(decoded.schemaVersion, 7)
+            XCTAssertEqual(decoded.policy?.ambiguityResolution, resolution)
+            XCTAssertEqual(report.fidelity, .exact)
+            XCTAssertEqual(report.decisionMatches, true)
+            XCTAssertEqual(report.winningProfileMatches, true)
+            XCTAssertFalse(report.hasMismatch)
+            XCTAssertEqual(
+                report.evaluation?.decision,
+                resolution == .reject ? .ambiguous : .accepted
+            )
+        }
+    }
+
+    func testSchemaV6WithoutAmbiguityResolutionReplaysAsReject() throws {
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: JSONEncoder.gestureTestEncoder.encode(
+                    makeAmbiguousEntry(resolution: .reject)
+                )
+            ) as? [String: Any]
+        )
+        object["schemaVersion"] = 6
+        var policy = try XCTUnwrap(object["policy"] as? [String: Any])
+        policy.removeValue(forKey: "ambiguityResolution")
+        object["policy"] = policy
+        let entry = try JSONDecoder.gestureTestDecoder.decode(
+            GestureTestLogEntry.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        let report = GestureTestLogReplay.replay(entry)
+
+        XCTAssertNil(entry.policy?.ambiguityResolution)
+        XCTAssertEqual(report.fidelity, .exact)
+        XCTAssertEqual(report.evaluation?.policy.ambiguityResolution, .reject)
+        XCTAssertEqual(report.evaluation?.decision, .ambiguous)
+        XCTAssertEqual(report.decisionMatches, true)
+        XCTAssertFalse(report.hasMismatch)
+    }
+
+    func testSchemaV7RecognitionRequiresAmbiguityResolution() throws {
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: JSONEncoder.gestureTestEncoder.encode(makeEntry())
+            ) as? [String: Any]
+        )
+        var policy = try XCTUnwrap(object["policy"] as? [String: Any])
+        policy.removeValue(forKey: "ambiguityResolution")
+        object["policy"] = policy
+        let entry = try JSONDecoder.gestureTestDecoder.decode(
+            GestureTestLogEntry.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertThrowsError(try GestureTestLogReplay.validate(entry)) {
+            XCTAssertEqual(
+                $0 as? GestureTestLogValidationError,
+                .invalidMetadata
+            )
+        }
+        XCTAssertEqual(
+            GestureTestLogReplay.replay(entry).fidelity,
+            .unavailable
+        )
+    }
+
+    func testSchemaV6AndV7RequireRuntimeMetadata() throws {
+        for schemaVersion in [6, 7] {
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(
+                    with: JSONEncoder.gestureTestEncoder.encode(makeEntry())
+                ) as? [String: Any]
+            )
+            object["schemaVersion"] = schemaVersion
+            object.removeValue(forKey: "source")
+            if schemaVersion == 6 {
+                var policy = try XCTUnwrap(object["policy"] as? [String: Any])
+                policy.removeValue(forKey: "ambiguityResolution")
+                object["policy"] = policy
+            }
+            let entry = try JSONDecoder.gestureTestDecoder.decode(
+                GestureTestLogEntry.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
+
+            XCTAssertThrowsError(try GestureTestLogReplay.validate(entry)) {
+                XCTAssertEqual(
+                    $0 as? GestureTestLogValidationError,
+                    .invalidMetadata
+                )
+            }
+        }
+    }
+
     func testAlgorithmVersionChangeUsesCurrentAlgorithmReevaluation() throws {
         let entry = makeEntry()
         let changed = try replacingJSONField(
@@ -60,26 +167,35 @@ final class GestureTestLogReplayTests: XCTestCase {
         XCTAssertNotNil(report.evaluation)
     }
 
-    func testMissingV6TemplatesIsUnavailableInsteadOfPretendingExact() throws {
-        let entry = makeEntry()
-        var object = try XCTUnwrap(
-            JSONSerialization.jsonObject(
-                with: JSONEncoder.gestureTestEncoder.encode(entry)
-            ) as? [String: Any]
-        )
-        var candidates = try XCTUnwrap(object["candidates"] as? [[String: Any]])
-        candidates[0].removeValue(forKey: "sourceTemplatePaths")
-        object["candidates"] = candidates
-        let decoded = try JSONDecoder.gestureTestDecoder.decode(
-            GestureTestLogEntry.self,
-            from: JSONSerialization.data(withJSONObject: object)
-        )
+    func testSchemaV6AndV7RequireCompleteSourceTemplates() throws {
+        for schemaVersion in [6, 7] {
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(
+                    with: JSONEncoder.gestureTestEncoder.encode(makeEntry())
+                ) as? [String: Any]
+            )
+            object["schemaVersion"] = schemaVersion
+            if schemaVersion == 6 {
+                var policy = try XCTUnwrap(object["policy"] as? [String: Any])
+                policy.removeValue(forKey: "ambiguityResolution")
+                object["policy"] = policy
+            }
+            var candidates = try XCTUnwrap(
+                object["candidates"] as? [[String: Any]]
+            )
+            candidates[0].removeValue(forKey: "sourceTemplatePaths")
+            object["candidates"] = candidates
+            let decoded = try JSONDecoder.gestureTestDecoder.decode(
+                GestureTestLogEntry.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
 
-        let report = GestureTestLogReplay.replay(decoded)
+            let report = GestureTestLogReplay.replay(decoded)
 
-        XCTAssertEqual(report.fidelity, .unavailable)
-        XCTAssertNil(report.evaluation)
-        XCTAssertNotNil(report.unavailableReason)
+            XCTAssertEqual(report.fidelity, .unavailable)
+            XCTAssertNil(report.evaluation)
+            XCTAssertNotNil(report.unavailableReason)
+        }
     }
 
     func testSchemaV5ExactSingleTemplateUsesCurrentAlgorithmReevaluation()
@@ -94,6 +210,9 @@ final class GestureTestLogReplayTests: XCTestCase {
         object.removeValue(forKey: "source")
         object.removeValue(forKey: "algorithmVersion")
         object.removeValue(forKey: "evaluationTier")
+        var policy = try XCTUnwrap(object["policy"] as? [String: Any])
+        policy.removeValue(forKey: "ambiguityResolution")
+        object["policy"] = policy
         var candidates = try XCTUnwrap(object["candidates"] as? [[String: Any]])
         candidates[0].removeValue(forKey: "sourceTemplatePaths")
         candidates[0].removeValue(forKey: "winningTemplateIndex")
@@ -246,6 +365,7 @@ final class GestureTestLogReplayTests: XCTestCase {
         XCTAssertEqual(decoded.source, .modifierRuntime)
         XCTAssertEqual(decoded.activation, .modifier(.option))
         XCTAssertEqual(decoded.outcome, .cancelled)
+        XCTAssertEqual(decoded.schemaVersion, 7)
         XCTAssertEqual(decoded.configurationRevision, 27)
         XCTAssertNil(decoded.decision)
         XCTAssertNil(decoded.policy)
@@ -268,6 +388,28 @@ final class GestureTestLogReplayTests: XCTestCase {
             path: path,
             profiles: [profile],
             policy: .standard(minimumPathLength: 0)
+        )
+        return GestureTestLogEntry(
+            sessionID: UUID(),
+            rawPath: path,
+            evaluation: evaluation
+        )
+    }
+
+    private func makeAmbiguousEntry(
+        resolution: GestureAmbiguityResolution
+    ) -> GestureTestLogEntry {
+        let path = PathTemplates.up.map(\.cgPoint)
+        let profiles = ["First", "Second"].map {
+            GestureProfile(name: $0, pattern: .freePath(PathTemplates.up))
+        }
+        let evaluation = GestureRecognitionEvaluator.evaluateDrawn(
+            path: path,
+            profiles: profiles,
+            policy: GestureRecognitionPolicy(
+                minimumPathLength: 0,
+                ambiguityResolution: resolution
+            )
         )
         return GestureTestLogEntry(
             sessionID: UUID(),

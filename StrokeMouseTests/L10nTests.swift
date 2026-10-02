@@ -70,6 +70,7 @@ final class L10nTests: XCTestCase {
             "gestureTest.decision.accepted",
             "gestureTest.matchMode.elasticPath",
             "gestureTest.policyMetrics",
+            "gestureTest.policyMetrics.chooseBest",
             "gestureTest.structure.segmentCount",
             "gestureTest.structure.segmentProportion",
             "gestureTest.structure.terminalOverrun",
@@ -89,6 +90,10 @@ final class L10nTests: XCTestCase {
             "editor.trackpadModifierHint",
             "general.matchThreshold",
             "general.matchThresholdHint",
+            "general.ambiguityResolution",
+            "general.ambiguityResolution.reject",
+            "general.ambiguityResolution.chooseBest",
+            "general.ambiguityResolutionHint",
         ]
         L10n.apply(.english)
         let english = keys.map(L10n.string)
@@ -98,6 +103,28 @@ final class L10nTests: XCTestCase {
         XCTAssertFalse(english.contains(where: \.isEmpty))
         XCTAssertFalse(chinese.contains(where: \.isEmpty))
         XCTAssertEqual(zip(english, chinese).filter { $0 == $1 }.count, 0)
+    }
+
+    func testAmbiguityResolutionStringsShipInEverySupportedLocale() {
+        let keys = [
+            "general.ambiguityResolution",
+            "general.ambiguityResolution.reject",
+            "general.ambiguityResolution.chooseBest",
+            "general.ambiguityResolutionHint",
+            "gestureTest.policyMetrics.chooseBest",
+        ]
+        for locale in LanguageOverride.explicitCatalogLocales {
+            L10n.apply(locale)
+            for key in keys {
+                let value = L10n.string(key)
+                XCTAssertFalse(value.isEmpty, "\(locale.rawValue) empty \(key)")
+                XCTAssertNotEqual(
+                    value,
+                    key,
+                    "\(locale.rawValue) unresolved \(key)"
+                )
+            }
+        }
     }
 
     func testIssue2StringsAreLocalized() {

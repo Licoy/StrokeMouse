@@ -64,6 +64,7 @@ struct GestureRuntimeConfiguration: Equatable, Sendable {
     var directTrackpadEnabled: Bool
     /// Compiled app policies and groups consulted on every session begin.
     var appRules: GestureAppRules = .empty
+    var ambiguityResolution: GestureAmbiguityResolution = .reject
 }
 
 enum GestureRuntimeConfigurationError: Error, Equatable, Sendable {

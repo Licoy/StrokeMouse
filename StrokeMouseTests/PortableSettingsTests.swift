@@ -18,12 +18,17 @@ final class PortableSettingsTests: XCTestCase {
 
         XCTAssertEqual(settings.minStrokeDistance, 75)
         XCTAssertEqual(settings.matchThreshold, 0.77)
+        XCTAssertEqual(
+            settings.ambiguityResolution,
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
         XCTAssertEqual(settings.appearance, AppearanceMode.dark.rawValue)
         XCTAssertEqual(settings.language, LanguageOverride.english.rawValue)
         XCTAssertEqual(
             Set(keys),
             Set([
-                "minStrokeDistance", "matchThreshold", "appearance",
+                "minStrokeDistance", "matchThreshold", "ambiguityResolution",
+                "appearance",
                 "menuBarIconStyle", "language", "pinnedGestureAppBundleIds",
                 "showGestureHUD", "includeGestureHUDInCaptures",
                 "directTrackpadEnabled", "hudLineColor", "hudLineWidth",
@@ -54,6 +59,10 @@ final class PortableSettingsTests: XCTestCase {
         let applied = PortableSettingsV1.capture(from: destination)
 
         XCTAssertEqual(applied, PortableSettingsV1.capture(from: source))
+        XCTAssertEqual(
+            destination.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.chooseBest.rawValue
+        )
         XCTAssertTrue(destination.bool(forKey: PreferenceKey.gesturesEnabled))
         XCTAssertFalse(destination.bool(
             forKey: PreferenceKey.automaticallyChecksForUpdates
@@ -111,6 +120,16 @@ final class PortableSettingsTests: XCTestCase {
             )
         }
 
+        settings.language = LanguageOverride.system.rawValue
+        settings.ambiguityResolution = "not-a-resolution"
+        XCTAssertThrowsError(try settings.validate()) { error in
+            XCTAssertEqual(
+                error as? PortableSettingsValidationError,
+                .invalidAmbiguityResolution("not-a-resolution")
+            )
+        }
+
+        settings.ambiguityResolution = GestureAmbiguityResolution.reject.rawValue
         for language in LanguageOverride.allCases {
             settings.language = language.rawValue
             XCTAssertNoThrow(
@@ -118,6 +137,81 @@ final class PortableSettingsTests: XCTestCase {
                 "rejected shipped language \(language.rawValue)"
             )
         }
+    }
+
+    func testLegacySettingsWithoutAmbiguityResolutionDecodeAndApplyReject()
+        throws
+    {
+        let source = makeDefaults()
+        let destination = makeDefaults()
+        defer {
+            clear(source)
+            clear(destination)
+        }
+        seedPortableValues(in: source)
+        let encoded = try JSONEncoder().encode(
+            PortableSettingsV1.capture(from: source)
+        )
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object.removeValue(forKey: "ambiguityResolution")
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+        let legacy = try JSONDecoder().decode(
+            PortableSettingsV1.self,
+            from: legacyData
+        )
+        XCTAssertNil(legacy.ambiguityResolution)
+
+        destination.set(
+            GestureAmbiguityResolution.chooseBest.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
+        try legacy.apply(to: destination)
+        XCTAssertEqual(
+            destination.string(forKey: PreferenceKey.ambiguityResolution),
+            GestureAmbiguityResolution.reject.rawValue
+        )
+
+    }
+
+    func testCaptureDefaultsMissingAmbiguityResolutionToReject() {
+        let defaults = makeDefaults()
+        defer { clear(defaults) }
+
+        XCTAssertEqual(
+            PortableSettingsV1.capture(from: defaults).ambiguityResolution,
+            GestureAmbiguityResolution.reject.rawValue
+        )
+    }
+
+    func testCapturePreservesInvalidAmbiguityResolutionForValidation() {
+        let defaults = makeDefaults()
+        let destination = makeDefaults()
+        defer { clear(defaults) }
+        defer { clear(destination) }
+        defaults.set(
+            "invalid-resolution",
+            forKey: PreferenceKey.ambiguityResolution
+        )
+        destination.set("sentinel", forKey: PreferenceKey.appearance)
+
+        let captured = PortableSettingsV1.capture(from: defaults)
+        XCTAssertEqual(captured.ambiguityResolution, "invalid-resolution")
+        XCTAssertThrowsError(try captured.apply(to: destination)) { error in
+            XCTAssertEqual(
+                error as? PortableSettingsValidationError,
+                .invalidAmbiguityResolution("invalid-resolution")
+            )
+        }
+        XCTAssertEqual(
+            destination.string(forKey: PreferenceKey.appearance),
+            "sentinel"
+        )
+        XCTAssertNil(destination.object(
+            forKey: PreferenceKey.ambiguityResolution
+        ))
     }
 
     private func makeDefaults() -> UserDefaults {
@@ -138,6 +232,10 @@ final class PortableSettingsTests: XCTestCase {
     private func seedPortableValues(in defaults: UserDefaults) {
         defaults.set(75.0, forKey: PreferenceKey.minStrokeDistance)
         defaults.set(0.77, forKey: PreferenceKey.matchThreshold)
+        defaults.set(
+            GestureAmbiguityResolution.chooseBest.rawValue,
+            forKey: PreferenceKey.ambiguityResolution
+        )
         defaults.set(AppearanceMode.dark.rawValue, forKey: PreferenceKey.appearance)
         defaults.set(
             MenuBarIconStyle.color.rawValue,

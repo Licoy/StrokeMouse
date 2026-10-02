@@ -82,6 +82,7 @@ enum PreferenceKey {
     static let triggerButton = "triggerButton"
     static let minStrokeDistance = "minStrokeDistance"
     static let matchThreshold = "matchThreshold"
+    static let ambiguityResolution = "ambiguityResolution"
     static let appearance = "appearanceMode"
     static let menuBarIconStyle = "menuBarIconStyle"
     static let language = "languageOverride"
