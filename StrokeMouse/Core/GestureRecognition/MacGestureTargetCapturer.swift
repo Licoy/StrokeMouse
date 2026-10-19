@@ -1,11 +1,28 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import OSLog
 
 final class MacGestureTargetCapturer: GestureTargetCapturing,
     GestureTargetIdentifying,
     @unchecked Sendable
 {
+    private enum PointerHit {
+        case accessibility(element: AXUIElement, processIdentifier: pid_t)
+        case window(GestureTargetWindowDescriptor)
+
+        var processIdentifier: pid_t {
+            switch self {
+            case .accessibility(_, let processIdentifier): processIdentifier
+            case .window(let descriptor): descriptor.processIdentifier
+            }
+        }
+    }
+
+    private static let logger = Logger(
+        subsystem: Constants.bundleID,
+        category: "GestureTargetCapture"
+    )
     private let system: any GestureTargetCaptureSystemClient
 
     init(system: (any GestureTargetCaptureSystemClient)? = nil) {
@@ -82,11 +99,8 @@ final class MacGestureTargetCapturer: GestureTargetCapturing,
                     window: nil
                 )
             case .windowUnderPointer:
-                let hit = try system.element(at: quartzLocation)
-                let processIdentifier = try system.processIdentifier(
-                    of: hit,
-                    operation: .getProcessIdentifier
-                )
+                let pointerHit = try pointerHit(at: quartzLocation)
+                let processIdentifier = pointerHit.processIdentifier
                 guard let application = system.runningApplication(
                     processIdentifier: processIdentifier
                 ) else {
@@ -135,23 +149,77 @@ final class MacGestureTargetCapturer: GestureTargetCapturing,
     }
 
     private func captureTargetUnderPointer(at location: CGPoint) throws -> GestureTargetContext {
-        let hit = try system.element(at: location)
-        let processIdentifier = try system.processIdentifier(
-            of: hit,
-            operation: .getProcessIdentifier
-        )
+        let pointerHit = try pointerHit(at: location)
+        let processIdentifier = pointerHit.processIdentifier
         guard let application = system.runningApplication(processIdentifier: processIdentifier) else {
             throw GestureTargetError.applicationUnavailable(processIdentifier)
         }
-        let window = try optionalContainingWindow(
-            of: hit,
-            expectedProcessIdentifier: processIdentifier
-        )
+        let window: AXUIElement?
+        switch pointerHit {
+        case .accessibility(let hit, _):
+            window = try optionalContainingWindow(
+                of: hit,
+                expectedProcessIdentifier: processIdentifier
+            )
+        case .window(let descriptor):
+            window = try matchingWindow(for: descriptor)
+        }
         return makeContext(
             policy: .windowUnderPointer,
             application: application,
             window: window
         )
+    }
+
+    private func pointerHit(at location: CGPoint) throws -> PointerHit {
+        do {
+            let hit = try system.element(at: location)
+            let processIdentifier = try system.processIdentifier(
+                of: hit,
+                operation: .getProcessIdentifier
+            )
+            return .accessibility(element: hit, processIdentifier: processIdentifier)
+        } catch GestureTargetError.axOperationFailed(let operation, let code)
+            where operation == .hitTest && code == .notImplemented
+        {
+            do {
+                let descriptor = try system.windowUnderPointer(at: location)
+                Self.logger.notice(
+                    "operation=hitTest code=\(code.rawValue) result=located pid=\(descriptor.processIdentifier) window=\(descriptor.windowNumber) layer=\(descriptor.layer)"
+                )
+                return .window(descriptor)
+            } catch {
+                Self.logger.error(
+                    "operation=hitTest code=\(code.rawValue) result=unavailable pid=0"
+                )
+                throw error
+            }
+        }
+    }
+
+    private func matchingWindow(
+        for descriptor: GestureTargetWindowDescriptor
+    ) throws -> AXUIElement {
+        let windows = try system.windows(processIdentifier: descriptor.processIdentifier)
+        var matches: [AXUIElement] = []
+        for window in windows {
+            try validatePID(of: window, expected: descriptor.processIdentifier)
+            try validateWindowRole(window)
+            if try system.frame(of: window).standardized == descriptor.bounds {
+                matches.append(window)
+            }
+        }
+        guard matches.count == 1, let match = matches.first else {
+            Self.logger.error(
+                "operation=hitTest code=\(AXError.notImplemented.rawValue) result=windowMatchCount-\(matches.count) pid=\(descriptor.processIdentifier) window=\(descriptor.windowNumber) layer=\(descriptor.layer)"
+            )
+            throw GestureTargetError.windowUnavailable
+        }
+        try system.validateWindow(descriptor)
+        Self.logger.notice(
+            "operation=hitTest code=\(AXError.notImplemented.rawValue) result=windowMatched pid=\(descriptor.processIdentifier) window=\(descriptor.windowNumber) layer=\(descriptor.layer)"
+        )
+        return match
     }
 
     private func makeContext(

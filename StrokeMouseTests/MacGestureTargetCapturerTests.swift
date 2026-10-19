@@ -21,8 +21,217 @@ final class MacGestureTargetCapturerTests: XCTestCase {
         XCTAssertEqual(context.processIdentifier, system.application.processIdentifier)
         XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.windowElement))
         XCTAssertEqual(system.attributeReads, [.copyContainingWindow, .copyRole])
+        XCTAssertTrue(system.pointerWindowLocations.isEmpty)
+        XCTAssertTrue(system.applicationWindowLookups.isEmpty)
         guard case .unavailable(.targetNotCaptured(.frontmostWindow)) = snapshot.frontmostWindow
         else { return XCTFail("Frontmost target should not be captured") }
+    }
+
+    func testHitTestNotImplementedUsesPointerWindowForIdentityWithoutReadingAXWindows() throws {
+        let system = try makeSystem()
+        let location = CGPoint(x: -480, y: 220)
+        system.hitTestError = GestureTargetError.axOperationFailed(
+            operation: .hitTest,
+            code: .notImplemented
+        )
+        system.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: system.application.processIdentifier,
+            bounds: CGRect(x: -700, y: 100, width: 640, height: 480)
+        )
+
+        let snapshot = MacGestureTargetCapturer(system: system).captureIdentity(
+            policies: [.windowUnderPointer],
+            at: location
+        )
+        let context = try snapshot.windowUnderPointer.requireContext()
+
+        XCTAssertEqual(context.bundleIdentifier, system.application.bundleIdentifier)
+        XCTAssertEqual(context.processIdentifier, system.application.processIdentifier)
+        XCTAssertNil(context.window)
+        XCTAssertEqual(system.hitTestLocations, [location])
+        XCTAssertEqual(system.pointerWindowLocations, [location])
+        XCTAssertTrue(system.applicationWindowLookups.isEmpty)
+    }
+
+    func testHitTestNotImplementedFreezesUniqueMatchingAXWindow() throws {
+        let system = try makeSystem()
+        let location = CGPoint(x: 250, y: 180)
+        let bounds = CGRect(x: 100, y: 80, width: 500, height: 360)
+        system.hitTestError = GestureTargetError.axOperationFailed(
+            operation: .hitTest,
+            code: .notImplemented
+        )
+        system.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: system.application.processIdentifier,
+            bounds: bounds
+        )
+        system.applicationWindows = [system.windowElement]
+        system.windowFrames = [bounds]
+
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer],
+            at: location
+        )
+        let context = try snapshot.windowUnderPointer.requireContext()
+
+        XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.windowElement))
+        XCTAssertEqual(system.pointerWindowLocations, [location])
+        XCTAssertEqual(system.applicationWindowLookups, [system.application.processIdentifier])
+        XCTAssertEqual(system.attributeReads, [.copyRole, .copyPosition, .copySize])
+        XCTAssertEqual(system.validatedWindows, [try XCTUnwrap(system.pointerWindow)])
+    }
+
+    func testHitTestFallbackRejectsDuplicateAXWindowGeometry() throws {
+        let system = try makeSystem()
+        let duplicate = AXUIElementCreateApplication(system.application.processIdentifier)
+        let bounds = CGRect(x: 100, y: 80, width: 500, height: 360)
+        system.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        system.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: system.application.processIdentifier,
+            bounds: bounds
+        )
+        system.applicationWindows = [system.windowElement, duplicate]
+        system.windowFrames = [bounds, bounds]
+
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: 200, y: 200)
+        )
+
+        guard case .unavailable(.windowUnavailable) = snapshot.windowUnderPointer
+        else { return XCTFail("Duplicate geometry must not choose an arbitrary AX window") }
+    }
+
+    func testHitTestFallbackReportsWindowUnavailableWhenWindowDisappears() throws {
+        let system = try makeSystem()
+        system.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        system.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: system.application.processIdentifier,
+            bounds: CGRect(x: 100, y: 80, width: 500, height: 360)
+        )
+
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: 200, y: 200)
+        )
+
+        guard case .unavailable(.windowUnavailable) = snapshot.windowUnderPointer
+        else { return XCTFail("A vanished window must remain unavailable") }
+    }
+
+    func testHitTestFallbackRequiresMatchingPIDAndWindowRole() throws {
+        let bounds = CGRect(x: 100, y: 80, width: 500, height: 360)
+        let wrongPIDSystem = try makeSystem()
+        wrongPIDSystem.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        wrongPIDSystem.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: wrongPIDSystem.application.processIdentifier,
+            bounds: bounds
+        )
+        wrongPIDSystem.applicationWindows = [wrongPIDSystem.windowElement]
+        wrongPIDSystem.windowFrames = [bounds]
+        wrongPIDSystem.windowProcessIdentifier = wrongPIDSystem.application.processIdentifier + 1
+
+        let wrongPID = MacGestureTargetCapturer(system: wrongPIDSystem).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: 200, y: 200)
+        )
+        guard case .unavailable(.processMismatch) = wrongPID.windowUnderPointer
+        else { return XCTFail("A mismatched AX window PID must fail") }
+
+        let wrongRoleSystem = try makeSystem()
+        wrongRoleSystem.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        wrongRoleSystem.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: wrongRoleSystem.application.processIdentifier,
+            bounds: bounds
+        )
+        wrongRoleSystem.applicationWindows = [wrongRoleSystem.windowElement]
+        wrongRoleSystem.windowFrames = [bounds]
+        wrongRoleSystem.role = "AXScrollArea"
+
+        let wrongRole = MacGestureTargetCapturer(system: wrongRoleSystem).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: 200, y: 200)
+        )
+        guard case .unavailable(.windowRoleMismatch) = wrongRole.windowUnderPointer
+        else { return XCTFail("A non-window AX role must fail") }
+    }
+
+    func testHitTestFallbackRequiresExactStandardizedGeometry() throws {
+        let bounds = CGRect(x: -640, y: -120, width: 500, height: 360)
+        let exact = try makeSystem()
+        exact.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        exact.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: exact.application.processIdentifier,
+            bounds: bounds
+        )
+        exact.applicationWindows = [exact.windowElement]
+        exact.windowFrames = [CGRect(x: -140, y: 240, width: -500, height: -360)]
+        let matched = MacGestureTargetCapturer(system: exact).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: -500, y: 0)
+        )
+        XCTAssertNotNil(try matched.windowUnderPointer.requireContext().window)
+
+        let shifted = try makeSystem()
+        shifted.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        shifted.pointerWindow = GestureTargetWindowDescriptor(
+            processIdentifier: shifted.application.processIdentifier,
+            bounds: bounds
+        )
+        shifted.applicationWindows = [shifted.windowElement]
+        shifted.windowFrames = [bounds.offsetBy(dx: 0.01, dy: 0)]
+        let rejected = MacGestureTargetCapturer(system: shifted).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: -500, y: 0)
+        )
+        guard case .unavailable(.windowUnavailable) = rejected.windowUnderPointer
+        else { return XCTFail("Any geometry difference must fail") }
+    }
+
+    func testHitTestFallbackRevalidatesCGWindowAfterMatchingAXWindow() throws {
+        let system = try makeSystem()
+        let descriptor = GestureTargetWindowDescriptor(
+            windowNumber: 42,
+            processIdentifier: system.application.processIdentifier,
+            bounds: CGRect(x: 100, y: 80, width: 500, height: 360)
+        )
+        system.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: .notImplemented)
+        system.pointerWindow = descriptor
+        system.applicationWindows = [system.windowElement]
+        system.windowFrames = [descriptor.bounds]
+        system.validationError = GestureTargetError.windowUnavailable
+
+        let snapshot = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer],
+            at: CGPoint(x: 200, y: 200)
+        )
+
+        guard case .unavailable(.windowUnavailable) = snapshot.windowUnderPointer
+        else { return XCTFail("A changed or vanished CG window must fail") }
+        XCTAssertEqual(system.validatedWindows, [descriptor])
+    }
+
+    func testOnlyHitTestNotImplementedUsesPointerWindowFallback() throws {
+        for errorCode in [AXError.cannotComplete, .apiDisabled] {
+            let system = try makeSystem()
+            system.hitTestError = GestureTargetError.axOperationFailed(operation: .hitTest, code: errorCode)
+            system.pointerWindow = GestureTargetWindowDescriptor(
+                processIdentifier: system.application.processIdentifier,
+                bounds: CGRect(x: 0, y: 0, width: 500, height: 360)
+            )
+
+            let snapshot = MacGestureTargetCapturer(system: system).capture(
+                policies: [.windowUnderPointer],
+                at: CGPoint(x: 200, y: 200)
+            )
+
+            guard case .unavailable(.axOperationFailed(.hitTest, let actualCode)) =
+                snapshot.windowUnderPointer
+            else { return XCTFail("Expected the original hit-test failure") }
+            XCTAssertEqual(actualCode, errorCode)
+            XCTAssertTrue(system.pointerWindowLocations.isEmpty)
+            XCTAssertTrue(system.applicationWindowLookups.isEmpty)
+        }
     }
 
     func testWindowElementFallbackIsAllowedOnlyForAXWindowRole() throws {
@@ -272,10 +481,18 @@ private final class RecordingGestureTargetCaptureSystemClient:
     let windowElement: AXUIElement
 
     var role = kAXWindowRole as String
+    var hitTestError: Error?
     var focusedWindowError: Error?
     var containingWindowError: Error?
+    var pointerWindow: GestureTargetWindowDescriptor?
+    var applicationWindows: [AXUIElement] = []
+    var windowFrames: [CGRect] = []
+    var validationError: Error?
     var windowProcessIdentifier: pid_t?
     private(set) var hitTestLocations: [CGPoint] = []
+    private(set) var pointerWindowLocations: [CGPoint] = []
+    private(set) var applicationWindowLookups: [pid_t] = []
+    private(set) var validatedWindows: [GestureTargetWindowDescriptor] = []
     private(set) var attributeReads: [GestureTargetAXOperation] = []
     private(set) var applicationLookups: [pid_t] = []
 
@@ -294,7 +511,33 @@ private final class RecordingGestureTargetCaptureSystemClient:
 
     func element(at quartzLocation: CGPoint) throws -> AXUIElement {
         hitTestLocations.append(quartzLocation)
+        if let hitTestError { throw hitTestError }
         return hitElement
+    }
+
+    func windowUnderPointer(at quartzLocation: CGPoint) throws -> GestureTargetWindowDescriptor {
+        pointerWindowLocations.append(quartzLocation)
+        guard let pointerWindow else { throw GestureTargetError.noElementAtPointer }
+        return pointerWindow
+    }
+
+    func validateWindow(_ descriptor: GestureTargetWindowDescriptor) throws {
+        validatedWindows.append(descriptor)
+        if let validationError { throw validationError }
+    }
+
+    func windows(processIdentifier: pid_t) throws -> [AXUIElement] {
+        applicationWindowLookups.append(processIdentifier)
+        return applicationWindows
+    }
+
+    func frame(of window: AXUIElement) throws -> CGRect {
+        guard let index = applicationWindows.firstIndex(where: { CFEqual($0, window) }),
+              windowFrames.indices.contains(index)
+        else { throw GestureTargetError.windowUnavailable }
+        attributeReads.append(.copyPosition)
+        attributeReads.append(.copySize)
+        return windowFrames[index]
     }
 
     func copyElement(

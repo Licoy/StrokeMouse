@@ -29,6 +29,21 @@ enum GestureTargetAXAccessor {
         return value as! String
     }
 
+    static func copyElements(
+        from element: AXUIElement,
+        attribute: GestureTargetAXAttribute
+    ) throws -> [AXUIElement] {
+        let value = try copyValue(from: element, attribute: attribute)
+        guard CFGetTypeID(value) == CFArrayGetTypeID() else {
+            throw GestureTargetError.unexpectedAXValue(operation: attribute.operation)
+        }
+        let values = value as! [CFTypeRef]
+        guard values.allSatisfy({ CFGetTypeID($0) == AXUIElementGetTypeID() }) else {
+            throw GestureTargetError.unexpectedAXValue(operation: attribute.operation)
+        }
+        return values.map { $0 as! AXUIElement }
+    }
+
     static func copyPoint(
         from element: AXUIElement,
         attribute: GestureTargetAXAttribute

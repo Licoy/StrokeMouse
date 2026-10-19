@@ -51,6 +51,7 @@ enum GestureTargetAXOperation: String, Equatable, Sendable {
     case hitTest
     case copyContainingWindow
     case copyFocusedWindow
+    case copyWindows
     case copyRole
     case getProcessIdentifier
     case validateWindow
