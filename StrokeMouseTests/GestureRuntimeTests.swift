@@ -1366,6 +1366,11 @@ final class GestureRuntimeTests: XCTestCase {
             (.reject, .chooseBest),
             (.chooseBest, .reject),
         ]
+        let screen = try XCTUnwrap(NSScreen.screens.first)
+        let sampledPoint = GestureRuntime.appKitLocation(
+            fromQuartz: CGPoint(x: 20, y: 200),
+            zeroScreenMaxY: screen.frame.maxY
+        )
 
         for activation in activations {
             for (initial, replacement) in transitions {
@@ -1373,12 +1378,19 @@ final class GestureRuntimeTests: XCTestCase {
                 let modifier = RuntimeModifierEventSource()
                 let platform = RuntimeActionPlatform()
                 let capturer = MutableRuntimeTargetCapturer(processIdentifier: 101)
+                let firstSample = expectation(description: "First draw sampled")
+                var pendingSample: XCTestExpectation? = firstSample
                 let runtime = GestureRuntime(
                     permissionManager: RuntimePermissionProvider(trusted: true),
                     actionExecutor: ActionExecutor(targetPlatform: platform),
                     targetCapturer: capturer,
                     mouseEventTap: mouse,
                     modifierEventTap: modifier,
+                    pointerLocation: {
+                        pendingSample?.fulfill()
+                        pendingSample = nil
+                        return sampledPoint
+                    },
                     multitouchSourceFactory: { RuntimeMultitouchSource() }
                 )
                 let earlier = drawnShortcutProfile(
@@ -1401,7 +1413,8 @@ final class GestureRuntimeTests: XCTestCase {
                 ))
 
                 beginDraw(activation, mouse: mouse, modifier: modifier)
-                await drainMainActor()
+                await fulfillment(of: [firstSample], timeout: 1)
+                XCTAssertEqual(runtime.currentPath.last, sampledPoint)
                 capturer.processIdentifier = 202
                 try runtime.apply(configuration(
                     revision: 2,
@@ -1420,8 +1433,11 @@ final class GestureRuntimeTests: XCTestCase {
                     XCTAssertTrue(platform.shortcutProcessIdentifiers.isEmpty)
                 }
 
+                let secondSample = expectation(description: "Second draw sampled")
+                pendingSample = secondSample
                 beginDraw(activation, mouse: mouse, modifier: modifier)
-                await drainMainActor()
+                await fulfillment(of: [secondSample], timeout: 1)
+                XCTAssertEqual(runtime.currentPath.last, sampledPoint)
                 endDraw(activation, mouse: mouse, modifier: modifier)
                 await drainMainActor()
 
@@ -1441,11 +1457,23 @@ final class GestureRuntimeTests: XCTestCase {
     {
         let mouse = RuntimeMouseEventSource()
         let platform = RuntimeActionPlatform()
+        let screen = try XCTUnwrap(NSScreen.screens.first)
+        let sampledPoint = GestureRuntime.appKitLocation(
+            fromQuartz: CGPoint(x: 20, y: 200),
+            zeroScreenMaxY: screen.frame.maxY
+        )
+        let sampled = expectation(description: "Diagnostic draw sampled")
+        var pendingSample: XCTestExpectation? = sampled
         let runtime = GestureRuntime(
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            pointerLocation: {
+                pendingSample?.fulfill()
+                pendingSample = nil
+                return sampledPoint
+            },
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         let profiles = [
@@ -1470,7 +1498,8 @@ final class GestureRuntimeTests: XCTestCase {
         defer { diagnostic.end() }
 
         XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
-        await drainMainActor()
+        await fulfillment(of: [sampled], timeout: 1)
+        XCTAssertEqual(runtime.currentPath.last, sampledPoint)
         mouse.release(.right, at: CGPoint(x: 20, y: 100))
         await drainMainActor()
 

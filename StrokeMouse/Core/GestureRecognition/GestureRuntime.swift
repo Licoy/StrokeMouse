@@ -165,6 +165,7 @@ final class GestureRuntime {
     private let permissionManager: any GesturePermissionProviding
     private let actionExecutor: ActionExecutor
     private let targetCapturer: any GestureTargetCapturing
+    private let pointerLocation: () -> CGPoint
     private let multitouchSourceFactory: () -> any MultitouchFrameSource
     private let inputCoreQueue: DispatchQueue
     private let sessionGate = GestureSessionGate()
@@ -205,6 +206,7 @@ final class GestureRuntime {
         mouseEventTap: any MouseGestureEventSource = MouseEventTap(),
         modifierEventTap: any ModifierGestureEventSource = ModifierEventTap(),
         doubleClickInterval: TimeInterval = NSEvent.doubleClickInterval,
+        pointerLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
         multitouchSourceFactory: @escaping () -> any MultitouchFrameSource
     ) {
         let resolvedTargetCapturer =
@@ -215,6 +217,7 @@ final class GestureRuntime {
         self.permissionManager = permissionManager
         self.actionExecutor = actionExecutor
         self.targetCapturer = resolvedTargetCapturer
+        self.pointerLocation = pointerLocation
         self.mouseEventTap = mouseEventTap
         self.modifierEventTap = modifierEventTap
         self.multitouchSourceFactory = multitouchSourceFactory
@@ -1291,7 +1294,8 @@ final class GestureRuntime {
         let timer = Timer(timeInterval: 1 / 120, repeats: true) {
             [weak self] _ in
             Task { @MainActor in
-                self?.appendDrawSample(NSEvent.mouseLocation)
+                guard let self else { return }
+                self.appendDrawSample(self.pointerLocation())
             }
         }
         RunLoop.main.add(timer, forMode: .common)
