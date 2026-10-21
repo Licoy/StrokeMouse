@@ -516,6 +516,42 @@ final class ConfigStoreTests: XCTestCase {
         )
     }
 
+    func testMouseButtonInputUsesItsOwnTypeTag() throws {
+        let input = GestureInput.mouseButton(
+            MouseButtonGesture(button: .sideForward)
+        )
+        let data = try JSONEncoder().encode(input)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        let value = try XCTUnwrap(object["value"] as? [String: Any])
+
+        XCTAssertEqual(object["type"] as? String, "mouseButton")
+        XCTAssertEqual(value["button"] as? String, "sideForward")
+        XCTAssertNil(value["modifier"])
+        XCTAssertEqual(
+            try JSONDecoder().decode(GestureInput.self, from: data),
+            input
+        )
+    }
+
+    func testMouseButtonModifierRoundTrips() throws {
+        let input = GestureInput.mouseButton(
+            MouseButtonGesture(button: .sideBack, modifier: .command)
+        )
+        let data = try JSONEncoder().encode(input)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+        let value = try XCTUnwrap(object["value"] as? [String: Any])
+
+        XCTAssertEqual(value["modifier"] as? String, "command")
+        XCTAssertEqual(
+            try JSONDecoder().decode(GestureInput.self, from: data),
+            input
+        )
+    }
+
     func testFutureVersionIsRejectedWithoutRewritingFile() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)

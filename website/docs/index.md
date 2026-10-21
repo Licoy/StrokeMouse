@@ -57,7 +57,7 @@ description: "StrokeMouse 是 macOS 鼠标与触控板手势自定义工具。�
   :items="[
     { icon: 'sparkles', title: '自由轨迹匹配', desc: '归一化、有限旋转与转折结构门控，拒绝胡乱近邻匹配。', size: 'large', image: '/screenshots/5.png', imageAlt: '录制轨迹' },
     { icon: 'menu', title: '菜单栏常驻', desc: '启停手势、打开设置；图标随暂停或缺权限变色。' },
-    { icon: 'mouse', title: '鼠标绘制', desc: '右键、中键或侧键触发；只监听已启用配置用到的按钮。' },
+    { icon: 'mouse', title: '鼠标绘制', desc: '右键、中键或侧键触发；侧键与中键也可单击直接执行动作，只监听已启用配置用到的按钮。' },
     { icon: 'sparkles', title: '触控板绘制', desc: '按住一个 Fn、Control、Option、Shift 或 Command，移动指针绘制轨迹；可复用鼠标绘制规则。' },
     { icon: 'zap', title: '实验性触控手势', desc: '40 类多指轻点、点按、滑动、捏合、张开与旋转；系统手势可能同时发生。' },
     { icon: 'mouse', title: '滚动增强', desc: '鼠标滚轮与触控板分轴反向，普通滚轮可平滑；不进手势备份。', href: '/guide/settings#scroll-enhancement' },

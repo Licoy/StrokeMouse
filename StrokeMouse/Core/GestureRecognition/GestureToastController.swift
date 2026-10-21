@@ -29,6 +29,14 @@ final class GestureToastController {
         present(text: text, isSuccess: false)
     }
 
+    /// The click was swallowed and ran nothing, so this always surfaces.
+    func showButtonMappingConflict() {
+        present(
+            text: L10n.string("toast.buttonMappingConflict"),
+            isSuccess: false
+        )
+    }
+
     func showNoMatch() {
         guard DrawingStyle.showMissToast else { return }
         present(text: L10n.string("toast.noMatch"), isSuccess: false)

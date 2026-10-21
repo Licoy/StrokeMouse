@@ -109,7 +109,7 @@ final class MouseEventTapTests: XCTestCase {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
         var offeredLocation: CGPoint?
-        tap.shouldCapture = { _, location in
+        tap.shouldCapture = { _, location, _ in
             offeredLocation = location
             return .passThrough
         }
@@ -243,7 +243,7 @@ final class MouseEventTapTests: XCTestCase {
     func testChordCapableCaptureSwallowsPairedLeftClick() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        tap.shouldCapture = { _, _, _ in .capture(acceptsChordClick: true) }
         var observed: [String] = []
         tap.onEvent = { event, _ in observed.append(Self.describe(event)) }
 
@@ -263,7 +263,7 @@ final class MouseEventTapTests: XCTestCase {
     func testChordLeftUpAfterTriggerReleaseIsStillSwallowed() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        tap.shouldCapture = { _, _, _ in .capture(acceptsChordClick: true) }
         let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
         let rightUp = try makeMouseEvent(type: .rightMouseUp, button: .right)
         let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
@@ -283,7 +283,7 @@ final class MouseEventTapTests: XCTestCase {
     func testLeftClickPassesThroughWhenSessionDeclinesChords() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: false) }
+        tap.shouldCapture = { _, _, _ in .capture(acceptsChordClick: false) }
         var observed: [String] = []
         tap.onEvent = { event, _ in observed.append(Self.describe(event)) }
         let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
@@ -302,7 +302,7 @@ final class MouseEventTapTests: XCTestCase {
     func testLeftPressHeldBeforeTriggerKeepsItsUp() throws {
         let tap = MouseEventTap()
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        tap.shouldCapture = { _, _, _ in .capture(acceptsChordClick: true) }
         var observed: [String] = []
         tap.onEvent = { event, _ in observed.append(Self.describe(event)) }
         let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
@@ -322,7 +322,7 @@ final class MouseEventTapTests: XCTestCase {
     func testInterruptedChordStillOwesItsLeftUp() throws {
         let tap = MouseEventTap(buttonStateProvider: { _ in false })
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        tap.shouldCapture = { _, _, _ in .capture(acceptsChordClick: true) }
         let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
         let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
         let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
@@ -337,7 +337,7 @@ final class MouseEventTapTests: XCTestCase {
     func testFreshLeftPressClearsChordUpLostWhileDisabled() throws {
         let tap = MouseEventTap(buttonStateProvider: { _ in false })
         tap.watchedButtons = [.right]
-        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        tap.shouldCapture = { _, _, _ in .capture(acceptsChordClick: true) }
         let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
         let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
         let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)

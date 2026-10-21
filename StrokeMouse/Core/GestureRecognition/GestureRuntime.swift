@@ -80,24 +80,29 @@ private final class DrawCallbackGeneration: @unchecked Sendable {
 /// Hands the target captured while deciding whether to swallow a mouse down
 /// to the down edge that follows on the same tap thread, so AX runs once.
 private final class PendingMouseCapture: @unchecked Sendable {
+    struct Capture {
+        let snapshot: GestureTargetSnapshot
+        let heldModifiers: Set<GestureModifierKey>
+    }
+
     private let lock = NSLock()
     private var admissionID: UInt64?
-    private var snapshot: GestureTargetSnapshot?
+    private var capture: Capture?
 
-    func store(_ snapshot: GestureTargetSnapshot, for admissionID: UInt64) {
+    func store(_ capture: Capture, for admissionID: UInt64) {
         lock.withLock {
             self.admissionID = admissionID
-            self.snapshot = snapshot
+            self.capture = capture
         }
     }
 
-    func take(for admissionID: UInt64) -> GestureTargetSnapshot? {
+    func take(for admissionID: UInt64) -> Capture? {
         lock.withLock {
             defer {
                 self.admissionID = nil
-                snapshot = nil
+                capture = nil
             }
-            return self.admissionID == admissionID ? snapshot : nil
+            return self.admissionID == admissionID ? capture : nil
         }
     }
 }
@@ -123,6 +128,9 @@ final class GestureRuntime {
         let recognitionPolicy: GestureRecognitionPolicy
         let showsHUD: Bool
         let showsLiveMismatchFeedback: Bool
+        /// False when only button mappings can answer this press: the click
+        /// runs the mapping however far the pointer moved.
+        let tracksPath: Bool
         var mode: SessionMode
         var path: [CGPoint]
         var isDrawing: Bool
@@ -248,7 +256,8 @@ final class GestureRuntime {
         // The target is resolved before the down edge is swallowed: when the
         // target application has no candidate for this button, the physical
         // down/up pair reaches it untouched (native drag / hold semantics).
-        mouseEventTap.shouldCapture = { [weak sessionGate] button, location in
+        mouseEventTap.shouldCapture = {
+            [weak sessionGate] button, location, flags in
             guard let callbackToken = drawCallbacks.token else {
                 return .passThrough
             }
@@ -259,20 +268,26 @@ final class GestureRuntime {
                 else {
                     return .passThrough
                 }
+                let heldModifiers = ModifierEventTap.supportedKeys(in: flags)
                 let snapshot = Self.captureTargetSnapshot(
                     for: admission,
                     at: location,
+                    heldModifiers: heldModifiers,
                     using: resolvedTargetCapturer
                 )
                 let targeted = Self.targetedCandidates(
                     for: admission,
-                    snapshot: snapshot
+                    snapshot: snapshot,
+                    heldModifiers: heldModifiers
                 )
                 guard admission.context.isDiagnostic || !targeted.isEmpty else {
                     sessionGate.release(admission)
                     return .passThrough
                 }
-                pendingMouseCapture.store(snapshot, for: admission.id)
+                pendingMouseCapture.store(
+                    .init(snapshot: snapshot, heldModifiers: heldModifiers),
+                    for: admission.id
+                )
                 // Left clicks stay with the app unless a reachable gesture
                 // can turn them into its secondary action.
                 return .capture(
@@ -298,18 +313,21 @@ final class GestureRuntime {
                     return
                 }
                 let admission: GestureInputAdmission?
-                let snapshot: GestureTargetSnapshot?
+                let capture: PendingMouseCapture.Capture?
                 switch event {
                 case .buttonDown(let button, let location):
                     admission = sessionGate?.admission(
                         for: .mouse(button)
                     )
-                    snapshot = admission.map {
+                    capture = admission.map {
                         pendingMouseCapture.take(for: $0.id)
-                            ?? Self.captureTargetSnapshot(
-                                for: $0,
-                                at: location,
-                                using: resolvedTargetCapturer
+                            ?? .init(
+                                snapshot: Self.captureTargetSnapshot(
+                                    for: $0,
+                                    at: location,
+                                    using: resolvedTargetCapturer
+                                ),
+                                heldModifiers: []
                             )
                     }
                 case .buttonUp(let button, _):
@@ -319,25 +337,26 @@ final class GestureRuntime {
                         sessionGate?.release(completed)
                     }
                     admission = nil
-                    snapshot = nil
+                    capture = nil
                 case .chordClick:
                     admission = nil
-                    snapshot = nil
+                    capture = nil
                 case .interrupted(let button, _):
                     _ = sessionGate?.interrupt(.mouse(button))
                     admission = nil
-                    snapshot = nil
+                    capture = nil
                 case .drained(let button):
                     _ = sessionGate?.completeDrain(.mouse(button))
                     admission = nil
-                    snapshot = nil
+                    capture = nil
                 }
                 DispatchQueue.main.async { [weak self] in
                     MainActor.assumeIsolated {
                         self?.handleMouseEvent(
                             event,
                             admission: admission,
-                            snapshot: snapshot
+                            snapshot: capture?.snapshot,
+                            heldModifiers: capture?.heldModifiers ?? []
                         )
                     }
                 }
@@ -774,6 +793,10 @@ final class GestureRuntime {
                 case .click: directClicks = true
                 case .swipe, .pinch, .rotate: break
                 }
+            case .mouseButton(let gesture):
+                if MouseButtonGesture.supportedButtons.contains(gesture.button) {
+                    buttons.insert(gesture.button)
+                }
             }
         }
         let isDiagnosing = !diagnosticTokens.isEmpty
@@ -1082,7 +1105,8 @@ final class GestureRuntime {
     private func handleMouseEvent(
         _ event: MouseEventTap.EventKind,
         admission: GestureInputAdmission?,
-        snapshot: GestureTargetSnapshot?
+        snapshot: GestureTargetSnapshot?,
+        heldModifiers: Set<GestureModifierKey>
     ) {
         switch event {
         case .buttonDown(let button, let quartzLocation):
@@ -1092,7 +1116,8 @@ final class GestureRuntime {
                 quartzLocation: quartzLocation,
                 clickQuartzLocation: quartzLocation,
                 admission: admission,
-                snapshot: snapshot
+                snapshot: snapshot,
+                heldModifiers: heldModifiers
             )
         case .buttonUp(let button, let quartzLocation):
             finishDraw(
@@ -1127,7 +1152,8 @@ final class GestureRuntime {
                 quartzLocation: quartzLocation,
                 clickQuartzLocation: nil,
                 admission: admission,
-                snapshot: snapshot
+                snapshot: snapshot,
+                heldModifiers: []
             )
         case .ended(let key):
             finishDraw(
@@ -1158,7 +1184,8 @@ final class GestureRuntime {
         quartzLocation: CGPoint,
         clickQuartzLocation: CGPoint?,
         admission: GestureInputAdmission,
-        snapshot: GestureTargetSnapshot?
+        snapshot: GestureTargetSnapshot?,
+        heldModifiers: Set<GestureModifierKey>
     ) {
         guard admission.source == source,
               sessionGate.isValid(admission),
@@ -1170,7 +1197,8 @@ final class GestureRuntime {
         let frozenConfiguration = admission.context.configuration
         let targeted = Self.targetedCandidates(
             for: admission,
-            snapshot: snapshot
+            snapshot: snapshot,
+            heldModifiers: heldModifiers
         )
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
         let mode: SessionMode = admission.context.isDiagnostic
@@ -1180,6 +1208,10 @@ final class GestureRuntime {
             : .normal
         if mode == .diagnostic {
             lastDrawDiagnostic = nil
+        }
+        let tracksPath = mode == .diagnostic || targeted.contains {
+            if case .drawn = $0.profile.input { return true }
+            return false
         }
         let preparedTemplates = targeted.flatMap { item -> [TemplateMatcher.PreparedPath] in
             guard case .drawn(let drawn) = item.profile.input else { return [] }
@@ -1204,6 +1236,7 @@ final class GestureRuntime {
             showsLiveMismatchFeedback: frozenConfiguration.showsLiveMismatchFeedback
                 && frozenConfiguration.showsHUD
                 && mode == .normal,
+            tracksPath: tracksPath,
             mode: mode,
             path: [point],
             isDrawing: false,
@@ -1216,7 +1249,9 @@ final class GestureRuntime {
             configurationRevision: frozenConfiguration.revision,
             candidateCount: targeted.count
         )
-        startSampling()
+        if tracksPath {
+            startSampling()
+        }
     }
 
     private func appendDrawSample(_ point: CGPoint) {
@@ -1298,7 +1333,9 @@ final class GestureRuntime {
             reconcileChannels()
             return
         }
-        appendDrawSample(Self.appKitLocation(fromQuartz: quartzLocation))
+        if session.tracksPath {
+            appendDrawSample(Self.appKitLocation(fromQuartz: quartzLocation))
+        }
         let finished = drawSession ?? session
         stopSampling()
         drawSession = nil
@@ -1324,6 +1361,8 @@ final class GestureRuntime {
             // A chord is deliberate gesture input: replaying the trigger
             // click would open a context menu the user never asked for.
             state.lastOutcome = .cancelled
+        } else if performButtonMapping(for: finished) {
+            // The click became the mapped action instead of a native click.
         } else if case .mouse(let button) = source,
                   let clickLocation = finished.clickQuartzLocation,
                   !mouseEventTap.replayClick(
@@ -1333,6 +1372,50 @@ final class GestureRuntime {
         {
             lastError = "Failed to replay mouse click"
             state.lastOutcome = .actionFailed(lastError ?? "")
+        }
+    }
+
+    /// Runs the button mapping for a press that never became a stroke. Only
+    /// the most specific scope tier competes; several mappings there are a
+    /// conflict and run nothing. Returns false when no mapping applies.
+    private func performButtonMapping(for session: DrawSession) -> Bool {
+        let mappings = Self.preferredButtonMappings(session.targeted)
+        switch mappings.count {
+        case 0:
+            return false
+        case 1:
+            perform(
+                mappings[0],
+                action: mappings[0].profile.action,
+                announcesMatch: false,
+                score: nil,
+                mode: session.mode,
+                source: session.source
+            )
+        default:
+            recordOutcome(
+                .conflict(mappings.map(\.profile.id)),
+                source: session.source
+            )
+            if session.mode.showsToast {
+                GestureToastController.shared.showButtonMappingConflict()
+            }
+        }
+        return true
+    }
+
+    nonisolated private static func preferredButtonMappings(
+        _ targeted: [TargetedGesture]
+    ) -> [TargetedGesture] {
+        let mappings = targeted.filter {
+            if case .mouseButton = $0.profile.input { return true }
+            return false
+        }
+        let preferredTier = mappings.map {
+            GestureScopeTier($0.profile.scope)
+        }.min()
+        return mappings.filter {
+            GestureScopeTier($0.profile.scope) == preferredTier
         }
     }
 
@@ -1423,17 +1506,27 @@ final class GestureRuntime {
 
     /// Candidates for the admission's source after app scope, app groups and
     /// per-application global suppression are applied to the frozen target.
+    /// `heldModifiers` are the modifiers down with a mouse press; only button
+    /// mappings consult them.
     nonisolated private static func targetedCandidates(
         for admission: GestureInputAdmission,
-        snapshot: GestureTargetSnapshot
+        snapshot: GestureTargetSnapshot,
+        heldModifiers: Set<GestureModifierKey> = []
     ) -> [TargetedGesture] {
         let configuration = admission.context.configuration
         let profiles = configuration.profiles.filter { profile in
-            profile.isEnabled
-                && GestureInputMatcher.matches(
-                    source: admission.source,
-                    input: profile.input
-                )
+            guard profile.isEnabled,
+                  GestureInputMatcher.matches(
+                      source: admission.source,
+                      input: profile.input
+                  )
+            else {
+                return false
+            }
+            guard case .mouseButton(let gesture) = profile.input else {
+                return true
+            }
+            return gesture.accepts(heldModifiers: heldModifiers)
         }
         return GestureCandidateSelector.prepare(
             profiles: profiles,
@@ -1447,10 +1540,15 @@ final class GestureRuntime {
     /// target application can match at least one gesture.
     nonisolated private static func hasCandidates(
         _ admission: GestureInputAdmission,
-        snapshot: GestureTargetSnapshot
+        snapshot: GestureTargetSnapshot,
+        heldModifiers: Set<GestureModifierKey> = []
     ) -> Bool {
         admission.context.isDiagnostic
-            || !targetedCandidates(for: admission, snapshot: snapshot).isEmpty
+            || !targetedCandidates(
+                for: admission,
+                snapshot: snapshot,
+                heldModifiers: heldModifiers
+            ).isEmpty
     }
 
     /// Finger counts whose press this target turns into a click gesture.
@@ -1478,6 +1576,7 @@ final class GestureRuntime {
     nonisolated private static func captureTargetSnapshot(
         for admission: GestureInputAdmission,
         at quartzLocation: CGPoint,
+        heldModifiers: Set<GestureModifierKey> = [],
         using capturer: any GestureTargetCapturing
     ) -> GestureTargetSnapshot {
         let profiles = admission.context.configuration.profiles.filter {
@@ -1495,7 +1594,11 @@ final class GestureRuntime {
                 at: quartzLocation
             )
             // No candidate: keep the physical event, and do not copy an AX window.
-            guard Self.hasCandidates(admission, snapshot: identity) else {
+            guard Self.hasCandidates(
+                admission,
+                snapshot: identity,
+                heldModifiers: heldModifiers
+            ) else {
                 return identity
             }
         }
@@ -2163,6 +2266,8 @@ final class GestureRuntime {
         _ targeted: TargetedGesture,
         action: GestureAction,
         usesSecondaryAction: Bool = false,
+        /// Button mappings fire on every click, so their success stays quiet.
+        announcesMatch: Bool = true,
         score: Double?,
         mode: SessionMode,
         source: GestureInputSource
@@ -2182,7 +2287,7 @@ final class GestureRuntime {
             source: source
         )
         onMatch?(result)
-        if mode.showsToast {
+        if mode.showsToast, announcesMatch {
             GestureToastController.shared.showMatched(
                 name: targeted.profile.name,
                 score: score ?? 1,

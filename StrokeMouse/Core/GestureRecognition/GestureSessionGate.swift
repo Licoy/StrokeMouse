@@ -17,6 +17,9 @@ enum GestureInputMatcher {
                 return false
             }
             return button == trigger.button
+        case (.mouse(let button), .mouseButton(let gesture)):
+            return button == gesture.button
+                && MouseButtonGesture.supportedButtons.contains(button)
         case (.modifier(let key), .drawn(let drawn)):
             switch drawn.activation {
             case .modifier(let configured):

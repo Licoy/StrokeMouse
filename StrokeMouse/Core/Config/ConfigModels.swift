@@ -375,9 +375,31 @@ enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
     }
 }
 
+/// A single click of a mouse button runs the action; nothing is drawn.
+struct MouseButtonGesture: Codable, Equatable, Hashable, Sendable {
+    /// Right is excluded: mapping it would swallow every context menu.
+    static let supportedButtons: [MouseTriggerButton] = [
+        .sideBack, .sideForward, .middle,
+    ]
+
+    var button: MouseTriggerButton
+    /// Held with the button; nil maps the plain click. Matching is exact.
+    var modifier: GestureModifierKey?
+
+    init(button: MouseTriggerButton, modifier: GestureModifierKey? = nil) {
+        self.button = button
+        self.modifier = modifier
+    }
+
+    func accepts(heldModifiers: Set<GestureModifierKey>) -> Bool {
+        heldModifiers == (modifier.map { [$0] } ?? [])
+    }
+}
+
 enum GestureInput: Codable, Equatable, Sendable {
     case drawn(DrawnGesture)
     case trackpad(DirectTrackpadGesture)
+    case mouseButton(MouseButtonGesture)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -387,6 +409,7 @@ enum GestureInput: Codable, Equatable, Sendable {
     private enum Kind: String, Codable {
         case drawn
         case trackpad
+        case mouseButton
     }
 
     init(from decoder: Decoder) throws {
@@ -396,6 +419,10 @@ enum GestureInput: Codable, Equatable, Sendable {
             self = .drawn(try container.decode(DrawnGesture.self, forKey: .value))
         case .trackpad:
             self = .trackpad(try container.decode(DirectTrackpadGesture.self, forKey: .value))
+        case .mouseButton:
+            self = .mouseButton(
+                try container.decode(MouseButtonGesture.self, forKey: .value)
+            )
         }
     }
 
@@ -407,6 +434,9 @@ enum GestureInput: Codable, Equatable, Sendable {
             try container.encode(gesture, forKey: .value)
         case .trackpad(let gesture):
             try container.encode(Kind.trackpad, forKey: .type)
+            try container.encode(gesture, forKey: .value)
+        case .mouseButton(let gesture):
+            try container.encode(Kind.mouseButton, forKey: .type)
             try container.encode(gesture, forKey: .value)
         }
     }
@@ -788,6 +818,8 @@ enum AppScope: Codable, Equatable, Sendable {
 /// trackpad drawing when the modifier started the session.
 enum GestureInputKind: String, Codable, CaseIterable, Hashable, Identifiable, Sendable {
     case mouseDrawing
+    /// Button mappings arrive through the mouse source but are their own family.
+    case mouseButton
     case trackpadDrawing
     case touchGesture
 

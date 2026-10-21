@@ -5,6 +5,7 @@ import Foundation
 enum GestureInputCategory: String, CaseIterable, Identifiable {
     case all
     case drawn
+    case mouseButton
     case trackpad
 
     var id: String { rawValue }
@@ -16,6 +17,7 @@ extension GestureInput {
         switch self {
         case .drawn: return .drawn
         case .trackpad: return .trackpad
+        case .mouseButton: return .mouseButton
         }
     }
 
@@ -48,6 +50,20 @@ extension GestureInput {
             }
         case .trackpad(let gesture):
             return gesture.displaySummary
+        case .mouseButton(let gesture):
+            if let key = gesture.modifier {
+                return String(
+                    format: L10n.string("input.mouseButton.modifier.summary"),
+                    locale: L10n.locale,
+                    L10n.string(key.displayKey),
+                    L10n.string(gesture.button.displayKey)
+                )
+            }
+            return String(
+                format: L10n.string("input.mouseButton.summary"),
+                locale: L10n.locale,
+                L10n.string(gesture.button.displayKey)
+            )
         }
     }
 
@@ -60,6 +76,8 @@ extension GestureInput {
             }
         case .trackpad(let gesture):
             return gesture.systemImage
+        case .mouseButton:
+            return "button.programmable"
         }
     }
 }
@@ -107,24 +125,63 @@ extension DirectTrackpadGesture {
     }
 }
 
-struct TrackpadGesturePreset: Identifiable {
+struct GesturePreset: Identifiable {
     let id: String
     let nameKey: String
-    let gesture: DirectTrackpadGesture
+    let input: GestureInput
     let action: GestureAction
 
     func profile(scope: AppScope) -> GestureProfile {
         GestureProfile(
             name: L10n.string(nameKey),
-            input: .trackpad(gesture),
+            input: input,
             action: action,
             scope: scope
         )
     }
 }
 
+enum MouseButtonPresetCatalog {
+    /// ⌘[ / ⌘] navigate back / forward in browsers, Finder and most editors.
+    static let navigation: [GesturePreset] = [
+        GesturePreset(
+            id: "sideBackBack",
+            nameKey: "mouseButton.preset.sideBackBack",
+            input: .mouseButton(MouseButtonGesture(button: .sideBack)),
+            action: commandShortcut(
+                keyCode: UInt16(kVK_ANSI_LeftBracket),
+                display: "⌘["
+            )
+        ),
+        GesturePreset(
+            id: "sideForwardForward",
+            nameKey: "mouseButton.preset.sideForwardForward",
+            input: .mouseButton(MouseButtonGesture(button: .sideForward)),
+            action: commandShortcut(
+                keyCode: UInt16(kVK_ANSI_RightBracket),
+                display: "⌘]"
+            )
+        ),
+    ]
+
+    private static func commandShortcut(
+        keyCode: UInt16,
+        display: String
+    ) -> GestureAction {
+        .shortcut(
+            keyCode: keyCode,
+            modifiers: UInt(CGEventFlags.maskCommand.rawValue),
+            display: display,
+            orderedChord: ShortcutChord(
+                modifiers: [.command],
+                keyCode: keyCode
+            )
+        )
+    }
+}
+
 enum TrackpadGesturePresetCatalog {
-    static let balanced: [TrackpadGesturePreset] = [
+    static let balanced: [GesturePreset] = [
         preset(
             "rotateCCWVolumeDown",
             .rotate(.two, .counterclockwise),
@@ -197,11 +254,11 @@ enum TrackpadGesturePresetCatalog {
         _ id: String,
         _ gesture: DirectTrackpadGesture,
         _ action: GestureAction
-    ) -> TrackpadGesturePreset {
-        TrackpadGesturePreset(
+    ) -> GesturePreset {
+        GesturePreset(
             id: id,
             nameKey: "trackpad.preset.\(id)",
-            gesture: gesture,
+            input: .trackpad(gesture),
             action: action
         )
     }

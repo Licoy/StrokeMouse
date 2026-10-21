@@ -2463,6 +2463,339 @@ final class GestureRuntimeTests: XCTestCase {
         )
     }
 
+    // MARK: - Button mappings
+
+    func testButtonMappingClickRunsActionInsteadOfNativeClick() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let mapping = buttonMapping(name: "Back")
+        var matchedIDs: [UUID] = []
+        runtime.onMatch = { matchedIDs.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [mapping]
+        ))
+        XCTAssertEqual(mouse.watchedButtons, [.sideBack])
+
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+
+        XCTAssertEqual(matchedIDs, [mapping.id])
+        XCTAssertEqual(platform.shortcutProcessIdentifiers, [101])
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testButtonMappingWithoutDrawnCandidateIgnoresMovement()
+        async throws
+    {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let mapping = buttonMapping(name: "Back")
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [mapping]
+        ))
+
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        await drainMainActor()
+        XCTAssertTrue(runtime.currentPath.count <= 1)
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+
+        XCTAssertEqual(
+            runtime.state.lastOutcome,
+            .matched(profileID: mapping.id, score: nil)
+        )
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testStrokeOnMappedButtonDrawsAndSkipsMapping() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let drawn = GestureProfile(
+            name: "Up",
+            input: .drawn(DrawnGesture(
+                activation: .mouse(GestureTrigger(button: .sideBack)),
+                points: PathTemplates.up
+            )),
+            action: .none
+        )
+        let mapping = buttonMapping(name: "Back")
+        var matchedIDs: [UUID] = []
+        runtime.onMatch = { matchedIDs.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [drawn, mapping]
+        ))
+
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(matchedIDs, [mapping.id])
+
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+
+        XCTAssertEqual(matchedIDs, [mapping.id, drawn.id])
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testMostSpecificButtonMappingRunsAndTiesRunNothing()
+        async throws
+    {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let global = buttonMapping(name: "Global", keyCode: 1)
+        let application = buttonMapping(
+            name: "Application",
+            keyCode: 2,
+            scope: .apps(["com.example.target"])
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [global, application]
+        ))
+
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutKeyCodes, [2])
+
+        let duplicate = buttonMapping(
+            name: "Duplicate",
+            keyCode: 3,
+            scope: .apps(["com.example.target"])
+        )
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: true,
+            profiles: [global, application, duplicate]
+        ))
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+
+        XCTAssertEqual(
+            runtime.state.lastOutcome,
+            .conflict([application.id, duplicate.id])
+        )
+        XCTAssertEqual(platform.shortcutKeyCodes, [2])
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testUnmappedApplicationKeepsNativeSideButton() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime(
+            bundleIdentifier: "com.google.Chrome"
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [buttonMapping(
+                name: "Finder Back",
+                scope: .apps(["com.apple.finder"])
+            )]
+        ))
+
+        XCTAssertFalse(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+        XCTAssertNil(runtime.state.lastOutcome)
+    }
+
+    func testGlobalButtonMappingFollowsItsOwnSuppressionKind()
+        async throws
+    {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let mapping = buttonMapping(name: "Back")
+        func rules(_ kinds: Set<GestureInputKind>) -> GestureAppRules {
+            GestureAppRules(
+                policies: [AppGesturePolicy(
+                    bundleIdentifier: "com.example.target",
+                    suppressedGlobalInputs: SuppressedGlobalInputs(kinds: kinds)
+                )],
+                groups: []
+            )
+        }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [mapping],
+            appRules: rules([.mouseDrawing])
+        ))
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: true,
+            profiles: [mapping],
+            appRules: rules([.mouseButton])
+        ))
+        XCTAssertFalse(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+    }
+
+    func testModifierMappingRunsOnlyWithExactlyItsModifierHeld()
+        async throws
+    {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [buttonMapping(name: "Command Back", modifier: .command)]
+        ))
+
+        XCTAssertFalse(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        XCTAssertFalse(mouse.press(
+            .sideBack,
+            at: CGPoint(x: 20, y: 300),
+            flags: [.maskCommand, .maskShift]
+        ))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 0)
+
+        // Caps Lock is not a gesture modifier and does not break the match.
+        XCTAssertTrue(mouse.press(
+            .sideBack,
+            at: CGPoint(x: 20, y: 300),
+            flags: [.maskCommand, .maskAlphaShift]
+        ))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testPlainAndModifierMappingsShareButtonWithoutConflict()
+        async throws
+    {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [
+                buttonMapping(name: "Back", keyCode: 1),
+                buttonMapping(
+                    name: "Command Back",
+                    keyCode: 2,
+                    modifier: .command
+                ),
+            ]
+        ))
+
+        XCTAssertTrue(mouse.press(.sideBack, at: CGPoint(x: 20, y: 300)))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        XCTAssertTrue(mouse.press(
+            .sideBack,
+            at: CGPoint(x: 20, y: 300),
+            flags: .maskCommand
+        ))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+
+        XCTAssertEqual(platform.shortcutKeyCodes, [1, 2])
+    }
+
+    func testDrawnGestureKeepsReplayingWhenHeldModifierMissesMapping()
+        async throws
+    {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let drawn = GestureProfile(
+            name: "Up",
+            input: .drawn(DrawnGesture(
+                activation: .mouse(GestureTrigger(button: .sideBack)),
+                points: PathTemplates.up
+            )),
+            action: .none
+        )
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [
+                drawn,
+                buttonMapping(name: "Command Back", modifier: .command),
+            ]
+        ))
+
+        XCTAssertTrue(mouse.press(
+            .sideBack,
+            at: CGPoint(x: 20, y: 300),
+            flags: .maskAlternate
+        ))
+        mouse.release(.sideBack, at: CGPoint(x: 20, y: 300))
+        await drainMainActor()
+
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertEqual(mouse.replayedClicks, 1)
+    }
+
+    func testRightButtonMappingIsInert() throws {
+        let (runtime, mouse, _) = makeButtonMappingRuntime()
+        let state = try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [buttonMapping(name: "Right", button: .right)]
+        ))
+
+        XCTAssertTrue(mouse.watchedButtons.isEmpty)
+        XCTAssertEqual(state.inputs.mouse, .notRequested)
+    }
+
+    private func makeButtonMappingRuntime(
+        bundleIdentifier: String = "com.example.target"
+    ) -> (GestureRuntime, RuntimeMouseEventSource, RuntimeActionPlatform) {
+        let mouse = RuntimeMouseEventSource()
+        let platform = RuntimeActionPlatform()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: MutableRuntimeTargetCapturer(
+                processIdentifier: 101,
+                bundleIdentifier: bundleIdentifier
+            ),
+            mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        return (runtime, mouse, platform)
+    }
+
+    private func buttonMapping(
+        name: String,
+        button: MouseTriggerButton = .sideBack,
+        keyCode: UInt16 = 1,
+        modifier: GestureModifierKey? = nil,
+        scope: AppScope = .global
+    ) -> GestureProfile {
+        GestureProfile(
+            name: name,
+            input: .mouseButton(MouseButtonGesture(
+                button: button,
+                modifier: modifier
+            )),
+            action: .shortcut(
+                keyCode: keyCode,
+                modifiers: 0,
+                display: "S",
+                orderedChord: nil
+            ),
+            scope: scope
+        )
+    }
+
     // MARK: - App rules
 
     func testSuppressedApplicationReceivesTriggerButtonUntouched() async throws {
@@ -3023,7 +3356,8 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
     var interceptsChordClicks = false
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)?
     var shouldCapture:
-        ((MouseTriggerButton, CGPoint) -> MouseEventTap.CaptureDecision)?
+        ((MouseTriggerButton, CGPoint, CGEventFlags)
+            -> MouseEventTap.CaptureDecision)?
     private(set) var isActive = false
     private(set) var stopCount = 0
     private(set) var replayedClicks = 0
@@ -3070,7 +3404,8 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
 
     func press(
         _ button: MouseTriggerButton,
-        at location: CGPoint
+        at location: CGPoint,
+        flags: CGEventFlags = []
     ) -> Bool {
         guard isActive,
               watchedButtons.contains(button),
@@ -3078,7 +3413,7 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
         else {
             return false
         }
-        let decision = shouldCapture?(button, location)
+        let decision = shouldCapture?(button, location, flags)
             ?? .capture(acceptsChordClick: false)
         lastCaptureDecision = decision
         guard case .capture(let acceptsChordClick) = decision else {

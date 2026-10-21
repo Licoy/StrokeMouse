@@ -57,7 +57,7 @@ description: "StrokeMouse est un outil de gestes souris et trackpad pour macOS. 
   :items="[
     { icon: 'sparkles', title: 'Correspondance libre', desc: 'Normalisation, rotation limitée et portes structurelles qui rejettent les presque-correspondances approximatives.', size: 'large', image: '/screenshots/5.png', imageAlt: 'Enregistrement du trait' },
     { icon: 'menu', title: 'Toujours dans la barre des menus', desc: 'Démarrez ou arrêtez les gestes, ouvrez les réglages ; l’icône change de teinte en pause ou sans autorisation.' },
-    { icon: 'mouse', title: 'Dessin souris', desc: 'Déclenchez avec le bouton droit, du milieu ou un bouton latéral ; seuls les boutons activés sont surveillés.' },
+    { icon: 'mouse', title: 'Dessin souris', desc: 'Déclenchez avec le bouton droit, du milieu ou un bouton latéral ; les boutons latéraux et du milieu peuvent aussi exécuter une action d’un simple clic. Seuls les boutons activés sont surveillés.' },
     { icon: 'sparkles', title: 'Dessin trackpad', desc: 'Maintenez Fn, Control, Option, Shift ou Command et déplacez le pointeur ; réutilisez une règle de dessin souris si vous voulez.' },
     { icon: 'zap', title: 'Gestes tactiles expérimentaux', desc: '40 classes de tapotements, clics, balayages, pincements, écartements et rotations ; les gestes système peuvent aussi se produire.' },
     { icon: 'mouse', title: 'Défilement amélioré', desc: 'Inversez la molette et le trackpad par axe, et lissez une molette crantée. Absent de la sauvegarde des gestes.', href: '/guide/settings#scroll-enhancement' },

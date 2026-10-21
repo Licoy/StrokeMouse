@@ -31,11 +31,22 @@ Par geste :
 
 Le bouton gauche et les boutons non surveillés **passent toujours**.
 
+## Associations de boutons souris
+
+Dans **Ajouter → Boutons souris**, associez une action à un bouton latéral (précédent / suivant) ou au bouton du milieu : un simple clic l’exécute, sans dessiner. Le menu propose deux préréglages : « Bouton latéral précédent · Précédent » (⌘[) et « Bouton latéral suivant · Suivant » (⌘]).
+
+- L’action s’exécute au relâchement. Si le même bouton sert aussi à dessiner, un appui qui reste sous `minStrokeDistance` exécute l’association et un appui plus long est reconnu comme un dessin : un seul appui ne déclenche jamais les deux
+- Si l’app cible n’a que l’association pour ce bouton, sans geste dessiné, bouger en le maintenant compte quand même comme un clic
+- Activez **Exiger une touche de modification** et choisissez Fn / Control / Option / Shift / Command pour ne déclencher l’association que lorsque exactement cette touche est maintenue (par ex. ⌘ + bouton latéral précédent) ; une association sans modificateur ne se déclenche jamais tant qu’un modificateur est maintenu, donc un même bouton peut porter les deux. Si le modificateur choisi lance aussi le dessin trackpad, celui-ci prend la main et l’association ne s’exécute pas
+- Les portées toutes les apps / groupe d’apps / apps sélectionnées s’appliquent comme d’habitude et seul le niveau le plus précis compte ; plusieurs associations à ce niveau forment un conflit : rien ne s’exécute et une notification s’affiche
+- Si l’app cible n’a ni geste ni association pour ce bouton, le clic passe tel quel, par exemple pour garder le précédent / suivant natif du navigateur
+- Le bouton droit ne peut pas être associé, pour ne pas bloquer le menu contextuel ; une association réussie n’affiche pas de notification de correspondance
+
 ## Rejeu du clic court
 
 Après que le moteur a capturé l’appui du déclencheur :
 
-- Distance **sous** `minStrokeDistance` : un down/up synthétique marqué **rejoue** un clic normal (les menus marchent)
+- Distance **sous** `minStrokeDistance` : un down/up synthétique marqué **rejoue** un clic normal (les menus marchent) ; si l’app cible associe ce bouton, l’association s’exécute à la place
 - Dès qu’un vrai trait commence : le groupe down/drag/up est **réservé au geste**, pas livré à l’app de premier plan
 
 ## Correspondance de trajectoire libre

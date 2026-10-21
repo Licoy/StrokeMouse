@@ -182,32 +182,42 @@ extension GestureInputSource {
 
 enum GestureCandidateSelector {
     /// Resolves each profile against its own frozen target. Global profiles are
-    /// dropped when the target application suppresses `inputKind`; group
-    /// profiles survive only when the target matches the group.
+    /// dropped when the target application suppresses `inputKind` (or, for a
+    /// button mapping, `.mouseButton`); group profiles survive only when the
+    /// target matches the group.
     static func prepare(
         profiles: [GestureProfile],
         snapshot: GestureTargetSnapshot,
         inputKind: GestureInputKind? = nil,
         rules: GestureAppRules = .empty
     ) -> [TargetedGesture] {
-        var suppressedByPolicy: [GestureTargetPolicy: Bool] = [:]
-        func suppressesGlobal(_ policy: GestureTargetPolicy) -> Bool {
+        var suppressedByPolicy: [GestureTargetPolicy: Set<GestureInputKind>] = [:]
+        func suppressesGlobal(_ profile: GestureProfile) -> Bool {
             guard let inputKind, !rules.isEmpty else { return false }
-            if let cached = suppressedByPolicy[policy] { return cached }
-            let target = snapshot.resolution(for: policy)
-            let suppressed = target.context != nil
-                && rules.suppressedGlobalInputs(
-                    bundleIdentifier: target.bundleIdentifier,
-                    path: target.bundlePath
-                ).contains(inputKind)
-            suppressedByPolicy[policy] = suppressed
-            return suppressed
+            let policy = profile.targetPolicy
+            let suppressed: Set<GestureInputKind>
+            if let cached = suppressedByPolicy[policy] {
+                suppressed = cached
+            } else {
+                let target = snapshot.resolution(for: policy)
+                suppressed = target.context == nil
+                    ? []
+                    : rules.suppressedGlobalInputs(
+                        bundleIdentifier: target.bundleIdentifier,
+                        path: target.bundlePath
+                    )
+                suppressedByPolicy[policy] = suppressed
+            }
+            if case .mouseButton = profile.input {
+                return suppressed.contains(.mouseButton)
+            }
+            return suppressed.contains(inputKind)
         }
         return profiles.compactMap { profile in
             let target = snapshot.resolution(for: profile.targetPolicy)
             switch profile.scope {
             case .global:
-                guard !suppressesGlobal(profile.targetPolicy) else { return nil }
+                guard !suppressesGlobal(profile) else { return nil }
                 return TargetedGesture(profile: profile, target: target)
             case .apps(let bundleIdentifiers):
                 guard let bundleIdentifier = target.bundleIdentifier,

@@ -639,6 +639,25 @@ struct GesturesSettingsView: View {
                             )
                         }
                     }
+                    Menu(L10n.string("gestures.add.mouseButton")) {
+                        Button(L10n.string("gestures.add.mouseButton.custom")) {
+                            editorProfile = makeNewProfile(
+                                input: .mouseButton(
+                                    MouseButtonGesture(button: .sideBack)
+                                )
+                            )
+                        }
+                        Divider()
+                        ForEach(MouseButtonPresetCatalog.navigation) { preset in
+                            Button(L10n.string(preset.nameKey)) {
+                                editorProfile = preset.profile(
+                                    scope: GestureSidebarCatalog.defaultScope(
+                                        for: sidebarSelection
+                                    )
+                                )
+                            }
+                        }
+                    }
                     Menu(L10n.string("gestures.add.direct")) {
                         Button(L10n.string("editor.direct.category.swipe")) {
                             editorProfile = makeNewProfile(
@@ -1576,25 +1595,35 @@ private struct GestureInputMiniPreview: View {
                 isEnabled: isEnabled
             )
         case .trackpad(let gesture):
-            ZStack {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(nsColor: .controlBackgroundColor))
-                Image(systemName: gesture.systemImage)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(
-                        isEnabled ? Color.accentColor : Color.secondary
-                    )
+            iconTile {
                 Text("\(gesture.fingerCount)")
                     .font(.system(size: 8, weight: .bold))
                     .padding(2)
                     .background(.regularMaterial, in: Circle())
                     .offset(x: 15, y: -8)
             }
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .strokeBorder(.quaternary, lineWidth: 1)
-            )
+        case .mouseButton:
+            iconTile { EmptyView() }
         }
+    }
+
+    private func iconTile<Badge: View>(
+        @ViewBuilder badge: () -> Badge
+    ) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color(nsColor: .controlBackgroundColor))
+            Image(systemName: input.systemImage)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(
+                    isEnabled ? Color.accentColor : Color.secondary
+                )
+            badge()
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: 6)
+                .strokeBorder(.quaternary, lineWidth: 1)
+        )
     }
 }
 

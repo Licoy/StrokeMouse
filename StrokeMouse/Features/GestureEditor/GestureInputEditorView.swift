@@ -2,6 +2,7 @@ import SwiftUI
 
 private enum GestureEditorInputKind: String, CaseIterable, Identifiable {
     case mouseDraw
+    case mouseButton
     case modifierDraw
     case directTrackpad
 
@@ -50,6 +51,8 @@ struct GestureInputEditorView: View {
                 }
             case .trackpad(let gesture):
                 directEditor(gesture)
+            case .mouseButton:
+                mouseButtonEditor
             }
         }
     }
@@ -116,15 +119,48 @@ struct GestureInputEditorView: View {
     }
 
     @ViewBuilder
-    private func directEditor(
-        _ gesture: DirectTrackpadGesture
-    ) -> some View {
+    private var mouseButtonEditor: some View {
+        inputCard
+
+        Picker(
+            L10n.string("editor.trigger"),
+            selection: mappedGesture.button
+        ) {
+            ForEach(MouseButtonGesture.supportedButtons) { button in
+                Text(L10n.string(button.displayKey)).tag(button)
+            }
+        }
+        Text(L10n.string("editor.mouseButtonHint"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        Toggle(
+            L10n.string("editor.mouseButtonModifierSupport"),
+            isOn: mappedModifierSupport
+        )
+        if mappedModifierSupport.wrappedValue {
+            Picker(
+                L10n.string("editor.modifierKey"),
+                selection: mappedModifier
+            ) {
+                ForEach(GestureModifierKey.allCases) { key in
+                    Text(L10n.string(key.displayKey)).tag(key)
+                }
+            }
+        }
+        Text(L10n.string("editor.mouseButtonModifierHint"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var inputCard: some View {
         VStack(spacing: 16) {
-            Image(systemName: gesture.systemImage)
+            Image(systemName: input.systemImage)
                 .font(.system(size: 56, weight: .light))
                 .foregroundStyle(.tint)
                 .frame(maxWidth: .infinity)
-            Text(gesture.displaySummary)
+            Text(input.displaySummary)
                 .font(.headline)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -132,6 +168,13 @@ struct GestureInputEditorView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(nsColor: .controlBackgroundColor))
         )
+    }
+
+    @ViewBuilder
+    private func directEditor(
+        _ gesture: DirectTrackpadGesture
+    ) -> some View {
+        inputCard
 
         VStack(alignment: .leading, spacing: 10) {
             labeledSegmentedPicker(
@@ -277,6 +320,8 @@ struct GestureInputEditorView: View {
                     return .modifierDraw
                 case .trackpad:
                     return .directTrackpad
+                case .mouseButton:
+                    return .mouseButton
                 }
             },
             set: { kind in
@@ -290,10 +335,38 @@ struct GestureInputEditorView: View {
                     input = .drawn(sampleState.drawnGesture(
                         activation: .modifier(.function)
                     ))
+                case .mouseButton:
+                    input = .mouseButton(MouseButtonGesture(button: .sideBack))
                 case .directTrackpad:
                     input = .trackpad(.swipe(.three, .up))
                 }
             }
+        )
+    }
+
+    private var mappedGesture: Binding<MouseButtonGesture> {
+        Binding(
+            get: {
+                guard case .mouseButton(let gesture) = input else {
+                    return MouseButtonGesture(button: .sideBack)
+                }
+                return gesture
+            },
+            set: { input = .mouseButton($0) }
+        )
+    }
+
+    private var mappedModifierSupport: Binding<Bool> {
+        Binding(
+            get: { mappedGesture.wrappedValue.modifier != nil },
+            set: { mappedGesture.wrappedValue.modifier = $0 ? .command : nil }
+        )
+    }
+
+    private var mappedModifier: Binding<GestureModifierKey> {
+        Binding(
+            get: { mappedGesture.wrappedValue.modifier ?? .command },
+            set: { mappedGesture.wrappedValue.modifier = $0 }
         )
     }
 

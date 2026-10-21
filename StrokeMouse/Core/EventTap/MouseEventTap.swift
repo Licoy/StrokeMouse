@@ -102,7 +102,7 @@ final class MouseEventTap: @unchecked Sendable {
     private var eventGeneration: UInt64 = 0
     private var onEventStorage: ((EventKind, UInt64) -> Void)?
     private var shouldCaptureStorage:
-        ((MouseTriggerButton, CGPoint) -> CaptureDecision)?
+        ((MouseTriggerButton, CGPoint, CGEventFlags) -> CaptureDecision)?
     private let stateLock = NSLock()
     private let buttonStateProvider:
         @Sendable (MouseTriggerButton) -> Bool
@@ -125,7 +125,9 @@ final class MouseEventTap: @unchecked Sendable {
     /// Synchronous arbitration on the tap thread. A rejected down/up pair is
     /// passed through untouched, which is required when another input source
     /// owns the session or the target application has no candidate gesture.
-    var shouldCapture: ((MouseTriggerButton, CGPoint) -> CaptureDecision)? {
+    var shouldCapture:
+        ((MouseTriggerButton, CGPoint, CGEventFlags) -> CaptureDecision)?
+    {
         get { stateLock.withLock { shouldCaptureStorage } }
         set { stateLock.withLock { shouldCaptureStorage = newValue } }
     }
@@ -380,7 +382,7 @@ final class MouseEventTap: @unchecked Sendable {
                !blockedButtonsUntilUp.contains(button)
             {
                 stateLock.unlock()
-                let decision = shouldCapture?(button, location)
+                let decision = shouldCapture?(button, location, event.flags)
                     ?? .capture(acceptsChordClick: false)
                 stateLock.lock()
                 if acceptingEvents,

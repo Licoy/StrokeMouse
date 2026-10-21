@@ -40,11 +40,22 @@ A mouse-drawn gesture can enable a **secondary action** in the editor: while hol
 - A left click without a valid stroke cancels the gesture; no trigger click is replayed
 - Trackpad Draw and Touch Gestures do not support secondary actions and always run the primary action
 
+## Mouse button mappings
+
+Choose **Add → Mouse Buttons** to map a side button (back / forward) or the middle button. A single click runs the action, with no drawing needed. The menu includes two presets: “Back Side Button · Go Back” (⌘[) and “Forward Side Button · Go Forward” (⌘]).
+
+- The action runs on release. When the same button also draws gestures, a press that stays under `minStrokeDistance` runs the mapping and a longer one is recognized as a drawing, so one press never triggers both
+- When the target app has a mapping but no drawn gesture for that button, moving while holding it still counts as a click
+- Turn on **Require Modifier Key** and pick one of Fn / Control / Option / Shift / Command to trigger only while exactly that key is held (e.g. ⌘ + back side button); a mapping without it never fires while any modifier is held, so one button can carry both a plain and a modified mapping. If the chosen modifier also starts Trackpad Draw, Trackpad Draw takes over and the mapping won't run
+- Global, app-group and selected-app scopes apply as usual, and only the most specific tier counts; several mappings in that tier are a conflict, so nothing runs and a notice appears
+- When the target app has no gesture or mapping for the button, the click passes through untouched, for example to keep the browser's native back / forward
+- The right button cannot be mapped, so context menus keep working; a successful mapping shows no match toast
+
 ## Short-click replay
 
 After the engine captures trigger-down:
 
-- Distance **below** `minStrokeDistance`: marked synthetic down/up **replays** a normal click (menus work)
+- Distance **below** `minStrokeDistance`: marked synthetic down/up **replays** a normal click (menus work); if the target app maps that button, the mapping runs instead
 - Once a real stroke starts: the down/drag/up group is **gesture-only**, not delivered to the front app
 
 ## Free-path matching

@@ -37059,6 +37059,149 @@
         "ru": {"stringUnit": {"state": "translated", "value": "Кандидат воспроизведения %@ содержит недопустимые шаблоны или оценки."}},
         "fr": {"stringUnit": {"state": "translated", "value": "Le candidat de relecture %@ contient des modèles ou des scores invalides."}}
       }
+    },
+    "inputKind.mouseButton": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Mouse Buttons"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "鼠标按键"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "滑鼠按鍵"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "마우스 버튼"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "マウスボタン"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Кнопки мыши"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Boutons souris"}}
+      }
+    },
+    "gestures.inputFilter.mouseButton": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Buttons"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按键"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "按鍵"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "버튼"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "ボタン"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Кнопки"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Boutons"}}
+      }
+    },
+    "editor.input.mouseButton": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Mouse Button"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "鼠标按键"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "滑鼠按鍵"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "마우스 버튼"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "マウスボタン"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Кнопка мыши"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Bouton souris"}}
+      }
+    },
+    "input.mouseButton.summary": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "%@ click"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "单击%@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "按一下%@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "%@ 클릭"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "%@クリック"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "%@ · нажатие"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Clic %@"}}
+      }
+    },
+    "editor.mouseButtonHint": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Click this button to run the action, no drawing needed. If the same button also draws gestures, holding it and moving past the minimum stroke distance draws instead and skips this action."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "单击此按键即执行动作，无需绘制；同一按键也用于鼠标绘制时，按住移动超过最小滑动距离会改为识别绘制，不执行此动作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "按一下此按鍵即執行動作，無需繪製；同一按鍵也用於滑鼠繪製時，按住移動超過最小滑動距離會改為辨識繪製，不執行此動作"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "이 버튼을 클릭하면 그리지 않아도 동작이 실행되며, 같은 버튼을 마우스 그리기에도 사용할 경우 누른 채 최소 스트로크 거리 이상 움직이면 그리기로 인식되어 이 동작은 실행되지 않습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "このボタンをクリックするだけでアクションが実行され、描画は不要です。同じボタンをマウス描画にも使う場合、押したまま最小ストローク距離を超えて動かすと描画として認識され、このアクションは実行されません。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Нажмите эту кнопку, чтобы выполнить действие без рисования; если та же кнопка используется для рисования жестов, удержание с перемещением дальше минимальной длины траектории распознаётся как рисование, и это действие не выполняется."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Cliquez sur ce bouton pour exécuter l’action sans dessiner ; si le même bouton sert aussi à dessiner des gestes, le maintenir et bouger au-delà de la distance minimale de tracé dessine un geste et ignore cette action."}}
+      }
+    },
+    "gestures.add.mouseButton": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Mouse Buttons"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "鼠标按键"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "滑鼠按鍵"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "마우스 버튼"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "マウスボタン"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Кнопки мыши"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Boutons souris"}}
+      }
+    },
+    "gestures.add.mouseButton.custom": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "New Button Mapping"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "新建按键映射"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "新增按鍵對應"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "새 버튼 매핑"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "新しいボタン割り当て"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Новое назначение кнопки"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Nouvelle association de bouton"}}
+      }
+    },
+    "mouseButton.preset.sideBackBack": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Back Side Button · Go Back"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "后退侧键 · 后退"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "後退側鍵 · 後退"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "뒤로 측면 버튼 · 뒤로 가기"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "戻るサイドボタン · 戻る"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Боковая кнопка «назад» · Назад"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Bouton latéral précédent · Précédent"}}
+      }
+    },
+    "mouseButton.preset.sideForwardForward": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Forward Side Button · Go Forward"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "前进侧键 · 前进"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "前進側鍵 · 前進"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "앞으로 측면 버튼 · 앞으로 가기"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "進むサイドボタン · 進む"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Боковая кнопка «вперёд» · Вперёд"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Bouton latéral suivant · Suivant"}}
+      }
+    },
+    "toast.buttonMappingConflict": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Several button mappings apply here, so none ran"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "同一范围内有多条按键映射，未执行动作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "同一範圍內有多條按鍵對應，未執行動作"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "같은 범위에 버튼 매핑이 여러 개 있어 실행하지 않았습니다"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "同じ範囲に複数のボタン割り当てがあるため、実行しませんでした"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Здесь действует несколько назначений кнопки, ни одно не выполнено"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Plusieurs associations de bouton s’appliquent ici, aucune n’a été exécutée"}}
+      }
+    },
+    "editor.mouseButtonModifierSupport": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Require Modifier Key"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "需同时按住修饰键"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "需同時按住修飾鍵"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "보조 키 함께 누르기"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "修飾キーの同時押しが必要"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Требовать клавишу-модификатор"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Exiger une touche de modification"}}
+      }
+    },
+    "editor.mouseButtonModifierHint": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Modifiers must match exactly: when on, only the selected modifier held on its own triggers this mapping; when off, holding any modifier skips it. If the selected modifier also starts trackpad drawing, holding it starts trackpad drawing first and this mapping won’t run."}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "修饰键需精确匹配，开启后仅按住所选的这一个修饰键时才触发，关闭时按住任何修饰键都不触发；所选修饰键也用于触控板绘制时，按住会先进入触控板绘制，此映射不触发"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "修飾鍵需精確符合，開啟後僅按住所選的這一個修飾鍵時才觸發，關閉時按住任何修飾鍵都不觸發；所選修飾鍵也用於觸控式軌跡板繪製時，按住會先進入觸控式軌跡板繪製，此對應不觸發"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "보조 키는 정확히 일치해야 합니다. 켜면 선택한 보조 키 하나만 누른 상태에서만 실행되고, 끄면 보조 키를 누른 상태에서는 실행되지 않습니다. 선택한 보조 키를 트랙패드 그리기에도 사용하면 트랙패드 그리기가 먼저 시작되어 이 매핑은 실행되지 않습니다."}},
+        "ja": {"stringUnit": {"state": "translated", "value": "修飾キーは完全一致が必要です。オンにすると選択した修飾キーだけを押しているときのみ実行され、オフにすると修飾キーを押している間は実行されません。選択した修飾キーをトラックパッド描画にも使う場合は、トラックパッド描画が先に始まり、この割り当ては実行されません。"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Модификаторы должны совпадать точно: если включено, назначение срабатывает только при удержании одного выбранного модификатора; если выключено, оно не срабатывает при удержании любого модификатора. Если выбранный модификатор также запускает рисование на трекпаде, сначала начнётся рисование на трекпаде, и это назначение не выполнится."}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Les modificateurs doivent correspondre exactement : activé, l’association ne se déclenche qu’avec le seul modificateur choisi maintenu ; désactivé, maintenir un modificateur l’ignore. Si le modificateur choisi lance aussi le dessin trackpad, celui-ci démarre d’abord et cette association ne s’exécute pas."}}
+      }
+    },
+    "input.mouseButton.modifier.summary": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "%1$@ + %2$@ click"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "按住 %1$@ 单击%2$@"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "按住 %1$@ 按一下%2$@"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "%1$@ + %2$@ 클릭"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "%1$@ + %2$@クリック"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "%1$@ + %2$@ · нажатие"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "%1$@ + clic %2$@"}}
+      }
     }
   },
   "version": "1.0"

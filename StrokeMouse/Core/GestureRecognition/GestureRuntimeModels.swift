@@ -18,10 +18,12 @@ extension PermissionManager: GesturePermissionProviding {}
 protocol MouseGestureEventSource: AnyObject {
     var watchedButtons: Set<MouseTriggerButton> { get set }
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)? { get set }
-    /// Receives the Quartz location of the down edge so the owner can decide
-    /// from the target application before the event is swallowed.
+    /// Receives the Quartz location and modifier flags of the down edge so the
+    /// owner can decide from the target application before the event is
+    /// swallowed.
     var shouldCapture:
-        ((MouseTriggerButton, CGPoint) -> MouseEventTap.CaptureDecision)? {
+        ((MouseTriggerButton, CGPoint, CGEventFlags)
+            -> MouseEventTap.CaptureDecision)? {
         get set
     }
     /// Left clicks only enter the tap while some gesture has a secondary action.

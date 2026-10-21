@@ -57,7 +57,7 @@ description: "StrokeMouse is a macOS mouse and trackpad gesture tool. Draw with 
   :items="[
     { icon: 'sparkles', title: 'Free-path matching', desc: 'Normalize, limited rotation, and structure gates that reject sloppy near-misses.', size: 'large', image: '/screenshots/5.png', imageAlt: 'Record stroke' },
     { icon: 'menu', title: 'Menu bar resident', desc: 'Start or stop gestures, open settings; icon tints when paused or untrusted.' },
-    { icon: 'mouse', title: 'Mouse Draw', desc: 'Trigger with the right, middle, or a side button; only enabled buttons are watched.' },
+    { icon: 'mouse', title: 'Mouse Draw', desc: 'Trigger with the right, middle, or a side button; side and middle buttons can also run an action on a single click. Only enabled buttons are watched.' },
     { icon: 'sparkles', title: 'Trackpad Draw', desc: 'Hold one Fn, Control, Option, Shift, or Command and move the pointer; reuse a mouse-draw rule when you want.' },
     { icon: 'zap', title: 'Experimental Touch Gestures', desc: '40 multi-finger taps, clicks, swipes, pinches, spreads, and rotations; macOS gestures may also run.' },
     { icon: 'mouse', title: 'Scroll enhancement', desc: 'Reverse mouse wheel and trackpad per axis, and smooth a notched wheel. Not included in gesture backup.', href: '/guide/settings#scroll-enhancement' },

@@ -57,7 +57,7 @@ description: "StrokeMouse は macOS のマウス／トラックパッドジェ�
   :items="[
     { icon: 'sparkles', title: '自由軌跡マッチング', desc: '正規化、制限付き回転、折れ曲がり構造ゲートで、いい加減な近傍一致を拒否します。', size: 'large', image: '/screenshots/5.png', imageAlt: '軌跡の記録' },
     { icon: 'menu', title: 'メニューバー常駐', desc: 'ジェスチャの開始／停止と設定を開きます。一時停止や権限不足でアイコンの色が変わります。' },
-    { icon: 'mouse', title: 'マウス描画', desc: '右、中、サイドボタンでトリガー。有効な設定が使うボタンだけを監視します。' },
+    { icon: 'mouse', title: 'マウス描画', desc: '右、中、サイドボタンでトリガー。サイドボタンと中ボタンはクリックだけでアクションも実行できます。有効な設定が使うボタンだけを監視します。' },
     { icon: 'sparkles', title: 'トラックパッド描画', desc: 'Fn、Control、Option、Shift、Command のどれか 1 つを押したままポインタを動かします。マウス描画のルールを再利用できます。' },
     { icon: 'zap', title: '実験的タッチジェスチャ', desc: '40 種類の複数指タップ、クリック、スワイプ、ピンチ、スプレッド、回転。システムジェスチャが同時に起きることがあります。' },
     { icon: 'mouse', title: 'スクロール強化', desc: 'マウスホイールとトラックパッドを軸ごとに反転し、段付きホイールを滑らかにします。ジェスチャのバックアップには入りません。', href: '/guide/settings#scroll-enhancement' },
