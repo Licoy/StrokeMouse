@@ -156,11 +156,10 @@ struct GestureTestView: View {
         HStack(alignment: .center, spacing: 12) {
             Text(title)
                 .frame(width: optionLabelWidth, alignment: .leading)
-            Picker(title, selection: selection) {
+            AdaptiveSegmentedPicker(title, selection: selection) {
                 content()
             }
             .labelsHidden()
-            .pickerStyle(.segmented)
             .frame(maxWidth: maxControlWidth, alignment: .leading)
             Spacer(minLength: 0)
         }

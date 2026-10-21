@@ -19370,43 +19370,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tap / Click"
+            "value": "Tap"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "轻点 / 点按"
+            "value": "轻点"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "輕點 / 按一下"
+            "value": "輕點"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "탭 / 클릭"
+            "value": "탭"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "タップ / クリック"
+            "value": "タップ"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Касание / нажатие"
+            "value": "Касание"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toucher / Cliquer"
+            "value": "Toucher"
           }
         }
       }
@@ -19503,99 +19503,7 @@
         }
       }
     },
-    "editor.direct.pressStyle": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Style"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "方式"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "方式"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "방식"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "操作"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Способ"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mode"
-          }
-        }
-      }
-    },
-    "editor.direct.pressStyle.tap": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "轻点"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輕點"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "탭"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タップ"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Касание"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toucher"
-          }
-        }
-      }
-    },
-    "editor.direct.pressStyle.click": {
+    "editor.direct.category.click": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19612,7 +19520,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "按一下"
+            "value": "按壓"
           }
         },
         "ko": {
@@ -19636,7 +19544,7 @@
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cliquer"
+            "value": "Clic"
           }
         }
       }

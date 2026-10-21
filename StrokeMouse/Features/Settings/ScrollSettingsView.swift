@@ -80,12 +80,15 @@ struct ScrollSettingsView: View {
                     .onChange(of: smoothEnabled) { _, _ in
                         appState.applyScrollConfiguration()
                     }
-                Picker(L10n.string("scroll.preset"), selection: $presetRaw) {
+                AdaptiveSegmentedPicker(
+                    L10n.string("scroll.preset"),
+                    selection: $presetRaw,
+                    formRow: true
+                ) {
                     ForEach(ScrollSmoothPreset.allCases, id: \.rawValue) { item in
                         Text(L10n.string(item.displayKey)).tag(item.rawValue)
                     }
                 }
-                .pickerStyle(.segmented)
                 .disabled(!smoothEnabled)
                 .onChange(of: presetRaw) { _, _ in
                     appState.applyScrollConfiguration()

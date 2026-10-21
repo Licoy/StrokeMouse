@@ -32,12 +32,15 @@ struct AppScopeEditorView: View {
 
     var body: some View {
         Group {
-            Picker(L10n.string("editor.scopeMode"), selection: $mode) {
+            AdaptiveSegmentedPicker(
+                L10n.string("editor.scopeMode"),
+                selection: $mode,
+                formRow: true
+            ) {
                 ForEach(AppScopeMode.allCases) { mode in
                     Text(L10n.string(mode.titleKey)).tag(mode)
                 }
             }
-            .pickerStyle(.segmented)
 
             switch mode {
             case .global:

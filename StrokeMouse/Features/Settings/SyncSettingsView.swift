@@ -465,7 +465,7 @@ struct SyncSettingsView: View {
                     LabeledContent(L10n.string("sync.merge.backupValue")) {
                         Text(conflict.backupName)
                     }
-                    Picker(
+                    AdaptiveSegmentedPicker(
                         "",
                         selection: optionalGestureDecisionBinding(conflict.id)
                     ) {
@@ -477,7 +477,6 @@ struct SyncSettingsView: View {
                             .tag(Optional(BackupGestureConflictDecision.useBackup))
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
                 }
             }
         }
@@ -493,14 +492,16 @@ struct SyncSettingsView: View {
                     LabeledContent(L10n.string("sync.merge.backupValue")) {
                         Text(duplicate.backupName)
                     }
-                    Picker("", selection: duplicateDecisionBinding(duplicate.id)) {
+                    AdaptiveSegmentedPicker(
+                        "",
+                        selection: duplicateDecisionBinding(duplicate.id)
+                    ) {
                         Text(L10n.string("sync.merge.skipDuplicate"))
                             .tag(BackupContentDuplicatePolicy.skip)
                         Text(L10n.string("sync.merge.addDisabledCopy"))
                             .tag(BackupContentDuplicatePolicy.keepDisabledCopy)
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
                 }
             }
         }
@@ -520,14 +521,16 @@ struct SyncSettingsView: View {
                         Text(settingValue(conflict.backupValue, key: conflict.key))
                             .textSelection(.enabled)
                     }
-                    Picker("", selection: settingDecisionBinding(conflict.key)) {
+                    AdaptiveSegmentedPicker(
+                        "",
+                        selection: settingDecisionBinding(conflict.key)
+                    ) {
                         Text(L10n.string("sync.merge.keepLocal"))
                             .tag(BackupSettingConflictDecision.keepLocal)
                         Text(L10n.string("sync.merge.useBackup"))
                             .tag(BackupSettingConflictDecision.useBackup)
                     }
                     .labelsHidden()
-                    .pickerStyle(.segmented)
                 }
             }
         }

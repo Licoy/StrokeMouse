@@ -645,12 +645,12 @@ struct GesturesSettingsView: View {
                                 input: .trackpad(.swipe(.three, .up))
                             )
                         }
-                        Button(L10n.string("editor.direct.pressStyle.tap")) {
+                        Button(L10n.string("editor.direct.category.tap")) {
                             editorProfile = makeNewProfile(
                                 input: .trackpad(.tap(.three, .single))
                             )
                         }
-                        Button(L10n.string("editor.direct.pressStyle.click")) {
+                        Button(L10n.string("editor.direct.category.click")) {
                             editorProfile = makeNewProfile(
                                 input: .trackpad(.click(.three, .single))
                             )
@@ -685,38 +685,36 @@ struct GesturesSettingsView: View {
 
             // Hide segmented titles: showing them as leading labels squeezes into a
             // 1-glyph vertical strip ("状/态") at the default settings width.
-            // Keep this a single-pass HStack — no ViewThatFits (expensive remeasure).
+            // Filters that do not fit become menus instead of overlapping.
             HStack(spacing: 8) {
                 TextField(L10n.string("gestures.searchPlaceholder"), text: $searchText)
                     .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 200)
+                    .frame(minWidth: 100, maxWidth: 200)
 
-                Picker(selection: $enabledFilter) {
+                AdaptiveSegmentedPicker(
+                    L10n.string("gestures.filter.enabledState"),
+                    selection: $enabledFilter,
+                    compactMenu: true
+                ) {
                     ForEach(GestureEnabledFilter.allCases) { filter in
                         Text(L10n.string(filter.titleKey)).tag(filter)
                     }
-                } label: {
-                    EmptyView()
                 }
-                .pickerStyle(.segmented)
                 .labelsHidden()
-                .accessibilityLabel(L10n.string("gestures.filter.enabledState"))
                 .help(L10n.string("gestures.filter.enabledState"))
-                .frame(maxWidth: 240)
                 .layoutPriority(1)
 
-                Picker(selection: $inputFilter) {
+                AdaptiveSegmentedPicker(
+                    L10n.string("gestures.filter.input"),
+                    selection: $inputFilter,
+                    compactMenu: true
+                ) {
                     ForEach(GestureInputCategory.allCases) { filter in
                         Text(L10n.string(filter.titleKey)).tag(filter)
                     }
-                } label: {
-                    EmptyView()
                 }
-                .pickerStyle(.segmented)
                 .labelsHidden()
-                .accessibilityLabel(L10n.string("gestures.filter.input"))
                 .help(L10n.string("gestures.filter.input"))
-                .frame(maxWidth: 200)
                 .layoutPriority(1)
 
                 Spacer(minLength: 4)
@@ -733,6 +731,9 @@ struct GesturesSettingsView: View {
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .lineLimit(1)
+                // A truncatable count looks nearly free to the HStack, which then
+                // keeps the filters segmented and pushes the row past its edge.
+                .fixedSize()
             }
         }
         .padding(.horizontal, 12)
