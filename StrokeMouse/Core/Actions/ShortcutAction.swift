@@ -59,6 +59,12 @@ extension GestureAction {
             orderedChord: chord
         )
     }
+
+    /// A single chord stays a plain shortcut so its stored bytes do not change.
+    static func shortcut(chords: [ShortcutChord]) -> GestureAction {
+        precondition(!chords.isEmpty, "A shortcut action needs at least one chord")
+        return chords.count == 1 ? .shortcut(chord: chords[0]) : .shortcutSequence(chords)
+    }
 }
 
 struct ShortcutEventDescriptor: Equatable {

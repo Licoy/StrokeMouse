@@ -10901,6 +10901,144 @@
         }
       }
     },
+    "action.shortcutAddStep": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add Follow-up Key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加后续按键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增後續按鍵"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "후속 키 추가"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けて押すキーを追加"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить следующее сочетание"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajouter une touche suivante"
+          }
+        }
+      }
+    },
+    "action.shortcutRemoveStep": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove this key"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除此按键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除此按鍵"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 키 제거"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このキーを削除"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить это сочетание"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer cette touche"
+          }
+        }
+      }
+    },
+    "action.shortcutSequenceHelp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow-up keys are pressed in order in the same target after the shortcut, up to %d in total. For example, ⌘V then ↩ pastes and sends."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后续按键会在快捷键之后依次发送到同一目标，最多共 %d 组，例如 ⌘V 后再按 ↩ 即可粘贴并发送"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "後續按鍵會在快捷鍵之後依序送到同一目標，最多共 %d 組，例如 ⌘V 後再按 ↩ 即可貼上並送出"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "후속 키는 단축키 다음에 같은 대상으로 순서대로 전송되며 모두 합쳐 최대 %d개입니다. 예를 들어 ⌘V 다음 ↩를 누르면 붙여넣고 보냅니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続けて押すキーはショートカットの後に同じ対象へ順に送られ、合計 %d つまでです。たとえば ⌘V の後に ↩ で貼り付けて送信します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующие сочетания нажимаются по порядку в той же цели после основного, всего не больше %d. Например, ⌘V, затем ↩ — вставить и отправить."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les touches suivantes sont envoyées dans l’ordre à la même cible après le raccourci, %d au total au maximum. Par exemple, ⌘V puis ↩ colle et envoie."
+          }
+        }
+      }
+    },
     "action.openAppEmpty": {
       "localizations": {
         "en": {

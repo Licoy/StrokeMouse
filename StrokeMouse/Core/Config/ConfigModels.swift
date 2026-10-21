@@ -601,11 +601,13 @@ enum GestureAction: Equatable, Sendable {
     case window(WindowCommand)
     case applicationSwitch(ApplicationSwitchCommand)
     case appleScript(String)
+    /// Two or more chords posted in order to the same frozen target.
+    case shortcutSequence([ShortcutChord])
 
     var summaryKey: String {
         switch self {
         case .none: return "action.none"
-        case .shortcut: return "action.shortcut"
+        case .shortcut, .shortcutSequence: return "action.shortcut"
         case .openApp: return "action.openApp"
         case .openURL: return "action.openURL"
         case .shell: return "action.shell"
@@ -641,6 +643,8 @@ enum GestureAction: Equatable, Sendable {
             }
             let trimmed = script.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.count > 40 ? String(trimmed.prefix(40)) + "…" : trimmed
+        case .shortcutSequence(let chords):
+            return chords.map(KeyCodeNames.shortcutDisplay(chord:)).joined(separator: " → ")
         }
     }
 }
@@ -657,13 +661,16 @@ extension GestureAction: Codable {
 
 /// Keeps the v2 wire format readable by 0.0.18. The application-switch UI was
 /// added in 0.0.19, but its commands are existing ordered shortcuts on disk.
+/// Shortcut sequences store their first chord as a plain shortcut, so older
+/// versions ignore `followingChords` and run only that first chord.
 private enum PersistedGestureAction: Codable {
     case none
     case shortcut(
         keyCode: UInt16,
         modifiers: UInt,
         display: String,
-        orderedChord: ShortcutChord? = nil
+        orderedChord: ShortcutChord? = nil,
+        followingChords: [ShortcutChord]? = nil
     )
     case openApp(bundleId: String, name: String)
     case openURL(String)
@@ -697,13 +704,25 @@ private enum PersistedGestureAction: Codable {
                 orderedChord: chord
             )
         case .appleScript(let source): self = .appleScript(source)
+        case .shortcutSequence(let chords):
+            let first = chords[0]
+            self = .shortcut(
+                keyCode: first.legacyKeyCode,
+                modifiers: first.legacyModifiers,
+                display: KeyCodeNames.shortcutDisplay(chord: first),
+                orderedChord: first,
+                followingChords: chords.count > 1 ? Array(chords.dropFirst()) : nil
+            )
         }
     }
 
     var runtimeAction: GestureAction {
         switch self {
         case .none: return .none
-        case .shortcut(let keyCode, let modifiers, let display, let chord):
+        case .shortcut(let keyCode, let modifiers, let display, let chord, let following):
+            if let chord, let following, !following.isEmpty {
+                return .shortcutSequence([chord] + following)
+            }
             if let chord,
                let command = ApplicationSwitchCommand.allCases.first(
                    where: { $0.shortcutChord == chord }

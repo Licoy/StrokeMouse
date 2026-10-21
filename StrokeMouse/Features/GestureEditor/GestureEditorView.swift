@@ -298,7 +298,7 @@ private extension GestureEditorView.ActionKind {
     static func from(_ action: GestureAction) -> Self {
         switch action {
         case .none: return .none
-        case .shortcut: return .shortcut
+        case .shortcut, .shortcutSequence: return .shortcut
         case .openApp: return .openApp
         case .openURL: return .openURL
         case .shell: return .shell

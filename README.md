@@ -42,7 +42,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Per-gesture target**: choose the frontmost app or the app under the pointer at trigger-down; when a regular window exists, its exact window is frozen too, and app-scope checks and target-aware actions always reuse that target
 - **Free-path recognition**: record 1–5 samples per gesture (3 recommended), with the best-matching sample winning; elastic arc-length alignment that compares stroke direction first and position second, so curves, wobble and small end hooks are tolerated while reversed, mirrored, truncated or clearly extended strokes are rejected; live stroke HUD while holding the trigger
 - **App scope**: global, or pick apps by icon from installed applications (search / browse `.app`)
-- **Actions**: shortcuts, open app (icon picker), URL, media keys, window actions, Shell / AppleScript (syntax-highlighted editor; AppleScript presets such as sleep, lock screen, empty trash, plus custom)
+- **Actions**: shortcuts (optionally followed by more keys pressed in order, e.g. ⌘V then Return), open app (icon picker), URL, media keys, window actions, Shell / AppleScript (syntax-highlighted editor; AppleScript presets such as sleep, lock screen, empty trash, plus custom)
 - **Polish**: UI in English, Simplified Chinese, Traditional Chinese, Korean, Japanese, Russian, and French (or follow the system language), light/dark appearance (system or forced), launch at login, hide Dock / menu bar icon, Sparkle in-app updates (falls back to GitHub Releases on failure)
 
 ## Requirements

@@ -54,6 +54,11 @@ enum Constants {
     static let liveViabilityHopeThresholdOffset = 0.15
     static let liveViabilityHopeThresholdRange: ClosedRange<Double> = 0.45...0.75
 
+    /// Most chords one shortcut action may post in order.
+    static let shortcutSequenceMaxSteps = 4
+    /// Pause between sequence chords so the target handles each one first.
+    static let shortcutSequenceStepDelay: Duration = .milliseconds(50)
+
     /// Initial smooth-scroll tuning. Step, duration, and acceleration are clamped
     /// to these ranges; frame timing stays fixed.
     static let scrollStepRange: ClosedRange<Double> = 20...240

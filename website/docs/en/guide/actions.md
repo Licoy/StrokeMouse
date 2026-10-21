@@ -27,6 +27,8 @@ Shortcuts are configured by recording only; the display field is read-only. Clic
 
 Both shortcuts with a regular key (for example, `⌘⌥Q`) and modifier-only shortcuts (for example, `⌘⌥`) are supported. The result is displayed in the order the keys were pressed. Supported modifier keys are Command, Option, Control, and Shift.
 
+After recording a shortcut, click **Add Follow-up Key** to record up to 3 more chords. They are pressed in order in the same target, about 50 ms apart, and the sequence stops at the first failure. For example, `⌘V` followed by `↩` pastes and sends in a chat app. Older versions run only the first chord.
+
 ## Open app
 
 In the action picker, choose from **installed apps** by icon (search or browse a `.app`)—no need to type a bundle id by hand (launch still uses the bundle identifier). The display name is for the list UI.

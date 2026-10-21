@@ -148,6 +148,19 @@ final class ActionExecutor {
             try applicationSwitcher.perform(command)
         case .appleScript(let source):
             try await ScriptActions.runAppleScript(source)
+        case .shortcutSequence(let chords):
+            let context = try target.requireContext()
+            for (index, chord) in chords.enumerated() {
+                if index > 0 {
+                    try await Task.sleep(for: Constants.shortcutSequenceStepDelay)
+                }
+                try await targetPlatform.performShortcut(
+                    keyCode: chord.legacyKeyCode,
+                    modifiers: chord.legacyModifiers,
+                    orderedChord: chord,
+                    target: context
+                )
+            }
         }
     }
 
@@ -183,7 +196,7 @@ final class ActionExecutor {
 extension GestureAction {
     var requiresCapturedTarget: Bool {
         switch self {
-        case .shortcut, .window:
+        case .shortcut, .shortcutSequence, .window:
             return true
         case .none, .openApp, .openURL, .shell, .media,
              .applicationSwitch, .appleScript:

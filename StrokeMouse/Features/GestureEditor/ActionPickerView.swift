@@ -45,6 +45,9 @@ struct ActionPickerView: View {
     @State private var keyCode: UInt16 = 0
     @State private var modifiers: UInt = 0
     @State private var orderedChord: ShortcutChord?
+    /// Chords pressed in order after `orderedChord`.
+    @State private var followingChords: [ShortcutChord] = []
+    @State private var isRecordingFollowUp = false
     @State private var appBundleId = ""
     @State private var appName = ""
     @State private var urlString = "https://"
@@ -61,6 +64,74 @@ struct ActionPickerView: View {
     @State private var recorderFailed = false
     @State private var unsupportedShortcutModifier = false
     @State private var showOpenAppPicker = false
+
+    private var isRecordingPrimaryShortcut: Bool {
+        isRecordingShortcut && !isRecordingFollowUp
+    }
+
+    private var canAddFollowingChord: Bool {
+        orderedChord != nil && 1 + followingChords.count < Constants.shortcutSequenceMaxSteps
+    }
+
+    @ViewBuilder
+    private var shortcutSequenceEditor: some View {
+        ForEach(Array(followingChords.enumerated()), id: \.offset) { index, chord in
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.turn.down.right")
+                    .foregroundStyle(.secondary)
+                Text(KeyCodeNames.shortcutDisplay(chord: chord))
+                    .font(.body.monospaced())
+                Spacer()
+                Button {
+                    removeFollowingChord(at: index)
+                } label: {
+                    Image(systemName: "minus.circle")
+                }
+                .buttonStyle(.borderless)
+                .help(L10n.string("action.shortcutRemoveStep"))
+            }
+        }
+
+        if isRecordingFollowUp {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.turn.down.right")
+                    .foregroundStyle(.secondary)
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 7, height: 7)
+                Text(shortcutLivePreview.isEmpty
+                     ? L10n.string("action.shortcutListening")
+                     : shortcutLivePreview)
+                    .font(.body.monospaced())
+                    .foregroundStyle(shortcutLivePreview.isEmpty ? .secondary : .primary)
+                Spacer()
+            }
+        }
+
+        HStack {
+            Button {
+                if isRecordingFollowUp {
+                    stopRecording()
+                } else {
+                    startRecording(followUp: true)
+                }
+            } label: {
+                Label(
+                    L10n.string(isRecordingFollowUp ? "action.shortcutStop" : "action.shortcutAddStep"),
+                    systemImage: isRecordingFollowUp ? "stop.circle" : "plus.circle"
+                )
+            }
+            .disabled(!isRecordingFollowUp && !canAddFollowingChord)
+            Spacer()
+        }
+
+        Text(String(
+            format: L10n.string("action.shortcutSequenceHelp"),
+            Constants.shortcutSequenceMaxSteps
+        ))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+    }
 
     private var openAppInfo: AppInfoLookup.Info? {
         let trimmed = appBundleId.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -129,14 +200,14 @@ struct ActionPickerView: View {
                 HStack(spacing: 10) {
                     // Click-to-record field with live key feedback.
                     Button {
-                        if isRecordingShortcut {
+                        if isRecordingPrimaryShortcut {
                             stopRecording()
                         } else {
                             startRecording()
                         }
                     } label: {
                         HStack(spacing: 8) {
-                            if isRecordingShortcut {
+                            if isRecordingPrimaryShortcut {
                                 Circle()
                                     .fill(Color.red)
                                     .frame(width: 7, height: 7)
@@ -161,29 +232,34 @@ struct ActionPickerView: View {
                     .buttonStyle(.plain)
                     .background(
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(isRecordingShortcut
+                            .fill(isRecordingPrimaryShortcut
                                   ? Color.accentColor.opacity(0.08)
                                   : Color(nsColor: .controlBackgroundColor))
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .strokeBorder(
-                                isRecordingShortcut ? Color.accentColor : Color.secondary.opacity(0.25),
-                                lineWidth: isRecordingShortcut ? 1.5 : 1
+                                isRecordingPrimaryShortcut ? Color.accentColor : Color.secondary.opacity(0.25),
+                                lineWidth: isRecordingPrimaryShortcut ? 1.5 : 1
                             )
                     )
 
-                    Button(isRecordingShortcut
+                    Button(isRecordingPrimaryShortcut
                            ? L10n.string("action.shortcutStop")
                            : L10n.string("action.shortcutRecord")) {
-                        if isRecordingShortcut {
+                        if isRecordingPrimaryShortcut {
                             stopRecording()
                         } else {
                             startRecording()
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(isRecordingShortcut ? .red : .accentColor)
+                    .tint(isRecordingPrimaryShortcut ? .red : .accentColor)
+                }
+
+                // Legacy shortcuts without an ordered chord must be re-recorded first.
+                if orderedChord != nil {
+                    shortcutSequenceEditor
                 }
 
                 if isRecordingShortcut {
@@ -319,7 +395,7 @@ struct ActionPickerView: View {
 
     // MARK: - Recording
 
-    private func startRecording() {
+    private func startRecording(followUp: Bool = false) {
         recorderFailed = false
         unsupportedShortcutModifier = false
         shortcutLivePreview = ""
@@ -330,11 +406,15 @@ struct ActionPickerView: View {
             shortcutLivePreview = display
         }
         tap.onCapture = { chord, display in
-            keyCode = chord.legacyKeyCode
-            modifiers = chord.legacyModifiers
-            orderedChord = chord
-            shortcutDisplay = display
-            action = .shortcut(chord: chord)
+            if followUp {
+                followingChords.append(chord)
+            } else {
+                keyCode = chord.legacyKeyCode
+                modifiers = chord.legacyModifiers
+                orderedChord = chord
+                shortcutDisplay = display
+            }
+            applyShortcutAction()
             stopRecording()
         }
         tap.onCancel = {
@@ -347,6 +427,7 @@ struct ActionPickerView: View {
         let ok = tap.start()
         if ok {
             isRecordingShortcut = true
+            isRecordingFollowUp = followUp
         } else {
             stopRecording()
             recorderFailed = true
@@ -360,7 +441,32 @@ struct ActionPickerView: View {
         ShortcutRecorderTap.shared.onUnsupportedModifier = nil
         ShortcutRecorderTap.shared.onPreview = nil
         isRecordingShortcut = false
+        isRecordingFollowUp = false
         shortcutLivePreview = ""
+    }
+
+    private func removeFollowingChord(at index: Int) {
+        guard followingChords.indices.contains(index) else { return }
+        followingChords.remove(at: index)
+        applyShortcutAction()
+    }
+
+    private func applyShortcutAction() {
+        if let orderedChord {
+            action = .shortcut(chords: [orderedChord] + followingChords)
+            return
+        }
+        let display = shortcutDisplay.isEmpty
+            ? KeyCodeNames.shortcutDisplay(
+                keyCode: keyCode,
+                modifiers: NSEvent.ModifierFlags(rawValue: modifiers)
+            )
+            : shortcutDisplay
+        action = .shortcut(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            display: display.isEmpty ? "—" : display
+        )
     }
 
     private func hydrate(from action: GestureAction) {
@@ -401,6 +507,13 @@ struct ActionPickerView: View {
             windowActionSelection = .window(command)
         case .applicationSwitch(let command):
             windowActionSelection = .applicationSwitch(command)
+        case .shortcutSequence(let chords):
+            guard let first = chords.first else { break }
+            orderedChord = first
+            keyCode = first.legacyKeyCode
+            modifiers = first.legacyModifiers
+            shortcutDisplay = KeyCodeNames.shortcutDisplay(chord: first)
+            followingChords = Array(chords.dropFirst())
         case .appleScript(let source):
             let preset = AppleScriptPreset.matching(source: source)
             // Set draft before preset so any onChange → custom restore uses the hydrated script.
@@ -417,21 +530,7 @@ struct ActionPickerView: View {
         case .none:
             action = .none
         case .shortcut:
-            if let orderedChord {
-                action = .shortcut(chord: orderedChord)
-            } else {
-                let display = shortcutDisplay.isEmpty
-                    ? KeyCodeNames.shortcutDisplay(
-                        keyCode: keyCode,
-                        modifiers: NSEvent.ModifierFlags(rawValue: modifiers)
-                    )
-                    : shortcutDisplay
-                action = .shortcut(
-                    keyCode: keyCode,
-                    modifiers: modifiers,
-                    display: display.isEmpty ? "—" : display
-                )
-            }
+            applyShortcutAction()
         case .openApp:
             action = .openApp(bundleId: appBundleId, name: appName)
         case .openURL:

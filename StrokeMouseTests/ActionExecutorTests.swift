@@ -47,6 +47,47 @@ final class ActionExecutorTests: XCTestCase {
         XCTAssertTrue(platform.windows[0].target.window === context.window)
     }
 
+    func testShortcutSequencePostsEveryChordInOrderToTheSameTarget() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        let executor = ActionExecutor(targetPlatform: platform)
+        let context = makeTargetContext()
+        let paste = ShortcutChord(modifiers: [.command], keyCode: 9)
+        let send = ShortcutChord(modifiers: [], keyCode: 36)
+
+        try await executor.execute(
+            .shortcutSequence([paste, send]),
+            target: .resolved(context)
+        )
+
+        XCTAssertEqual(platform.shortcuts.map(\.orderedChord), [paste, send])
+        XCTAssertEqual(platform.shortcuts.map(\.keyCode), [paste.legacyKeyCode, send.legacyKeyCode])
+        XCTAssertEqual(platform.shortcuts.map(\.modifiers), [paste.legacyModifiers, send.legacyModifiers])
+        XCTAssertTrue(platform.shortcuts.allSatisfy { $0.target.window === context.window })
+    }
+
+    func testShortcutSequenceStopsAtFirstFailure() async {
+        let platform = RecordingGestureTargetActionPlatform()
+        platform.error = GestureTargetError.windowUnavailable
+        let executor = ActionExecutor(targetPlatform: platform)
+
+        do {
+            try await executor.execute(
+                .shortcutSequence([
+                    ShortcutChord(modifiers: [.command], keyCode: 9),
+                    ShortcutChord(modifiers: [], keyCode: 36),
+                ]),
+                target: .resolved(makeTargetContext())
+            )
+            XCTFail("Expected the first chord failure to stop the sequence")
+        } catch GestureTargetError.windowUnavailable {
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+
+        XCTAssertEqual(platform.shortcuts.count, 1)
+        XCTAssertNotNil(executor.lastError)
+    }
+
     func testUnavailableTargetFailsWithoutCallingPlatform() async {
         let platform = RecordingGestureTargetActionPlatform()
         let executor = ActionExecutor(targetPlatform: platform)
