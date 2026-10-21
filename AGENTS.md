@@ -34,7 +34,8 @@ AppState / View 局部状态
         ↓
 Services: GestureRuntime, ScrollEngine, ActionExecutor, ConfigStore, PermissionManager
         ↓
-Platform: MouseEventTap, ModifierEventTap, ScrollEventTap, MultitouchSupport bridge,
+Platform: MouseEventTap, ModifierEventTap, ScrollEventTap, TrackpadClickEventTap,
+          MultitouchSupport bridge,
           PathSimplifier, TemplateMatcher, AX / CGEvent helpers
 ```
 
@@ -66,7 +67,7 @@ StrokeMouse/
     GestureEditor/            # 编辑 profile、录制轨迹、选动作
     Onboarding/               # 首次引导
   Core/
-    EventTap/                  # 鼠标 filtering tap + 修饰键 listen-only tap
+    EventTap/                  # 鼠标 filtering tap + 修饰键 listen-only tap + 触控点按 tap
     Scroll/                    # 滚动增强：分类、平滑驱动、按需 scroll tap
     GestureRecognition/       # 统一 Runtime、路径匹配、触控分类与会话仲裁
     Trackpad/                  # MultitouchSupport 动态 C bridge + Swift Adapter
@@ -127,7 +128,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 2. **中文 UI 提示断句**：hint / help / caption / empty subtitle / footer / warning 等短提示中，同一条提示内的并列或承接分句使用 **逗号（，）或分号（；）**，不要用 **句号（。）** 把短提示拆成多句。句号仅用于提示真正结束，或长文案中语义独立的段落 / 列表项。英文保持正常句号习惯。  
    - 反例：`为此应用添加手势。在此新建的手势会默认绑定该应用。`  
    - 正例：`为此应用添加手势，在此新建的手势会默认绑定该应用。`
-3. **产品对外名称**（UI / 用户文档）：「鼠标绘制」「触控板绘制」「触控手势」。其中「触控板绘制」对应单修饰键 + 指针轨迹；「修饰按键」选择器标签保持不变。工程代码与技术描述仍可用 modifier / multitouch 等术语。
+3. **产品对外名称**（UI / 用户文档）：「鼠标绘制」「触控板绘制」「触控手势」。其中「触控板绘制」对应单修饰键 + 指针轨迹；「修饰按键」选择器标签保持不变。工程代码与技术描述仍可用 modifier / multitouch 等术语。触控手势中「轻点」指只触碰不按下（`tap`），「点按」指物理按下触控板（`click`），中文 UI 不再用「单击 / 双击」描述轻点。
 4. 新配置字段加入 `ConfigModels` 时保持 `Codable` 向后兼容（缺省值 / 可选字段）。
 5. 主线程：UI 与 `@MainActor` Service（`ConfigStore`、`GestureRuntime`、`ScrollEngine`、`AppState`）；耗时脚本用 `async` 后台。
 6. 避免无关大重构；改动聚焦需求。
@@ -141,9 +142,10 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 - **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
 - `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
 - `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。不得写入 `location`：创建时已带当前光标，过期坐标会被系统当成指针位置。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
+- `TrackpadClickEventTap` 的掩码只含 left down/up，不得加入 `leftMouseDragged` 或其他移动事件。回调只访问加锁状态（`TrackpadPressArbiter`），禁止 AX、NSWorkspace、IPC 或主线程同步调用。存在已启用的点按 profile 或诊断进行中时以 `.defaultTap` 安装；只有轻点 profile 时为 listen-only，仅标记按下过的序列；其他情况不安装。它依赖 multitouch 通道处于监听且辅助功能已授权，失败时通过 `trackpadClick` 通道状态可见。只有触点仍在、手指数已按冻结目标 arm、无抬起、落指间隔不超过 `maximumLandingSpread` 且位移不超过 `maximumPressTravel` 的按下才算点按并吞掉；吞掉的 down 必须同时吞掉配对 up，新的 down 清除遗留的待吞 up，带回放标记的事件直接放行。
 - Event tap 的 CFRunLoop source 跑在**专用线程**（非主线程），避免 UI/主线程卡顿拖死光标投递。
 - 触控手势（多指）只允许通过本地 C bridge `dlopen` / `dlsym` 解析 `MultitouchSupport`；禁止静态链接私有框架或引入第三方二进制。私有 callback 必须先复制成稳定值，再送入 Swift 串行队列；stop/unregister 后不得留下悬空 callback。
-- 触控手势不拦截 macOS 原生手势，系统动作可能同时发生。不得保存或记录原始触点轨迹；私有后端失败只将 multitouch 通道标为 failed/degraded，不能拖垮 mouse / modifier 通道，也不得模拟回退或静默重试。
+- 触控手势不拦截 macOS 原生手势，系统动作可能同时发生；唯一例外是点按手势吞掉对应的物理左键 down/up。不得保存或记录原始触点轨迹；私有后端失败只将 multitouch 通道标为 failed/degraded，不能拖垮 mouse / modifier 通道，也不得模拟回退或静默重试。
 - Entitlements：`app-sandbox = false`，`automation.apple-events = true`。
 - 勿在日志中打印用户脚本全文到公开渠道。
 
@@ -158,7 +160,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
    - 实时 HUD 用 32 点粗剖面比较整条模板及其 10%–80% 前缀，先用平均代价下界剪枝，再算完整距离；终态识别不使用前缀
    - 调整参数前用 `Issue17LetterRecognitionTests`（Issue #17 真实字母轨迹）与各录制 fixture 回归，详见 `docs/elastic-path-recognition.md`
 4. 鼠标绘制可选 `GestureProfile.secondaryAction`：会话中点击过左键则只执行匹配手势的第二动作，匹配手势没有第二动作时不执行任何动作（`secondaryActionUnavailable`）；所有候选仍参与匹配，左键只选择动作；未达到有效轨迹的左键会话直接取消、不回放点击；触控板绘制与触控手势始终执行主动作
-5. 触控手势支持 34 类：三至五指单击 / 双击 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝
+5. 触控手势支持 40 类：三至五指轻点 / 轻点两下 / 点按 / 点按两下 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝。物理按下过触控板的触点序列不得识别为任何轻点 / 滑动等触控手势（`.physicallyPressed`）；点按在按下时执行，单 / 双次由独立的 `clickResolver` 判定，截止计时不因触点序列进行中而顺延
 6. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零
 7. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
 
@@ -167,7 +169,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ## 触控板支持范围与限制
 
 - 已支持鼠标绘制、触控板绘制（Fn / Control / Option / Shift / Command 单键 + 指针轨迹），以及实验性触控手势总开关；关闭总开关不得删除 profile。
-- 34 类触控手势 = 三至五指单击 / 双击（6）+ 三至五指四向滑动（12）+ 二至五指捏合 / 张开（8）+ 二至五指顺逆时针旋转（8）。
+- 40 类触控手势 = 三至五指轻点 / 轻点两下（6）+ 三至五指点按 / 点按两下（6）+ 三至五指四向滑动（12）+ 二至五指捏合 / 张开（8）+ 二至五指顺逆时针旋转（8）。
 - 首版主要验收 Mac 内置触控板；外接 Magic Trackpad 仅 best-effort。
 - 不支持两指轻触 / 滑动、修饰键组合、特定手指身份、tipTap / tipSwipe、连续重复动作、用户可调分类阈值或拦截系统手势。
 - BTT 级链式编排、云同步、MAS 沙盒上架和插件市场仍不在当前范围。

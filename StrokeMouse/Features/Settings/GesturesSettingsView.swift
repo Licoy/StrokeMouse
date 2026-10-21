@@ -645,9 +645,14 @@ struct GesturesSettingsView: View {
                                 input: .trackpad(.swipe(.three, .up))
                             )
                         }
-                        Button(L10n.string("editor.direct.category.tap")) {
+                        Button(L10n.string("editor.direct.pressStyle.tap")) {
                             editorProfile = makeNewProfile(
                                 input: .trackpad(.tap(.three, .single))
+                            )
+                        }
+                        Button(L10n.string("editor.direct.pressStyle.click")) {
+                            editorProfile = makeNewProfile(
+                                input: .trackpad(.click(.three, .single))
                             )
                         }
                         Button(L10n.string("editor.direct.transform.pinch")) {

@@ -58,6 +58,22 @@ protocol ModifierGestureEventSource: AnyObject {
 
 extension ModifierEventTap: ModifierGestureEventSource {}
 
+protocol TrackpadClickEventSource: AnyObject {
+    /// Armed presses can only be swallowed while this is true; otherwise the
+    /// tap is listen-only.
+    var interceptsPresses: Bool { get set }
+    /// Synchronous on the tap thread; the argument tells whether the
+    /// installed tap can swallow this press.
+    var onPress:
+        ((Bool) -> TrackpadClickEventTap.PressDecision)? { get set }
+    var isActive: Bool { get }
+
+    func start() -> Bool
+    func stop()
+}
+
+extension TrackpadClickEventTap: TrackpadClickEventSource {}
+
 struct GestureRuntimeConfiguration: Equatable, Sendable {
     var revision: UInt64
     var isEnabled: Bool
@@ -96,6 +112,7 @@ enum GestureInputFailure: Equatable, Sendable {
     case multitouchInvalidDimensions
     case multitouchInvalidFrame
     case multitouchStartFailed(String)
+    case trackpadClickTapCreationFailed
 }
 
 enum GestureInputChannelStatus: Equatable, Sendable {
@@ -109,6 +126,8 @@ struct GestureRuntimeInputStatuses: Equatable, Sendable {
     var mouse: GestureInputChannelStatus = .notRequested
     var modifier: GestureInputChannelStatus = .notRequested
     var multitouch: GestureInputChannelStatus = .notRequested
+    /// Left-button tap correlating physical presses with touch sequences.
+    var trackpadClick: GestureInputChannelStatus = .notRequested
 }
 
 struct GestureActiveSessionSummary: Equatable, Sendable {

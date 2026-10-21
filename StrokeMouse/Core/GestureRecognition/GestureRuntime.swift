@@ -133,6 +133,7 @@ final class GestureRuntime {
     }
 
     private struct DirectSession {
+        let sequenceID: UInt64
         let revision: UInt64
         let profiles: [GestureProfile]
         let rules: GestureAppRules
@@ -142,6 +143,8 @@ final class GestureRuntime {
         var classifier = TrackpadGestureClassifier()
         var centroid = CGPoint.zero
         var terminalEventReceived = false
+        /// Sticky once the trackpad is pressed during this contact sequence.
+        var physicallyPressed = false
     }
 
     private struct PendingTapContext {
@@ -164,6 +167,7 @@ final class GestureRuntime {
 
     private let mouseEventTap: any MouseGestureEventSource
     private let modifierEventTap: any ModifierGestureEventSource
+    private let trackpadClickEventTap: any TrackpadClickEventSource
     private let permissionManager: any GesturePermissionProviding
     private let actionExecutor: ActionExecutor
     private let targetCapturer: any GestureTargetCapturing
@@ -173,6 +177,7 @@ final class GestureRuntime {
     private let sessionGate = GestureSessionGate()
     private let drawCallbackGeneration = DrawCallbackGeneration()
     private let multitouchAdmission = MultitouchSessionAdmission()
+    private let pressArbiter = TrackpadPressArbiter()
     private let multitouchCallbackGeneration =
         MultitouchCallbackGeneration()
     private var multitouchSource: (any MultitouchFrameSource)?
@@ -194,6 +199,9 @@ final class GestureRuntime {
     private let tapDoubleClickInterval: TimeInterval
     private var tapResolver: TrackpadTapSequenceResolver
     private var pendingTapContext: PendingTapContext?
+    private var pendingClickTimer: Timer?
+    private var clickResolver: TrackpadTapSequenceResolver
+    private var pendingClickContext: PendingTapContext?
     private var suppressionTokens = Set<UUID>()
     private var diagnosticTokens = Set<UUID>()
     private var workspaceObservers: [NSObjectProtocol] = []
@@ -207,6 +215,8 @@ final class GestureRuntime {
         targetCapturer: (any GestureTargetCapturing)? = nil,
         mouseEventTap: any MouseGestureEventSource = MouseEventTap(),
         modifierEventTap: any ModifierGestureEventSource = ModifierEventTap(),
+        trackpadClickEventTap: any TrackpadClickEventSource =
+            TrackpadClickEventTap(),
         doubleClickInterval: TimeInterval = NSEvent.doubleClickInterval,
         pointerLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
         multitouchSourceFactory: @escaping () -> any MultitouchFrameSource
@@ -222,11 +232,15 @@ final class GestureRuntime {
         self.pointerLocation = pointerLocation
         self.mouseEventTap = mouseEventTap
         self.modifierEventTap = modifierEventTap
+        self.trackpadClickEventTap = trackpadClickEventTap
         self.multitouchSourceFactory = multitouchSourceFactory
         self.inputCoreQueue = inputCoreQueue
         let doubleClickInterval = max(0, doubleClickInterval)
         tapDoubleClickInterval = doubleClickInterval
         tapResolver = TrackpadTapSequenceResolver(
+            doubleClickInterval: doubleClickInterval
+        )
+        clickResolver = TrackpadTapSequenceResolver(
             doubleClickInterval: doubleClickInterval
         )
         let drawCallbacks = drawCallbackGeneration
@@ -409,6 +423,24 @@ final class GestureRuntime {
                 }
             }
         }
+        let pressArbiter = pressArbiter
+        trackpadClickEventTap.onPress = { [weak self] canSwallow in
+            switch pressArbiter.press(canSwallow: canSwallow) {
+            case .unrelated, .observed:
+                return .passThrough
+            case .click(let press):
+                // Through the input queue, so the press reaches the main actor
+                // after the frame that armed its sequence.
+                inputCoreQueue.async {
+                    DispatchQueue.main.async { [weak self] in
+                        MainActor.assumeIsolated {
+                            self?.handleTrackpadPress(press)
+                        }
+                    }
+                }
+                return .swallow
+            }
+        }
         publishAdmissionContext()
         installWorkspaceObservers()
     }
@@ -417,11 +449,14 @@ final class GestureRuntime {
         MainActor.assumeIsolated {
             sampleTimer?.invalidate()
             pendingTapTimer?.invalidate()
+            pendingClickTimer?.invalidate()
             mouseEventTap.onEvent = nil
             mouseEventTap.shouldCapture = nil
             modifierEventTap.onEvent = nil
+            trackpadClickEventTap.onPress = nil
             mouseEventTap.stop()
             modifierEventTap.stop()
+            trackpadClickEventTap.stop()
             multitouchCallbackGeneration.invalidate()
             multitouchSource?.stop()
             let center = NSWorkspace.shared.notificationCenter
@@ -475,6 +510,7 @@ final class GestureRuntime {
         let token = UUID()
         if suppressionTokens.isEmpty {
             resetPendingTapSequence()
+            resetPendingClickSequence()
             downgradeActiveSessionToDiagnostics()
         }
         sessionGate.updateContext(admissionContext(
@@ -494,6 +530,7 @@ final class GestureRuntime {
         let token = UUID()
         if diagnosticTokens.isEmpty {
             resetPendingTapSequence()
+            resetPendingClickSequence()
             downgradeActiveSessionToDiagnostics()
         }
         sessionGate.updateContext(admissionContext(
@@ -545,6 +582,7 @@ final class GestureRuntime {
         GestureHUDController.shared.hide()
         mouseEventTap.stop()
         modifierEventTap.stop()
+        trackpadClickEventTap.stop()
         let demand = inputDemand
         let shouldRequest = (configuration.isEnabled
             || !diagnosticTokens.isEmpty)
@@ -555,6 +593,11 @@ final class GestureRuntime {
                 ? .failed(.accessibilityRequired)
                 : .stopped
         state.inputs.modifier = demand.modifierKeys.isEmpty
+            ? .notRequested
+            : shouldRequest
+                ? .failed(.accessibilityRequired)
+                : .stopped
+        state.inputs.trackpadClick = !demand.needsTrackpadClicks
             ? .notRequested
             : shouldRequest
                 ? .failed(.accessibilityRequired)
@@ -646,13 +689,18 @@ final class GestureRuntime {
         mouseEventTap.watchedButtons = demand.mouseButtons
         mouseEventTap.interceptsChordClicks = demand.needsChordClicks
         modifierEventTap.watchedKeys = demand.modifierKeys
+        trackpadClickEventTap.interceptsPresses =
+            demand.interceptsTrackpadClicks
 
         guard configuration.isEnabled || !diagnosticTokens.isEmpty else {
             stopChannels()
             state.inputs = GestureRuntimeInputStatuses(
                 mouse: demand.mouseButtons.isEmpty ? .notRequested : .stopped,
                 modifier: demand.modifierKeys.isEmpty ? .notRequested : .stopped,
-                multitouch: demand.needsMultitouch ? .stopped : .notRequested
+                multitouch: demand.needsMultitouch ? .stopped : .notRequested,
+                trackpadClick: demand.needsTrackpadClicks
+                    ? .stopped
+                    : .notRequested
             )
             state.lifecycle = .stopped
             return
@@ -662,7 +710,10 @@ final class GestureRuntime {
             state.inputs = GestureRuntimeInputStatuses(
                 mouse: demand.mouseButtons.isEmpty ? .notRequested : .stopped,
                 modifier: demand.modifierKeys.isEmpty ? .notRequested : .stopped,
-                multitouch: demand.needsMultitouch ? .stopped : .notRequested
+                multitouch: demand.needsMultitouch ? .stopped : .notRequested,
+                trackpadClick: demand.needsTrackpadClicks
+                    ? .stopped
+                    : .notRequested
             )
             state.lifecycle = .suppressed
             return
@@ -684,6 +735,9 @@ final class GestureRuntime {
         state.inputs.multitouch = isSystemSleeping
             ? (demand.needsMultitouch ? .stopped : .notRequested)
             : startMultitouchIfNeeded(demand.needsMultitouch)
+        state.inputs.trackpadClick = startTrackpadClickIfNeeded(
+            demand.needsTrackpadClicks
+        )
         updateLifecycle()
     }
 
@@ -691,12 +745,16 @@ final class GestureRuntime {
         mouseButtons: Set<MouseTriggerButton>,
         needsChordClicks: Bool,
         modifierKeys: Set<GestureModifierKey>,
-        needsMultitouch: Bool
+        needsMultitouch: Bool,
+        needsTrackpadClicks: Bool,
+        interceptsTrackpadClicks: Bool
     ) {
         var buttons = Set<MouseTriggerButton>()
         var chordClicks = false
         var modifiers = Set<GestureModifierKey>()
         var direct = false
+        var directTaps = false
+        var directClicks = false
         for profile in configuration.profiles where profile.isEnabled {
             chordClicks = chordClicks || profile.acceptsChordClick
             switch profile.input {
@@ -709,19 +767,30 @@ final class GestureRuntime {
                     }
                 case .modifier(let key): modifiers.insert(key)
                 }
-            case .trackpad:
+            case .trackpad(let gesture):
                 direct = true
+                switch gesture {
+                case .tap: directTaps = true
+                case .click: directClicks = true
+                case .swipe, .pinch, .rotate: break
+                }
             }
         }
-        if !diagnosticTokens.isEmpty {
+        let isDiagnosing = !diagnosticTokens.isEmpty
+        if isDiagnosing {
             modifiers.formUnion(GestureModifierKey.allCases)
         }
+        let needsMultitouch = (direct || isDiagnosing)
+            && configuration.directTrackpadEnabled
+        // Taps alone only need presses observed, so a pressed sequence is not
+        // mistaken for a tap; swallowing requires a reachable click gesture.
         return (
             buttons,
             chordClicks,
             modifiers,
-            (direct || !diagnosticTokens.isEmpty)
-                && configuration.directTrackpadEnabled
+            needsMultitouch,
+            needsMultitouch && (directTaps || directClicks || isDiagnosing),
+            directClicks || isDiagnosing
         )
     }
 
@@ -762,6 +831,27 @@ final class GestureRuntime {
         }
     }
 
+    /// Presses only mean something while touch frames are flowing.
+    private func startTrackpadClickIfNeeded(
+        _ isNeeded: Bool
+    ) -> GestureInputChannelStatus {
+        guard isNeeded else {
+            trackpadClickEventTap.stop()
+            return .notRequested
+        }
+        guard state.inputs.multitouch == .listening else {
+            trackpadClickEventTap.stop()
+            return .stopped
+        }
+        guard permissionManager.isAccessibilityTrusted else {
+            trackpadClickEventTap.stop()
+            return .failed(.accessibilityRequired)
+        }
+        return trackpadClickEventTap.start()
+            ? .listening
+            : .failed(.trackpadClickTapCreationFailed)
+    }
+
     private func startMultitouchIfNeeded(
         _ isNeeded: Bool
     ) -> GestureInputChannelStatus {
@@ -778,6 +868,7 @@ final class GestureRuntime {
             return .listening
         }
         let admissionController = multitouchAdmission
+        let pressArbiter = pressArbiter
         let arbitrationGate = sessionGate
         let inputCoreQueue = inputCoreQueue
         let targetCapturer = targetCapturer
@@ -803,6 +894,12 @@ final class GestureRuntime {
                             frame,
                             gate: arbitrationGate
                         )
+                        // Before the target capture below, so a press during
+                        // a slow capture still marks this sequence.
+                        let pressed = pressArbiter.record(
+                            frame,
+                            sequenceID: admission.sequenceID
+                        )
                         let pointerLocation =
                             CGEvent(source: nil)?.location ?? .zero
                         let snapshot =
@@ -815,6 +912,17 @@ final class GestureRuntime {
                                 )
                             }
                             : nil
+                        if let inputAdmission = admission.admission,
+                           let snapshot
+                        {
+                            pressArbiter.arm(
+                                sequenceID: admission.sequenceID,
+                                fingerCounts: Self.clickFingerCounts(
+                                    for: inputAdmission,
+                                    snapshot: snapshot
+                                )
+                            )
+                        }
                         DispatchQueue.main.async { [weak self] in
                             MainActor.assumeIsolated {
                                 guard callbackGeneration.isCurrent(
@@ -825,7 +933,8 @@ final class GestureRuntime {
                                 self?.handleTouchFrame(
                                     frame,
                                     admission: admission,
-                                    targetSnapshot: snapshot
+                                    targetSnapshot: snapshot,
+                                    pressed: pressed
                                 )
                             }
                         }
@@ -844,6 +953,7 @@ final class GestureRuntime {
                         }
                         arbitrationGate.forceRelease(.multitouch)
                         admissionController.reset()
+                        pressArbiter.reset()
                         DispatchQueue.main.async { [weak self] in
                             MainActor.assumeIsolated {
                                 guard callbackGeneration.isCurrent(
@@ -897,6 +1007,7 @@ final class GestureRuntime {
         ignoresDirectTouchesUntilEmpty = false
         currentTouches = []
         resetPendingTapSequence()
+        resetPendingClickSequence()
         if state.activeSession?.source == .multitouch {
             state.activeSession = nil
         }
@@ -908,9 +1019,11 @@ final class GestureRuntime {
         multitouchSource?.stop()
         let arbitrationGate = sessionGate
         let admissionController = multitouchAdmission
+        let pressArbiter = pressArbiter
         inputCoreQueue.async { [weak self] in
             let releasedOwner = arbitrationGate.forceRelease(.multitouch)
             let resetSequence = admissionController.reset()
+            pressArbiter.reset()
             guard releasedOwner || resetSequence else { return }
             DispatchQueue.main.async { [weak self] in
                 MainActor.assumeIsolated {
@@ -925,6 +1038,7 @@ final class GestureRuntime {
             state.inputs.mouse,
             state.inputs.modifier,
             state.inputs.multitouch,
+            state.inputs.trackpadClick,
         ]
         let failures = channels.compactMap { channel -> GestureInputFailure? in
             guard case .failed(let failure) = channel else { return nil }
@@ -945,6 +1059,7 @@ final class GestureRuntime {
         drawCallbackGeneration.rotate(enabled: false)
         mouseEventTap.stop()
         modifierEventTap.stop()
+        trackpadClickEventTap.stop()
         stopMultitouchInput()
         cancelActiveSessions()
     }
@@ -1338,6 +1453,28 @@ final class GestureRuntime {
             || !targetedCandidates(for: admission, snapshot: snapshot).isEmpty
     }
 
+    /// Finger counts whose press this target turns into a click gesture.
+    /// Diagnostics arm every count so an unconfigured press still reports.
+    nonisolated private static func clickFingerCounts(
+        for admission: GestureInputAdmission,
+        snapshot: GestureTargetSnapshot
+    ) -> Set<Int> {
+        guard !admission.context.isDiagnostic else {
+            return Set(StandardFingerCount.allCases.map(\.rawValue))
+        }
+        return Set(
+            targetedCandidates(for: admission, snapshot: snapshot)
+                .compactMap { targeted in
+                    guard case .trackpad(.click(let fingers, _)) =
+                        targeted.profile.input
+                    else {
+                        return nil
+                    }
+                    return fingers.rawValue
+                }
+        )
+    }
+
     nonisolated private static func captureTargetSnapshot(
         for admission: GestureInputAdmission,
         at quartzLocation: CGPoint,
@@ -1388,7 +1525,8 @@ final class GestureRuntime {
     private func handleTouchFrame(
         _ frame: TrackpadTouchFrame,
         admission: MultitouchAdmission,
-        targetSnapshot: GestureTargetSnapshot?
+        targetSnapshot: GestureTargetSnapshot?,
+        pressed: Bool
     ) {
         currentTouches = frame.contacts
         let activeContacts = frame.contacts.filter(\.phase.isActive)
@@ -1407,12 +1545,16 @@ final class GestureRuntime {
             }
             beginDirectSession(
                 frame: frame,
+                sequenceID: admission.sequenceID,
                 contacts: activeContacts,
                 admission: inputAdmission,
                 snapshot: targetSnapshot
             )
         }
         guard var session = directSession else { return }
+        if pressed {
+            session.physicallyPressed = true
+        }
         if !activeContacts.isEmpty {
             session.centroid = Self.centroid(activeContacts.map(\.position))
         }
@@ -1423,7 +1565,16 @@ final class GestureRuntime {
         if let event, !session.terminalEventReceived {
             session.terminalEventReceived = true
             switch event {
+            case .recognized where session.physicallyPressed:
+                // A pressed sequence is a click or an app drag, never a
+                // touch gesture.
+                interruptPendingTapSequence()
+                recordOutcome(
+                    .rejected(.physicallyPressed),
+                    source: .multitouch
+                )
             case .recognized(let classification):
+                interruptPendingClickSequence()
                 if !classification.isTap {
                     interruptPendingTapSequence()
                 }
@@ -1465,6 +1616,7 @@ final class GestureRuntime {
 
     private func beginDirectSession(
         frame: TrackpadTouchFrame,
+        sequenceID: UInt64,
         contacts: [TrackpadTouchContact],
         admission: GestureInputAdmission,
         snapshot: GestureTargetSnapshot?
@@ -1499,6 +1651,7 @@ final class GestureRuntime {
         }
         preparePendingTapForContactSequence(startedAt: frame.timestamp)
         directSession = DirectSession(
+            sequenceID: sequenceID,
             revision: frozenConfiguration.revision,
             profiles: profiles,
             rules: frozenConfiguration.appRules,
@@ -1772,7 +1925,8 @@ final class GestureRuntime {
 
     private func executeTap(
         _ tapCount: TapCount,
-        context: PendingTapContext
+        context: PendingTapContext,
+        isClick: Bool = false
     ) {
         guard let count = StandardFingerCount(
             rawValue: context.tap.fingers
@@ -1781,11 +1935,169 @@ final class GestureRuntime {
             return
         }
         executeDirect(
-            .tap(count, tapCount),
+            isClick ? .click(count, tapCount) : .tap(count, tapCount),
             profiles: context.profiles,
             rules: context.rules,
             snapshot: context.snapshot,
             mode: context.mode
+        )
+    }
+
+    // MARK: - Physical clicks
+
+    /// Runs at the press itself: the down edge has already been swallowed.
+    private func handleTrackpadPress(_ press: TrackpadPress) {
+        guard var session = directSession,
+              session.sequenceID == press.sequenceID
+        else {
+            return
+        }
+        // The press owns this sequence: lifting the fingers afterwards must
+        // not also produce a tap or a swipe.
+        session.physicallyPressed = true
+        session.terminalEventReceived = true
+        directSession = session
+        interruptPendingTapSequence()
+        guard let count = StandardFingerCount(rawValue: press.fingers) else {
+            interruptPendingClickSequence()
+            recordOutcome(.noMatch, source: .multitouch)
+            return
+        }
+        let availability = TrackpadTapAvailability(
+            hasSingle: hasDirectMatch(
+                .click(count, .single),
+                profiles: session.profiles,
+                rules: session.rules,
+                snapshot: session.snapshot
+            ),
+            hasDouble: hasDirectMatch(
+                .click(count, .double),
+                profiles: session.profiles,
+                rules: session.rules,
+                snapshot: session.snapshot
+            )
+        )
+        guard availability.hasSingle || availability.hasDouble else {
+            interruptPendingClickSequence()
+            recordOutcome(.noMatch, source: .multitouch)
+            return
+        }
+        // Main-actor time keeps every click timestamp monotonic with the
+        // deadline timer, which also runs here.
+        let current = PendingTapContext(
+            profiles: session.profiles,
+            rules: session.rules,
+            snapshot: session.snapshot,
+            tap: TrackpadTap(
+                deviceID: 0,
+                fingers: press.fingers,
+                centroid: press.centroid,
+                timestamp: ProcessInfo.processInfo.systemUptime
+            ),
+            mode: session.mode
+        )
+        let previous = pendingClickContext
+        let resolutions = clickResolver.register(
+            current.tap,
+            availability: availability
+        )
+        if resolutions.contains(.invalidTimestamp) {
+            interruptPendingClickSequence()
+            recordOutcome(.rejected(.invalidFrame), source: .multitouch)
+            return
+        }
+        var completedDouble = false
+        for resolution in resolutions {
+            switch resolution {
+            case .single(let tap):
+                guard let context = tapContext(
+                    for: tap,
+                    previous: previous,
+                    current: current
+                ) else {
+                    continue
+                }
+                executeTap(.single, context: context, isClick: true)
+            case .double(let first, _):
+                completedDouble = true
+                guard let context = tapContext(
+                    for: first,
+                    previous: previous,
+                    current: current
+                ) else {
+                    continue
+                }
+                executeTap(.double, context: context, isClick: true)
+            case .invalidTimestamp:
+                break
+            }
+        }
+        pendingClickContext = !completedDouble && availability.hasDouble
+            ? current
+            : nil
+        schedulePendingClickDeadline()
+    }
+
+    /// Unlike a tap, a second click arrives at its press, so the deadline is
+    /// never deferred by a contact sequence in progress.
+    private func schedulePendingClickDeadline() {
+        pendingClickTimer?.invalidate()
+        pendingClickTimer = nil
+        guard pendingClickContext != nil else { return }
+        let timer = Timer(
+            timeInterval: tapDoubleClickInterval + 0.001,
+            repeats: false
+        ) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.pendingClickTimer = nil
+                self.resolvePendingClick(
+                    at: ProcessInfo.processInfo.systemUptime
+                )
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        pendingClickTimer = timer
+    }
+
+    private func resolvePendingClick(at timestamp: TimeInterval) {
+        guard let context = pendingClickContext else { return }
+        let resolutions = clickResolver.advance(to: timestamp)
+        if resolutions.contains(.invalidTimestamp) {
+            interruptPendingClickSequence()
+            recordOutcome(.rejected(.invalidFrame), source: .multitouch)
+            return
+        }
+        pendingClickContext = nil
+        pendingClickTimer?.invalidate()
+        pendingClickTimer = nil
+        guard resolutions.contains(.single(context.tap)) else {
+            recordOutcome(.noMatch, source: .multitouch)
+            return
+        }
+        executeTap(.single, context: context, isClick: true)
+    }
+
+    private func interruptPendingClickSequence() {
+        let context = pendingClickContext
+        let resolutions = clickResolver.interrupt()
+        pendingClickContext = nil
+        pendingClickTimer?.invalidate()
+        pendingClickTimer = nil
+        guard let context,
+              resolutions.contains(.single(context.tap))
+        else {
+            return
+        }
+        executeTap(.single, context: context, isClick: true)
+    }
+
+    private func resetPendingClickSequence() {
+        pendingClickTimer?.invalidate()
+        pendingClickTimer = nil
+        pendingClickContext = nil
+        clickResolver = TrackpadTapSequenceResolver(
+            doubleClickInterval: tapDoubleClickInterval
         )
     }
 
@@ -1945,10 +2257,15 @@ final class GestureRuntime {
     func handleSleep() {
         isSystemSleeping = true
         stopMultitouchInput()
+        trackpadClickEventTap.stop()
         resetPendingTapSequence()
+        resetPendingClickSequence()
         cancelActiveSessions()
         if case .listening = state.inputs.multitouch {
             state.inputs.multitouch = .stopped
+        }
+        if case .listening = state.inputs.trackpadClick {
+            state.inputs.trackpadClick = .stopped
         }
         updateLifecycle()
     }
@@ -1966,6 +2283,9 @@ final class GestureRuntime {
         multitouchSource?.clearFailure()
         multitouchCallbackGeneration.clearFailure()
         state.inputs.multitouch = startMultitouchIfNeeded(true)
+        state.inputs.trackpadClick = startTrackpadClickIfNeeded(
+            inputDemand.needsTrackpadClicks
+        )
         updateLifecycle()
     }
 

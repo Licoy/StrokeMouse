@@ -63,6 +63,9 @@ enum TrackpadGestureRejection: Equatable, Sendable {
     case durationExceeded
     case unsupported
     case ambiguous
+    /// The trackpad was physically pressed: a click or an app drag, never a
+    /// touch gesture.
+    case physicallyPressed
 }
 
 enum TrackpadClassifierEvent: Equatable, Sendable {
@@ -88,6 +91,8 @@ struct TrackpadRecognitionPolicy: Equatable, Sendable {
     var maximumGestureDuration: TimeInterval = 2.0
     var maximumTapDuration: TimeInterval = 0.250
     var maximumTapTravel: CGFloat = 0.025
+    /// Contacts may shift slightly while the press itself flattens them.
+    var maximumPressTravel: CGFloat = 0.03
     var minimumSwipeDistance: CGFloat = 0.12
     var swipeAxisRatio: CGFloat = 1.5
     var minimumBaselineRadius: CGFloat = 0.03

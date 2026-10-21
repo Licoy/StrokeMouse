@@ -853,6 +853,8 @@ private extension TrackpadGestureRejection {
         case .durationExceeded: return "gestureTest.reject.durationExceeded"
         case .unsupported: return "gestureTest.reject.unsupported"
         case .ambiguous: return "gestureTest.reject.ambiguous"
+        case .physicallyPressed:
+            return "gestureTest.reject.physicallyPressed"
         }
     }
 }

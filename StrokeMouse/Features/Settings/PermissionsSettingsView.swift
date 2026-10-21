@@ -86,6 +86,10 @@ struct PermissionsSettingsView: View {
                     L10n.string("permissions.channel.multitouch"),
                     status: appState.gestureRuntime.state.inputs.multitouch
                 )
+                channelRow(
+                    L10n.string("permissions.channel.trackpadClick"),
+                    status: appState.gestureRuntime.state.inputs.trackpadClick
+                )
                 LabeledContent(L10n.string("permissions.channel.scroll")) {
                     Text(L10n.string(appState.scrollEngine.status.messageKey))
                         .foregroundStyle(scrollStatusColor)
@@ -241,6 +245,8 @@ private extension GestureInputFailure {
             return "permissions.failure.multitouchFrame"
         case .multitouchStartFailed:
             return "permissions.failure.multitouchStart"
+        case .trackpadClickTapCreationFailed:
+            return "permissions.failure.trackpadClickTap"
         }
     }
 }

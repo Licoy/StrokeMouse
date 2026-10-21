@@ -36,7 +36,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
 - **Mouse drawing**: each gesture can independently use the right, middle, or a side button; only buttons referenced by enabled profiles are monitored; optionally add a **left-click secondary action**—click the left button once while drawing and only that action runs on release
 - **Trackpad Draw**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
-- **Experimental Touch Gestures**: the built-in trackpad supports 34 gesture classes—three- to five-finger taps, double taps, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
+- **Experimental Touch Gestures**: the built-in trackpad supports 40 gesture classes—three- to five-finger taps, double taps, clicks, double clicks, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
 - **Touch Gestures master switch**: disable Touch Gestures without deleting configured gestures; private-backend failures degrade only the trackpad channel, leaving mouse and Trackpad Draw available
 - **Scroll enhancement**: reverse the mouse wheel and the trackpad / Magic Mouse independently on each axis, and optionally smooth notched wheel scrolling (gentle / standard / responsive, or custom speed, duration, and acceleration). Exclusions match the frontmost app. These settings stay on this Mac and are not part of backup sync. Other scroll utilities can double-process events; apps that only read whole-line ticks (some games, VMs, remote desktops) should be excluded
 - **Per-gesture target**: choose the frontmost app or the app under the pointer at trigger-down; when a regular window exists, its exact window is frozen too, and app-scope checks and target-aware actions always reuse that target
@@ -90,17 +90,18 @@ On first launch or **Settings → Permissions**, use in-app **Guide Me**: open S
 
 Touch Gestures load Apple's undocumented `MultitouchSupport` at runtime through `dlopen` / `dlsym`; the private framework is not statically linked. It may stop working after a macOS update. A missing framework, symbol, device, or startup failure is shown as a trackpad-channel failure while mouse and Trackpad Draw continue to work—there is no simulated fallback or silent retry.
 
-StrokeMouse does not intercept native trackpad events, so a macOS system gesture may occur alongside the bound action. Raw touch trajectories are neither stored nor logged. The first attempt to enable, save, or import enabled Touch Gesture profiles shows an experimental-risk confirmation. The master switch can later pause Touch Gestures without deleting those profiles.
+StrokeMouse does not intercept native trackpad gestures, so a macOS system gesture may occur alongside the bound action. The one exception is Click: pressing the trackpad with a finger count that has a Click gesture hands that click to the gesture, and applications no longer receive it. A touch sequence that physically pressed the trackpad is never recognized as a tap or swipe. Raw touch trajectories are neither stored nor logged. The first attempt to enable, save, or import enabled Touch Gesture profiles shows an experimental-risk confirmation. The master switch can later pause Touch Gestures without deleting those profiles.
 
-The 34 supported Touch Gesture classes are:
+The 40 supported Touch Gesture classes are:
 
 | Family | Fingers | Variants | Count |
 |--------|---------|----------|-------|
 | Tap | Three / four / five | Single, double | 6 |
+| Click | Three / four / five | Single, double | 6 |
 | Swipe | Three / four / five | Up, down, left, right | 12 |
 | Scale | Two / three / four / five | Pinch, spread | 8 |
 | Rotate | Two / three / four / five | Counterclockwise, clockwise | 8 |
-| **Total** |  |  | **34** |
+| **Total** |  |  | **40** |
 
 The first release does not support two-finger taps / swipes, modifier combinations, specific finger identities, continuously repeated actions, or user-adjustable recognition thresholds.
 

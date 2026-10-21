@@ -473,17 +473,18 @@ final class ConfigStoreTests: XCTestCase {
         }
     }
 
-    func testAllThirtyFourTrackpadGesturesRoundTripInV2Config() throws {
+    func testAllFortyTrackpadGesturesRoundTripInV2Config() throws {
         var gestures: [DirectTrackpadGesture] = []
         for fingers in StandardFingerCount.allCases {
             gestures += TapCount.allCases.map { .tap(fingers, $0) }
+            gestures += TapCount.allCases.map { .click(fingers, $0) }
             gestures += CardinalDirection.allCases.map { .swipe(fingers, $0) }
         }
         for fingers in TransformFingerCount.allCases {
             gestures += PinchDirection.allCases.map { .pinch(fingers, $0) }
             gestures += RotationDirection.allCases.map { .rotate(fingers, $0) }
         }
-        XCTAssertEqual(gestures.count, 34)
+        XCTAssertEqual(gestures.count, 40)
 
         let profiles = gestures.enumerated().map { index, gesture in
             GestureProfile(
@@ -496,6 +497,23 @@ final class ConfigStoreTests: XCTestCase {
         let decoded = try JSONDecoder().decode(GestureConfigFile.self, from: data)
 
         XCTAssertEqual(decoded, source)
+    }
+
+    func testClickGestureUsesItsOwnTypeTag() throws {
+        let data = try JSONEncoder().encode(
+            DirectTrackpadGesture.click(.four, .double)
+        )
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: data) as? [String: Any]
+        )
+
+        XCTAssertEqual(object["type"] as? String, "click")
+        XCTAssertEqual(object["fingers"] as? Int, 4)
+        XCTAssertEqual(object["tapCount"] as? String, "double")
+        XCTAssertEqual(
+            try JSONDecoder().decode(DirectTrackpadGesture.self, from: data),
+            .click(.four, .double)
+        )
     }
 
     func testFutureVersionIsRejectedWithoutRewritingFile() throws {

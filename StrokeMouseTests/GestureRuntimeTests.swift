@@ -197,6 +197,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let drawn = GestureProfile(
@@ -242,6 +243,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let original = GestureProfile(
@@ -287,6 +289,7 @@ final class GestureRuntimeTests: XCTestCase {
                 bundleIdentifier: "com.google.Chrome"
             ),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let global = GestureProfile(
@@ -345,6 +348,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -427,6 +431,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = GestureProfile(
@@ -462,6 +467,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -500,6 +506,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -579,6 +586,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = GestureProfile(
@@ -664,6 +672,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: PermissionManager(),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = GestureProfile(
@@ -709,6 +718,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: PermissionManager(),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = GestureProfile(
@@ -757,6 +767,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             doubleClickInterval: 0.30,
             multitouchSourceFactory: { source }
         )
@@ -791,6 +802,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             doubleClickInterval: 0.30,
             multitouchSourceFactory: { source }
         )
@@ -830,6 +842,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             doubleClickInterval: 0.30,
             multitouchSourceFactory: { source }
         )
@@ -865,6 +878,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             doubleClickInterval: 0.30,
             multitouchSourceFactory: { source }
         )
@@ -892,6 +906,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = shortcutProfile(name: "Normal then diagnostic")
@@ -929,6 +944,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = shortcutProfile(name: "Normal then suppressed")
@@ -989,6 +1005,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profiles = [
@@ -1093,6 +1110,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: PermissionManager(),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let first = shortcutProfile(name: "First")
@@ -1129,6 +1147,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: capturer,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         var profile = shortcutProfile(name: "Frozen target")
@@ -1167,6 +1186,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let mouseProfile = GestureProfile(
@@ -1231,6 +1251,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -1280,6 +1301,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let profile = GestureProfile(
@@ -1332,6 +1354,7 @@ final class GestureRuntimeTests: XCTestCase {
                 actionExecutor: ActionExecutor(),
                 targetCapturer: RuntimeTargetCapturer(),
                 modifierEventTap: modifier,
+                trackpadClickEventTap: RuntimeTrackpadClickSource(),
                 multitouchSourceFactory: { source }
             )
             let profile = GestureProfile(name: "Profile \(index)", input: input)
@@ -1386,6 +1409,7 @@ final class GestureRuntimeTests: XCTestCase {
                     targetCapturer: capturer,
                     mouseEventTap: mouse,
                     modifierEventTap: modifier,
+                    trackpadClickEventTap: RuntimeTrackpadClickSource(),
                     pointerLocation: {
                         pendingSample?.fulfill()
                         pendingSample = nil
@@ -1469,6 +1493,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             pointerLocation: {
                 pendingSample?.fulfill()
                 pendingSample = nil
@@ -1634,6 +1659,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             pointerLocation: {
                 pendingSample?.fulfill()
                 pendingSample = nil
@@ -1674,6 +1700,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         let plain = drawnShortcutProfile(
@@ -1740,6 +1767,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             pointerLocation: {
                 pendingSample?.fulfill()
                 pendingSample = nil
@@ -1782,6 +1810,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -1823,6 +1852,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -1860,6 +1890,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -1898,6 +1929,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let mouseProfile = GestureProfile(
@@ -1958,6 +1990,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let mouseProfile = GestureProfile(
@@ -2011,6 +2044,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         let profile = GestureProfile(
@@ -2070,6 +2104,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: RuntimeTargetCapturer(),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let mouseProfile = GestureProfile(
@@ -2125,6 +2160,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: capturer,
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         releasedRuntime = runtime
@@ -2166,6 +2202,255 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertNil(modifier.onEvent)
     }
 
+    // MARK: - Physical clicks
+
+    func testPressedTouchSequenceNeverYieldsTap() async throws {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let tap = directProfile(name: "Tap", gesture: .tap(.three, .single))
+        let runtime = makeRuntime(source: source, click: click)
+        var matches: [UUID] = []
+        runtime.onMatch = { matches.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [tap]
+        ))
+
+        XCTAssertTrue(click.isActive)
+        XCTAssertFalse(click.installedIntercepts)
+        source.emit(frame(at: 1, points: basePoints()))
+        XCTAssertFalse(click.press())
+        source.emit(frame(at: 1.07, points: basePoints()))
+        source.emit(frame(at: 1.12, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [])
+        XCTAssertEqual(
+            runtime.lastTrackpadOutcome,
+            .rejected(.physicallyPressed)
+        )
+    }
+
+    func testClickGestureRunsAtPressAndOwnsItsSequence() async throws {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let tap = directProfile(name: "Tap", gesture: .tap(.three, .single))
+        let pressed = directProfile(
+            name: "Click",
+            gesture: .click(.three, .single)
+        )
+        let runtime = makeRuntime(source: source, click: click)
+        var matches: [UUID] = []
+        runtime.onMatch = { matches.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [tap, pressed]
+        ))
+
+        XCTAssertTrue(click.installedIntercepts)
+        XCTAssertFalse(click.press(), "No resting fingers: a pointer click")
+        source.emit(frame(at: 1, points: basePoints()))
+        source.emit(frame(at: 1.07, points: basePoints()))
+        XCTAssertTrue(click.press())
+        source.emit(frame(at: 1.1, points: basePoints()))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [pressed.id])
+
+        source.emit(frame(at: 1.12, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [pressed.id])
+        XCTAssertEqual(
+            runtime.lastTrackpadOutcome,
+            .matched(profileID: pressed.id, score: nil)
+        )
+    }
+
+    func testPressWithUnconfiguredFingerCountReachesApplications()
+        async throws
+    {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let fourFingers = directProfile(
+            name: "Four",
+            gesture: .click(.four, .single)
+        )
+        let runtime = makeRuntime(source: source, click: click)
+        var matches: [UUID] = []
+        runtime.onMatch = { matches.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [fourFingers]
+        ))
+
+        source.emit(frame(at: 1, points: basePoints()))
+        XCTAssertFalse(click.press())
+        source.emit(frame(at: 1.07, points: basePoints()))
+        source.emit(frame(at: 1.12, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [])
+    }
+
+    func testSecondPressWithinIntervalRunsDoubleClick() async throws {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let single = directProfile(
+            name: "Single",
+            gesture: .click(.three, .single)
+        )
+        let double = directProfile(
+            name: "Double",
+            gesture: .click(.three, .double)
+        )
+        let runtime = makeRuntime(
+            source: source,
+            click: click,
+            doubleClickInterval: 5
+        )
+        var matches: [UUID] = []
+        runtime.onMatch = { matches.append($0.profile.id) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [single, double]
+        ))
+
+        source.emit(frame(at: 1, points: basePoints()))
+        XCTAssertTrue(click.press())
+        source.emit(frame(at: 1.05, points: basePoints()))
+        source.emit(frame(at: 1.1, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [])
+
+        source.emit(frame(at: 1.3, points: basePoints()))
+        XCTAssertTrue(click.press())
+        source.emit(frame(at: 1.35, points: basePoints()))
+        source.emit(frame(at: 1.4, points: [:]))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [double.id])
+    }
+
+    func testLoneClickResolvesAfterDoubleClickInterval() async throws {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let single = directProfile(
+            name: "Single",
+            gesture: .click(.three, .single)
+        )
+        let double = directProfile(
+            name: "Double",
+            gesture: .click(.three, .double)
+        )
+        let runtime = makeRuntime(
+            source: source,
+            click: click,
+            doubleClickInterval: 0.05
+        )
+        let resolved = expectation(description: "single click")
+        var matches: [UUID] = []
+        runtime.onMatch = {
+            matches.append($0.profile.id)
+            resolved.fulfill()
+        }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [single, double]
+        ))
+
+        source.emit(frame(at: 1, points: basePoints()))
+        XCTAssertTrue(click.press())
+        source.emit(frame(at: 1.05, points: basePoints()))
+        await drainMainActor()
+
+        XCTAssertEqual(matches, [], "Waits for a possible second press")
+        await fulfillment(of: [resolved], timeout: 2)
+        XCTAssertEqual(matches, [single.id])
+    }
+
+    func testClickTapFiltersOnlyWhileClickGesturesExist() throws {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let runtime = makeRuntime(source: source, click: click)
+
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [shortcutProfile(name: "Swipe")]
+        ))
+        XCTAssertFalse(click.isActive)
+        XCTAssertEqual(runtime.state.inputs.trackpadClick, .notRequested)
+
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: true,
+            profiles: [directProfile(gesture: .tap(.three, .single))]
+        ))
+        XCTAssertTrue(click.isActive)
+        XCTAssertFalse(click.installedIntercepts)
+        XCTAssertEqual(runtime.state.inputs.trackpadClick, .listening)
+
+        try runtime.apply(configuration(
+            revision: 3,
+            enabled: true,
+            profiles: [directProfile(gesture: .click(.three, .double))]
+        ))
+        XCTAssertTrue(click.isActive)
+        XCTAssertTrue(click.installedIntercepts)
+
+        try runtime.apply(configuration(
+            revision: 4,
+            enabled: false,
+            profiles: [directProfile(gesture: .click(.three, .double))]
+        ))
+        XCTAssertFalse(click.isActive)
+    }
+
+    func testDiagnosticsReportsUnconfiguredClickWithoutLeakingIt()
+        async throws
+    {
+        let source = RuntimeMultitouchSource()
+        let click = RuntimeTrackpadClickSource()
+        let runtime = makeRuntime(source: source, click: click)
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [directProfile(gesture: .tap(.three, .single))]
+        ))
+        let diagnostic = runtime.beginDiagnostics()
+
+        XCTAssertTrue(click.installedIntercepts)
+        source.emit(frame(at: 1, points: basePoints()))
+        XCTAssertTrue(click.press())
+        source.emit(frame(at: 1.05, points: basePoints()))
+        await drainMainActor()
+
+        XCTAssertEqual(runtime.lastTrackpadOutcome, .noMatch)
+        diagnostic.end()
+    }
+
+    private func makeRuntime(
+        source: RuntimeMultitouchSource,
+        click: RuntimeTrackpadClickSource,
+        doubleClickInterval: TimeInterval = 0.30
+    ) -> GestureRuntime {
+        GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: click,
+            doubleClickInterval: doubleClickInterval,
+            multitouchSourceFactory: { source }
+        )
+    }
+
     private func makeRuntime(
         source: RuntimeMultitouchSource
     ) -> GestureRuntime {
@@ -2173,6 +2458,7 @@ final class GestureRuntimeTests: XCTestCase {
             permissionManager: RuntimePermissionProvider(trusted: true),
             actionExecutor: ActionExecutor(),
             targetCapturer: RuntimeTargetCapturer(),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
     }
@@ -2190,6 +2476,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: capturer,
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         var matchedIDs: [UUID] = []
@@ -2235,6 +2522,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: capturer,
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         try runtime.apply(configuration(
@@ -2271,6 +2559,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: capturer,
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         var safariOnly = rightUpProfile(name: "Safari Up")
@@ -2301,6 +2590,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         try runtime.apply(configuration(
@@ -2333,6 +2623,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: capturer,
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         let group = AppGroup(
@@ -2365,6 +2656,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         try runtime.apply(configuration(
@@ -2392,6 +2684,7 @@ final class GestureRuntimeTests: XCTestCase {
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
             modifierEventTap: modifier,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         let modifierProfile = GestureProfile(
@@ -2434,6 +2727,7 @@ final class GestureRuntimeTests: XCTestCase {
             actionExecutor: ActionExecutor(targetPlatform: platform),
             targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
             mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         try runtime.apply(configuration(
@@ -2480,6 +2774,7 @@ final class GestureRuntimeTests: XCTestCase {
                 processIdentifier: 101,
                 bundleIdentifier: "unity.DefaultCompany.Game"
             ),
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
             multitouchSourceFactory: { source }
         )
         let group = AppGroup(name: "Unity", matchers: [.bundleIdentifierPattern("unity.*")])
@@ -2685,6 +2980,30 @@ private final class RuntimeMultitouchSource: MultitouchFrameSource {
 
     func fail(_ error: MultitouchSupportAdapterError) {
         onFailure?(error)
+    }
+}
+
+private final class RuntimeTrackpadClickSource: TrackpadClickEventSource {
+    var interceptsPresses = false
+    var onPress: ((Bool) -> TrackpadClickEventTap.PressDecision)?
+    private(set) var isActive = false
+    private(set) var installedIntercepts = false
+
+    func start() -> Bool {
+        isActive = true
+        installedIntercepts = interceptsPresses
+        return true
+    }
+
+    func stop() {
+        isActive = false
+    }
+
+    /// Returns whether the physical left down was swallowed.
+    @discardableResult
+    func press() -> Bool {
+        guard isActive else { return false }
+        return onPress?(installedIntercepts) == .swallow && installedIntercepts
     }
 }
 

@@ -36,7 +36,7 @@ Outil de personnalisation des gestes souris et trackpad pour macOS. Dessinez une
 - **Bibliothèque de gestes** : barre latérale organisée en **global / par App** (la portée est préremplie à la création) ; recherche / filtre / tri ; activation, désactivation et suppression groupées ; **import / export JSON** (doublons ignorés ou importés de force)
 - **Dessin souris** : chaque geste peut utiliser indépendamment le bouton droit, le bouton du milieu ou un bouton latéral ; seuls les boutons des profils activés sont surveillés ; une **action secondaire** facultative s’exécute seule au relâchement si vous faites un clic gauche pendant le tracé
 - **Dessin trackpad** : maintenez exactement une touche parmi Fn / Control / Option / Shift / Command (Fn par défaut) et déplacez le pointeur ; une autre touche prise en charge annule cette reconnaissance
-- **Gestes tactiles expérimentaux** : le trackpad intégré prend en charge 34 classes — tapotements et double tapotements à trois à cinq doigts, balayages dans quatre directions, ainsi que pincements / écartements et rotations horaire / antihoraire à deux à cinq doigts
+- **Gestes tactiles expérimentaux** : le trackpad intégré prend en charge 40 classes — tapotements, double tapotements, clics et double clics à trois à cinq doigts, balayages dans quatre directions, ainsi que pincements / écartements et rotations horaire / antihoraire à deux à cinq doigts
 - **Interrupteur général des gestes tactiles** : désactivez le canal tactile sans supprimer les gestes configurés ; une panne du backend privé ne dégrade que le canal tactile, le dessin souris et trackpad reste disponible
 - **Défilement amélioré** : inversez séparément la molette et le trackpad / Magic Mouse sur chaque axe, et lissez éventuellement la molette crantée (doux / standard / réactif, ou vitesse, durée et accélération personnalisées). Les exclusions suivent l’app au premier plan. Ces réglages restent sur ce Mac et ne font pas partie de la synchro de sauvegarde. Un autre outil de défilement peut traiter les événements deux fois ; les apps qui ne lisent que des pas entiers (certains jeux, VM, bureaux distants) doivent être exclues
 - **Cible propre à chaque geste** : choisissez l’app au premier plan ou l’app sous le pointeur au moment de l’appui sur le déclencheur ; s’il existe une fenêtre normale, elle est aussi figée, et les contrôles de portée ainsi que les actions liées à la cible réutilisent toujours cette cible
@@ -90,17 +90,18 @@ Au premier lancement ou dans **Réglages → Autorisations**, utilisez le **guid
 
 Les gestes tactiles chargent le `MultitouchSupport` non documenté d’Apple à l’exécution via `dlopen` / `dlsym` ; ce framework privé n’est pas lié statiquement. Il peut cesser de fonctionner après une mise à jour de macOS. Un framework, un symbole ou un appareil manquant, ou un échec de démarrage de l’appareil, s’affiche comme une panne du canal tactile ; le dessin souris et trackpad continue, sans repli simulé ni nouvelle tentative silencieuse.
 
-StrokeMouse n’intercepte pas les événements natifs du trackpad, un geste système peut donc se produire en même temps que l’action liée. Les trajectoires tactiles brutes ne sont ni stockées ni journalisées. La première sauvegarde, activation ou importation de profils de gestes tactiles activés affiche une confirmation de risque expérimental. L’interrupteur général peut ensuite mettre les gestes tactiles en pause sans supprimer les profils.
+StrokeMouse n’intercepte pas les gestes natifs du trackpad, un geste système peut donc se produire en même temps que l’action liée. Seule exception : le clic. Appuyer sur le trackpad avec un nombre de doigts associé à un geste de clic confie ce clic au geste, et les applications ne le reçoivent plus. Une séquence tactile pendant laquelle le trackpad a été enfoncé n’est jamais reconnue comme tapotement ou balayage. Les trajectoires tactiles brutes ne sont ni stockées ni journalisées. La première sauvegarde, activation ou importation de profils de gestes tactiles activés affiche une confirmation de risque expérimental. L’interrupteur général peut ensuite mettre les gestes tactiles en pause sans supprimer les profils.
 
-Les 34 classes de gestes tactiles prises en charge :
+Les 40 classes de gestes tactiles prises en charge :
 
 | Famille | Doigts | Variantes | Nombre |
 |---------|--------|-----------|--------|
 | Tapotement | trois / quatre / cinq | simple, double | 6 |
+| Clic | trois / quatre / cinq | simple, double | 6 |
 | Balayage | trois / quatre / cinq | haut, bas, gauche, droite | 12 |
 | Échelle | deux / trois / quatre / cinq | pincer, écarter | 8 |
 | Rotation | deux / trois / quatre / cinq | antihoraire, horaire | 8 |
-| **Total** |  |  | **34** |
+| **Total** |  |  | **40** |
 
 La première version ne prend pas en charge les tapotements / balayages à deux doigts, les combinaisons de modificateur, l’identité d’un doigt précis, les actions répétées en continu ni les seuils de reconnaissance réglables par l’utilisateur.
 

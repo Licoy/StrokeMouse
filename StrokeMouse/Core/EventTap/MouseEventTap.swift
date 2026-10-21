@@ -47,7 +47,7 @@ final class MouseEventTap: @unchecked Sendable {
     }
 
     static let tapOptions: CGEventTapOptions = .defaultTap
-    private static let replayEventMarker: Int64 = 0x5354524F4B454D4F
+    static let replayEventMarker: Int64 = 0x5354524F4B454D4F
 
     /// Trigger-button edges only. All continuous movement stays outside the tap so
     /// the system updates the cursor without entering this process.

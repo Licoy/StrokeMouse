@@ -17996,13 +17996,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "单击"
+            "value": "轻点"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "單擊"
+            "value": "輕點"
           }
         },
         "ko": {
@@ -18042,13 +18042,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "双击"
+            "value": "轻点两下"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "雙擊"
+            "value": "輕點兩下"
           }
         },
         "ko": {
@@ -18073,6 +18073,98 @@
           "stringUnit": {
             "state": "translated",
             "value": "Toucher deux fois"
+          }
+        }
+      }
+    },
+    "trackpad.click.single": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按一下"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클릭"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリック"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажатие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cliquer"
+          }
+        }
+      }
+    },
+    "trackpad.click.double": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Double Click"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按两下"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按兩下"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이중 클릭"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダブルクリック"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Двойное нажатие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cliquer deux fois"
           }
         }
       }
@@ -19278,43 +19370,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tap"
+            "value": "Tap / Click"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "轻触"
+            "value": "轻点 / 点按"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "輕觸"
+            "value": "輕點 / 按一下"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "탭"
+            "value": "탭 / 클릭"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "タップ"
+            "value": "タップ / クリック"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Касание"
+            "value": "Касание / нажатие"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toucher"
+            "value": "Toucher / Cliquer"
           }
         }
       }
@@ -19370,43 +19462,227 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tap Count"
+            "value": "Count"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "轻触次数"
+            "value": "次数"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "輕觸次數"
+            "value": "次數"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "탭 횟수"
+            "value": "횟수"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "タップ回数"
+            "value": "回数"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Число касаний"
+            "value": "Количество"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nombre de touchers"
+            "value": "Nombre"
+          }
+        }
+      }
+    },
+    "editor.direct.pressStyle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Style"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方式"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "방식"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Способ"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode"
+          }
+        }
+      }
+    },
+    "editor.direct.pressStyle.tap": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻点"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輕點"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "탭"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タップ"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Касание"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toucher"
+          }
+        }
+      }
+    },
+    "editor.direct.pressStyle.click": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按一下"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "클릭"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリック"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажатие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cliquer"
+          }
+        }
+      }
+    },
+    "editor.direct.clickHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pressing the trackpad with this many fingers runs the gesture instead of a normal click."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用这么多手指按下触控板时会执行此手势，不再产生普通点击"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用這麼多手指按下觸控式軌跡板時會執行此手勢，不再產生一般的按一下"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 손가락 수로 트랙패드를 누르면 일반 클릭 대신 이 제스처가 실행됩니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この本数の指でトラックパッドを押すと、通常のクリックの代わりにこのジェスチャが実行されます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажатие на трекпад этим числом пальцев выполняет жест вместо обычного щелчка."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Appuyer sur le trackpad avec ce nombre de doigts exécute le geste au lieu d’un clic normal."
           }
         }
       }
@@ -20020,13 +20296,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "三指单击 · 播放 / 暂停"
+            "value": "三指轻点 · 播放 / 暂停"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "三指單擊 · 播放 / 暫停"
+            "value": "三指輕點 · 播放 / 暫停"
           }
         },
         "ko": {
@@ -20066,13 +20342,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "三指双击 · 静音"
+            "value": "三指轻点两下 · 静音"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "三指雙擊 · 靜音"
+            "value": "三指輕點兩下 · 靜音"
           }
         },
         "ko": {
@@ -20296,13 +20572,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "五指单击 · 居中窗口"
+            "value": "五指轻点 · 居中窗口"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "五指單擊 · 居中視窗"
+            "value": "五指輕點 · 居中視窗"
           }
         },
         "ko": {
@@ -20342,13 +20618,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "五指双击 · 锁定屏幕"
+            "value": "五指轻点两下 · 锁定屏幕"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "五指雙擊 · 鎖定螢幕"
+            "value": "五指輕點兩下 · 鎖定螢幕"
           }
         },
         "ko": {
@@ -20603,6 +20879,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gestes tactiles"
+          }
+        }
+      }
+    },
+    "permissions.channel.trackpadClick": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch Clicks"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "触控点按"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "觸控按壓"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "터치 클릭"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タッチクリック"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажатия трекпада"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clics tactiles"
           }
         }
       }
@@ -21155,6 +21477,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "Échec du démarrage du canal trackpad"
+          }
+        }
+      }
+    },
+    "permissions.failure.trackpadClickTap": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trackpad click listener failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "触控板点按监听失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "觸控式軌跡板按壓監聽失敗"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "트랙패드 클릭 수신 실패"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トラックパッドクリックの監視に失敗しました"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось отслеживать нажатия трекпада"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de l’écoute des clics du trackpad"
           }
         }
       }
@@ -22535,6 +22903,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rejeté : la transformation dominante était ambiguë"
+          }
+        }
+      }
+    },
+    "gestureTest.reject.physicallyPressed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rejected: the trackpad was pressed during the gesture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拒绝：手势过程中按下了触控板"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拒絕：手勢過程中按下了觸控式軌跡板"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "거부: 제스처 중에 트랙패드를 누름"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拒否: ジェスチャ中にトラックパッドが押されました"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отклонено: во время жеста трекпад был нажат"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rejeté : le trackpad a été enfoncé pendant le geste"
           }
         }
       }

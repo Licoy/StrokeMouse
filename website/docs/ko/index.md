@@ -59,7 +59,7 @@ description: "StrokeMouse는 macOS 마우스·트랙패드 제스처 도구입�
     { icon: 'menu', title: '메뉴 막대 상주', desc: '제스처를 켜거나 끄고 설정을 엽니다. 일시 정지이거나 권한이 없으면 아이콘 색이 바뀝니다.' },
     { icon: 'mouse', title: '마우스 그리기', desc: '오른쪽, 가운데 또는 측면 버튼으로 트리거합니다. 활성화된 버튼만 감시합니다.' },
     { icon: 'sparkles', title: '트랙패드 그리기', desc: 'Fn, Control, Option, Shift, Command 중 하나를 누른 채 포인터를 움직입니다. 마우스 그리기 규칙을 재사용할 수 있습니다.' },
-    { icon: 'zap', title: '실험적 터치 제스처', desc: '34종의 여러 손가락 탭, 스와이프, 핀치, 펼치기, 회전. 시스템 제스처가 동시에 일어날 수 있습니다.' },
+    { icon: 'zap', title: '실험적 터치 제스처', desc: '40종의 여러 손가락 탭, 클릭, 스와이프, 핀치, 펼치기, 회전. 시스템 제스처가 동시에 일어날 수 있습니다.' },
     { icon: 'mouse', title: '스크롤 향상', desc: '마우스 휠과 트랙패드를 축마다 반전하고 일반 휠을 부드럽게 합니다. 제스처 백업에는 들어가지 않습니다.', href: '/guide/settings#scroll-enhancement' },
     { title: '일반 설정', desc: '일치 임계값, 모양, 터치 제스처 마스터 스위치.', size: 'media', image: '/screenshots/3.png', imageAlt: '일반 설정' },
     { icon: 'window', title: '앱 범위', desc: '전역 또는 앱별로 적용됩니다. 사이드바가 범위별로 제스처를 묶습니다.' },

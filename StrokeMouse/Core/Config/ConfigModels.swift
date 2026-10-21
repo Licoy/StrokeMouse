@@ -286,6 +286,8 @@ struct DrawnGesture: Codable, Equatable, Sendable {
 
 enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
     case tap(StandardFingerCount, TapCount)
+    /// Physical press of the trackpad while the fingers rest on it.
+    case click(StandardFingerCount, TapCount)
     case swipe(StandardFingerCount, CardinalDirection)
     case pinch(TransformFingerCount, PinchDirection)
     case rotate(TransformFingerCount, RotationDirection)
@@ -299,6 +301,7 @@ enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
 
     private enum Kind: String, Codable {
         case tap
+        case click
         case swipe
         case pinch
         case rotate
@@ -309,6 +312,11 @@ enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
         switch try container.decode(Kind.self, forKey: .type) {
         case .tap:
             self = .tap(
+                try container.decode(StandardFingerCount.self, forKey: .fingers),
+                try container.decode(TapCount.self, forKey: .tapCount)
+            )
+        case .click:
+            self = .click(
                 try container.decode(StandardFingerCount.self, forKey: .fingers),
                 try container.decode(TapCount.self, forKey: .tapCount)
             )
@@ -337,6 +345,10 @@ enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
             try container.encode(Kind.tap, forKey: .type)
             try container.encode(fingers, forKey: .fingers)
             try container.encode(count, forKey: .tapCount)
+        case .click(let fingers, let count):
+            try container.encode(Kind.click, forKey: .type)
+            try container.encode(fingers, forKey: .fingers)
+            try container.encode(count, forKey: .tapCount)
         case .swipe(let fingers, let direction):
             try container.encode(Kind.swipe, forKey: .type)
             try container.encode(fingers, forKey: .fingers)
@@ -354,7 +366,8 @@ enum DirectTrackpadGesture: Codable, Equatable, Hashable, Sendable {
 
     var fingerCount: Int {
         switch self {
-        case .tap(let fingers, _), .swipe(let fingers, _):
+        case .tap(let fingers, _), .click(let fingers, _),
+             .swipe(let fingers, _):
             return fingers.rawValue
         case .pinch(let fingers, _), .rotate(let fingers, _):
             return fingers.rawValue

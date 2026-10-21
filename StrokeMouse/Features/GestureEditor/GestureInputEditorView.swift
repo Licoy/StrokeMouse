@@ -18,6 +18,15 @@ private enum DirectGestureCategory: String, CaseIterable, Identifiable {
     var titleKey: String { "editor.direct.category.\(rawValue)" }
 }
 
+/// Tap touches the surface; click physically presses the trackpad.
+private enum DirectPressStyle: String, CaseIterable, Identifiable {
+    case tap
+    case click
+
+    var id: String { rawValue }
+    var titleKey: String { "editor.direct.pressStyle.\(rawValue)" }
+}
+
 private enum DirectTransformKind: String, CaseIterable, Identifiable {
     case pinch
     case rotate
@@ -158,16 +167,33 @@ struct GestureInputEditorView: View {
             }
 
             switch gesture {
-            case .tap:
+            case .tap, .click:
+                labeledSegmentedPicker(
+                    title: L10n.string("editor.direct.pressStyle"),
+                    selection: pressStyle
+                ) {
+                    ForEach(DirectPressStyle.allCases) { style in
+                        Text(L10n.string(style.titleKey)).tag(style)
+                    }
+                }
                 standardFingerPicker
                 labeledSegmentedPicker(
                     title: L10n.string("editor.direct.tapCount"),
                     selection: tapCount
                 ) {
                     ForEach(TapCount.allCases) { count in
-                        Text(L10n.string("trackpad.tap.\(count.rawValue)"))
-                            .tag(count)
+                        Text(L10n.string(
+                            "trackpad.\(pressStyle.wrappedValue.rawValue).\(count.rawValue)"
+                        ))
+                        .tag(count)
                     }
+                }
+                if case .click = gesture {
+                    Text(L10n.string("editor.direct.clickHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, directLabelColumnWidth + 12)
                 }
             case .swipe:
                 standardFingerPicker
@@ -385,7 +411,7 @@ struct GestureInputEditorView: View {
                 }
                 switch gesture {
                 case .swipe: return .swipe
-                case .tap: return .tap
+                case .tap, .click: return .tap
                 case .pinch, .rotate: return .transform
                 }
             },
@@ -406,7 +432,9 @@ struct GestureInputEditorView: View {
                     return .three
                 }
                 switch gesture {
-                case .tap(let count, _), .swipe(let count, _): return count
+                case .tap(let count, _), .click(let count, _),
+                     .swipe(let count, _):
+                    return count
                 default: return .three
                 }
             },
@@ -414,6 +442,8 @@ struct GestureInputEditorView: View {
                 guard case .trackpad(let gesture) = input else { return }
                 switch gesture {
                 case .tap(_, let taps): input = .trackpad(.tap(count, taps))
+                case .click(_, let clicks):
+                    input = .trackpad(.click(count, clicks))
                 case .swipe(_, let direction):
                     input = .trackpad(.swipe(count, direction))
                 default: break
@@ -446,11 +476,35 @@ struct GestureInputEditorView: View {
 
     private var tapCount: Binding<TapCount> {
         directBinding(default: .single) {
-            if case .tap(_, let value) = $0 { return value }
-            return nil
+            switch $0 {
+            case .tap(_, let value), .click(_, let value): return value
+            default: return nil
+            }
         } set: { gesture, value in
-            guard case .tap(let fingers, _) = gesture else { return gesture }
-            return .tap(fingers, value)
+            switch gesture {
+            case .tap(let fingers, _): return .tap(fingers, value)
+            case .click(let fingers, _): return .click(fingers, value)
+            default: return gesture
+            }
+        }
+    }
+
+    private var pressStyle: Binding<DirectPressStyle> {
+        directBinding(default: .tap) {
+            switch $0 {
+            case .tap: return .tap
+            case .click: return .click
+            default: return nil
+            }
+        } set: { gesture, style in
+            switch (gesture, style) {
+            case (.click(let fingers, let count), .tap):
+                return .tap(fingers, count)
+            case (.tap(let fingers, let count), .click):
+                return .click(fingers, count)
+            default:
+                return gesture
+            }
         }
     }
 

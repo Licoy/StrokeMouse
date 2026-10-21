@@ -74,6 +74,8 @@ extension DirectTrackpadGesture {
         switch self {
         case .tap(_, let count):
             detail = L10n.string("trackpad.tap.\(count.rawValue)")
+        case .click(_, let count):
+            detail = L10n.string("trackpad.click.\(count.rawValue)")
         case .swipe(_, let direction):
             detail = L10n.string("trackpad.swipe.\(direction.rawValue)")
         case .pinch(_, let direction):
@@ -92,6 +94,7 @@ extension DirectTrackpadGesture {
     var systemImage: String {
         switch self {
         case .tap: return "hand.tap"
+        case .click: return "cursorarrow.click"
         case .swipe(_, .up): return "arrow.up"
         case .swipe(_, .down): return "arrow.down"
         case .swipe(_, .left): return "arrow.left"
