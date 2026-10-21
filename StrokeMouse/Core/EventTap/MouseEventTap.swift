@@ -7,8 +7,9 @@ import OSLog
 /// Active CGEventTap wrapper that reserves configured trigger-button gestures.
 ///
 /// Important design constraints (esp. macOS 14):
-/// - Use `.defaultTap` only for trigger down/up. Continuous movement must bypass
-///   the filtering tap so macOS can update the cursor independently of this process.
+/// - Use `.defaultTap` only for trigger down/up (plus left down/up while a
+///   secondary action is configured). Continuous movement must bypass the
+///   filtering tap so macOS can update the cursor independently of this process.
 /// - Run the tap on a dedicated CFRunLoop thread so main-thread UI work cannot stall
 ///   cursor delivery.
 final class MouseEventTap: @unchecked Sendable {
@@ -33,8 +34,16 @@ final class MouseEventTap: @unchecked Sendable {
     enum EventKind {
         case buttonDown(MouseTriggerButton, CGPoint)
         case buttonUp(MouseTriggerButton, CGPoint)
+        /// Left button pressed while this trigger's chord-capable gesture is held.
+        case chordClick(MouseTriggerButton)
         case interrupted(MouseTriggerButton, CGPoint)
         case drained(MouseTriggerButton)
+    }
+
+    enum CaptureDecision: Equatable {
+        case passThrough
+        /// `acceptsChordClick` swallows left clicks made while this press is held.
+        case capture(acceptsChordClick: Bool)
     }
 
     static let tapOptions: CGEventTapOptions = .defaultTap
@@ -48,6 +57,14 @@ final class MouseEventTap: @unchecked Sendable {
         let otherDown = CGEventMask(1) << CGEventType.otherMouseDown.rawValue
         let otherUp = CGEventMask(1) << CGEventType.otherMouseUp.rawValue
         return rightDown | rightUp | otherDown | otherUp
+    }
+
+    /// Left edges, installed only while some gesture has a secondary action.
+    /// Left dragged events stay outside the tap like all other movement.
+    static var chordClickMask: CGEventMask {
+        let leftDown = CGEventMask(1) << CGEventType.leftMouseDown.rawValue
+        let leftUp = CGEventMask(1) << CGEventType.leftMouseUp.rawValue
+        return leftDown | leftUp
     }
 
     /// Buttons that arm gesture capture. Unwatched mouse input is not in the mask
@@ -65,15 +82,27 @@ final class MouseEventTap: @unchecked Sendable {
         }
     }
 
+    /// Read by `start()`; a running tap is reinstalled when this changes.
+    var interceptsChordClicks: Bool {
+        get { stateLock.withLock { interceptsChordClicksStorage } }
+        set { stateLock.withLock { interceptsChordClicksStorage = newValue } }
+    }
+
     private var watchedButtonsStorage: Set<MouseTriggerButton> = [.right]
+    private var interceptsChordClicksStorage = false
     private var capturedButtons: Set<MouseTriggerButton> = []
+    /// Captured buttons whose session turns a left click into a chord.
+    private var chordClickButtons: Set<MouseTriggerButton> = []
+    /// A swallowed left down still owes its up to this tap.
+    private var swallowsChordClickUp = false
     private var blockedButtonsUntilUp: Set<MouseTriggerButton> = []
     // True initially keeps the pure `handle` seam usable before a real tap is
     // installed; no system callback can exist until `start()` succeeds.
     private var acceptingEvents = true
     private var eventGeneration: UInt64 = 0
     private var onEventStorage: ((EventKind, UInt64) -> Void)?
-    private var shouldCaptureStorage: ((MouseTriggerButton, CGPoint) -> Bool)?
+    private var shouldCaptureStorage:
+        ((MouseTriggerButton, CGPoint) -> CaptureDecision)?
     private let stateLock = NSLock()
     private let buttonStateProvider:
         @Sendable (MouseTriggerButton) -> Bool
@@ -84,6 +113,7 @@ final class MouseEventTap: @unchecked Sendable {
     private var runLoop: CFRunLoop?
     private var thread: Thread?
     private var isRunning = false
+    private var installedChordClicks = false
     private var callbackContext: Unmanaged<CallbackContext>?
     /// Signaled when the tap thread leaves `CFRunLoopRun`.
     private var threadExitSemaphore: DispatchSemaphore?
@@ -95,7 +125,7 @@ final class MouseEventTap: @unchecked Sendable {
     /// Synchronous arbitration on the tap thread. A rejected down/up pair is
     /// passed through untouched, which is required when another input source
     /// owns the session or the target application has no candidate gesture.
-    var shouldCapture: ((MouseTriggerButton, CGPoint) -> Bool)? {
+    var shouldCapture: ((MouseTriggerButton, CGPoint) -> CaptureDecision)? {
         get { stateLock.withLock { shouldCaptureStorage } }
         set { stateLock.withLock { shouldCaptureStorage = newValue } }
     }
@@ -118,7 +148,14 @@ final class MouseEventTap: @unchecked Sendable {
     }
 
     func start() -> Bool {
-        controlQueue.sync {
+        let includesChordClicks = interceptsChordClicks
+        let maskChanged = controlQueue.sync {
+            isRunning && installedChordClicks != includesChordClicks
+        }
+        if maskChanged {
+            stop()
+        }
+        return controlQueue.sync {
             guard !isRunning else { return true }
             guard AXIsProcessTrusted() else { return false }
 
@@ -126,6 +163,8 @@ final class MouseEventTap: @unchecked Sendable {
             stateLock.withLock {
                 eventGeneration &+= 1
                 capturedButtons = []
+                chordClickButtons = []
+                swallowsChordClickUp = false
                 blockedButtonsUntilUp = []
             }
 
@@ -141,7 +180,9 @@ final class MouseEventTap: @unchecked Sendable {
                     return
                 }
                 if let self {
-                    installed = self.installTapOnCurrentRunLoop()
+                    installed = self.installTapOnCurrentRunLoop(
+                        includingChordClicks: includesChordClicks
+                    )
                 }
                 ready.signal()
                 if installed {
@@ -157,6 +198,7 @@ final class MouseEventTap: @unchecked Sendable {
 
             ready.wait()
             isRunning = installed
+            installedChordClicks = includesChordClicks
             stateLock.withLock {
                 acceptingEvents = installed
             }
@@ -175,6 +217,8 @@ final class MouseEventTap: @unchecked Sendable {
                 acceptingEvents = false
                 eventGeneration &+= 1
                 capturedButtons = []
+                chordClickButtons = []
+                swallowsChordClickUp = false
                 blockedButtonsUntilUp = []
             }
             // Disable first so WindowServer stops waiting on this filter.
@@ -261,6 +305,8 @@ final class MouseEventTap: @unchecked Sendable {
                 eventGeneration &+= 1
                 let interruptedButtons = capturedButtons
                 capturedButtons = []
+                // A swallowed left down keeps owing its up across re-enable.
+                chordClickButtons = []
                 if let port {
                     CGEvent.tapEnable(tap: port, enable: true)
                 }
@@ -312,19 +358,41 @@ final class MouseEventTap: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
         switch type {
+        case .leftMouseDown:
+            if let owner = chordClickButtons.first {
+                swallowsChordClickUp = true
+                kind = .chordClick(owner)
+                deliveryGeneration = eventGeneration
+                swallow = true
+            } else {
+                // A fresh press proves any up still owed was lost while the
+                // tap was disabled; never swallow an unrelated click's up.
+                swallowsChordClickUp = false
+            }
+        case .leftMouseUp:
+            if swallowsChordClickUp {
+                swallowsChordClickUp = false
+                swallow = true
+            }
         case .rightMouseDown, .otherMouseDown:
             if let button,
                watchedButtonsStorage.contains(button),
                !blockedButtonsUntilUp.contains(button)
             {
                 stateLock.unlock()
-                let claimed = shouldCapture?(button, location) ?? true
+                let decision = shouldCapture?(button, location)
+                    ?? .capture(acceptsChordClick: false)
                 stateLock.lock()
                 if acceptingEvents,
-                   claimed,
+                   case .capture(let acceptsChordClick) = decision,
                    !blockedButtonsUntilUp.contains(button)
                 {
                     capturedButtons.insert(button)
+                    if acceptsChordClick {
+                        chordClickButtons.insert(button)
+                    } else {
+                        chordClickButtons.remove(button)
+                    }
                     kind = .buttonDown(button, location)
                     deliveryGeneration = eventGeneration
                     swallow = true
@@ -338,6 +406,7 @@ final class MouseEventTap: @unchecked Sendable {
                     break
                 }
                 if capturedButtons.remove(button) != nil {
+                    chordClickButtons.remove(button)
                     kind = .buttonUp(button, location)
                     deliveryGeneration = eventGeneration
                     swallow = true
@@ -359,7 +428,9 @@ final class MouseEventTap: @unchecked Sendable {
 
     // MARK: - Tap thread install
 
-    private func installTapOnCurrentRunLoop() -> Bool {
+    private func installTapOnCurrentRunLoop(
+        includingChordClicks: Bool
+    ) -> Bool {
         let callback: CGEventTapCallBack = { _, type, event, refcon in
             guard let refcon else { return Unmanaged.passUnretained(event) }
             let context = Unmanaged<CallbackContext>
@@ -378,7 +449,8 @@ final class MouseEventTap: @unchecked Sendable {
             tap: .cgSessionEventTap,
             place: .headInsertEventTap,
             options: Self.tapOptions,
-            eventsOfInterest: Self.eventsOfInterestMask,
+            eventsOfInterest: Self.eventsOfInterestMask
+                | (includingChordClicks ? Self.chordClickMask : 0),
             callback: callback,
             userInfo: retainedContext.toOpaque()
         ) else {
@@ -442,7 +514,7 @@ final class MouseEventTap: @unchecked Sendable {
             default: return nil
             }
         default:
-            // Left button is intentionally outside the tap mask and not a trigger.
+            // Left is never a trigger; it only arrives as a chord click.
             return nil
         }
     }

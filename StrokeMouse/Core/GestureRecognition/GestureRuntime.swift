@@ -128,6 +128,8 @@ final class GestureRuntime {
         var isDrawing: Bool
         var liveHysteresis: LiveGestureViability.Hysteresis
         var samplesSinceLiveEval: Int
+        /// Sticky: one left click selects the secondary action at release.
+        var chordClicked = false
     }
 
     private struct DirectSession {
@@ -233,25 +235,37 @@ final class GestureRuntime {
         // target application has no candidate for this button, the physical
         // down/up pair reaches it untouched (native drag / hold semantics).
         mouseEventTap.shouldCapture = { [weak sessionGate] button, location in
-            guard let callbackToken = drawCallbacks.token else { return false }
+            guard let callbackToken = drawCallbacks.token else {
+                return .passThrough
+            }
             return inputCoreQueue.sync {
                 guard drawCallbacks.isCurrent(callbackToken),
                       let sessionGate,
                       let admission = sessionGate.claim(.mouse(button))
                 else {
-                    return false
+                    return .passThrough
                 }
                 let snapshot = Self.captureTargetSnapshot(
                     for: admission,
                     at: location,
                     using: resolvedTargetCapturer
                 )
-                guard Self.hasCandidates(admission, snapshot: snapshot) else {
+                let targeted = Self.targetedCandidates(
+                    for: admission,
+                    snapshot: snapshot
+                )
+                guard admission.context.isDiagnostic || !targeted.isEmpty else {
                     sessionGate.release(admission)
-                    return false
+                    return .passThrough
                 }
                 pendingMouseCapture.store(snapshot, for: admission.id)
-                return true
+                // Left clicks stay with the app unless a reachable gesture
+                // can turn them into its secondary action.
+                return .capture(
+                    acceptsChordClick: targeted.contains {
+                        $0.profile.acceptsChordClick
+                    }
+                )
             }
         }
         mouseEventTap.onEvent = {
@@ -290,6 +304,9 @@ final class GestureRuntime {
                     ) {
                         sessionGate?.release(completed)
                     }
+                    admission = nil
+                    snapshot = nil
+                case .chordClick:
                     admission = nil
                     snapshot = nil
                 case .interrupted(let button, _):
@@ -627,6 +644,7 @@ final class GestureRuntime {
         guard sessionGate.activeSource == nil else { return }
 
         mouseEventTap.watchedButtons = demand.mouseButtons
+        mouseEventTap.interceptsChordClicks = demand.needsChordClicks
         modifierEventTap.watchedKeys = demand.modifierKeys
 
         guard configuration.isEnabled || !diagnosticTokens.isEmpty else {
@@ -671,13 +689,16 @@ final class GestureRuntime {
 
     private var inputDemand: (
         mouseButtons: Set<MouseTriggerButton>,
+        needsChordClicks: Bool,
         modifierKeys: Set<GestureModifierKey>,
         needsMultitouch: Bool
     ) {
         var buttons = Set<MouseTriggerButton>()
+        var chordClicks = false
         var modifiers = Set<GestureModifierKey>()
         var direct = false
         for profile in configuration.profiles where profile.isEnabled {
+            chordClicks = chordClicks || profile.acceptsChordClick
             switch profile.input {
             case .drawn(let drawn):
                 switch drawn.activation {
@@ -697,6 +718,7 @@ final class GestureRuntime {
         }
         return (
             buttons,
+            chordClicks,
             modifiers,
             (direct || !diagnosticTokens.isEmpty)
                 && configuration.directTrackpadEnabled
@@ -963,6 +985,8 @@ final class GestureRuntime {
                 quartzLocation: quartzLocation,
                 wasCancelled: false
             )
+        case .chordClick(let button):
+            registerChordClick(source: .mouse(button))
         case .interrupted(let button, let quartzLocation):
             finishDraw(
                 source: .mouse(button),
@@ -1093,7 +1117,6 @@ final class GestureRuntime {
         {
             session.isDrawing = true
         }
-        var lineColorOverride: NSColor?
         if session.showsLiveMismatchFeedback, session.isDrawing {
             session.samplesSinceLiveEval += 1
             let n = max(1, Constants.liveViabilityEvalEveryNSamples)
@@ -1111,22 +1134,44 @@ final class GestureRuntime {
                     observed: observed
                 )
             }
-            if session.liveHysteresis.state == .unlikely {
-                lineColorOverride = DrawingStyle.mismatchLineNSColor
-            }
         }
         drawSession = session
         currentPath = session.path
         isDrawing = session.isDrawing
-        if session.showsHUD,
-           session.mode == .normal,
-           session.path.count >= 2
-        {
-            GestureHUDController.shared.showPath(
-                session.path,
-                lineColorOverride: lineColorOverride
-            )
+        showDrawHUD(session)
+    }
+
+    private func showDrawHUD(_ session: DrawSession) {
+        guard session.showsHUD,
+              session.mode == .normal,
+              session.path.count >= 2
+        else {
+            return
         }
+        let showsMismatch = session.showsLiveMismatchFeedback
+            && session.isDrawing
+            && session.liveHysteresis.state == .unlikely
+        GestureHUDController.shared.showPath(
+            session.path,
+            lineColorOverride: showsMismatch
+                ? DrawingStyle.mismatchLineNSColor
+                : nil,
+            badge: session.chordClicked
+                ? L10n.string("hud.secondaryActionBadge")
+                : nil
+        )
+    }
+
+    private func registerChordClick(source: GestureInputSource) {
+        guard var session = drawSession,
+              session.source == source,
+              !session.chordClicked
+        else {
+            return
+        }
+        session.chordClicked = true
+        drawSession = session
+        showDrawHUD(session)
     }
 
     private func finishDraw(
@@ -1160,6 +1205,10 @@ final class GestureRuntime {
         }
         if finished.isDrawing || finished.mode == .diagnostic {
             recognizeDrawn(finished)
+        } else if finished.chordClicked {
+            // A chord is deliberate gesture input: replaying the trigger
+            // click would open a context menu the user never asked for.
+            state.lastOutcome = .cancelled
         } else if case .mouse(let button) = source,
                   let clickLocation = finished.clickQuartzLocation,
                   !mouseEventTap.replayClick(
@@ -1199,8 +1248,34 @@ final class GestureRuntime {
             }
             return
         }
+        // Every candidate competes in both cases so a path always resolves
+        // to the same gesture; the chord only chooses which action runs.
+        let action: GestureAction
+        if session.chordClicked {
+            guard let secondaryAction = selected.profile.secondaryAction else {
+                let outcome: GestureRuntimeOutcome =
+                    .secondaryActionUnavailable(profileID: selected.profile.id)
+                state.lastOutcome = outcome
+                publishDrawDiagnostic(
+                    session: session,
+                    evaluation: evaluation,
+                    outcome: outcome
+                )
+                if session.mode.showsToast {
+                    GestureToastController.shared.showSecondaryActionMissing(
+                        name: selected.profile.name
+                    )
+                }
+                return
+            }
+            action = secondaryAction
+        } else {
+            action = selected.profile.action
+        }
         perform(
             selected,
+            action: action,
+            usesSecondaryAction: session.chordClicked,
             score: accepted.score,
             mode: session.mode,
             source: session.source
@@ -1226,7 +1301,8 @@ final class GestureRuntime {
             path: session.path,
             evaluation: evaluation,
             outcome: outcome,
-            configurationRevision: session.revision
+            configurationRevision: session.revision,
+            chordClicked: session.chordClicked
         )
     }
 
@@ -1761,6 +1837,7 @@ final class GestureRuntime {
         case .selected(let targeted):
             perform(
                 targeted,
+                action: targeted.profile.action,
                 score: nil,
                 mode: mode,
                 source: .multitouch
@@ -1772,13 +1849,16 @@ final class GestureRuntime {
 
     private func perform(
         _ targeted: TargetedGesture,
+        action: GestureAction,
+        usesSecondaryAction: Bool = false,
         score: Double?,
         mode: SessionMode,
         source: GestureInputSource
     ) {
         let result = GestureMatchResult(
             profile: targeted.profile,
-            score: score ?? 1
+            score: score ?? 1,
+            usesSecondaryAction: usesSecondaryAction
         )
         lastMatch = result
         lastError = nil
@@ -1793,14 +1873,15 @@ final class GestureRuntime {
         if mode.showsToast {
             GestureToastController.shared.showMatched(
                 name: targeted.profile.name,
-                score: score ?? 1
+                score: score ?? 1,
+                usesSecondaryAction: usesSecondaryAction
             )
         }
         guard mode.executesActions else { return }
         Task { @MainActor [weak self] in
             do {
                 try await self?.actionExecutor.execute(
-                    targeted.profile.action,
+                    action,
                     target: targeted.target
                 )
             } catch {

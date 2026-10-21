@@ -111,7 +111,7 @@ final class MouseEventTapTests: XCTestCase {
         var offeredLocation: CGPoint?
         tap.shouldCapture = { _, location in
             offeredLocation = location
-            return false
+            return .passThrough
         }
         var observedEventCount = 0
         tap.onEvent = { _, _ in observedEventCount += 1 }
@@ -160,6 +160,7 @@ final class MouseEventTapTests: XCTestCase {
             switch event {
             case .buttonDown: kind = "down"
             case .buttonUp: kind = "up"
+            case .chordClick: kind = "chord"
             case .interrupted: kind = "interrupted"
             case .drained: kind = "drained"
             }
@@ -209,6 +210,7 @@ final class MouseEventTapTests: XCTestCase {
             switch event {
             case .buttonDown: observed.append("down")
             case .buttonUp: observed.append("up")
+            case .chordClick: observed.append("chord")
             case .interrupted: observed.append("interrupted")
             case .drained: observed.append("drained")
             }
@@ -227,6 +229,128 @@ final class MouseEventTapTests: XCTestCase {
         XCTAssertEqual(observed, ["down", "interrupted", "drained"])
     }
 
+    func testChordClickMaskAddsOnlyLeftEdges() {
+        let mask = MouseEventTap.chordClickMask
+
+        XCTAssertTrue(maskContains(mask, .leftMouseDown))
+        XCTAssertTrue(maskContains(mask, .leftMouseUp))
+        XCTAssertFalse(maskContains(mask, .leftMouseDragged),
+                       "Filtering movement can freeze the system cursor on macOS 14")
+        XCTAssertFalse(maskContains(mask, .mouseMoved))
+        XCTAssertFalse(maskContains(mask, .rightMouseDown))
+    }
+
+    func testChordCapableCaptureSwallowsPairedLeftClick() throws {
+        let tap = MouseEventTap()
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        var observed: [String] = []
+        tap.onEvent = { event, _ in observed.append(Self.describe(event)) }
+
+        let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let rightUp = try makeMouseEvent(type: .rightMouseUp, button: .right)
+        let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
+        let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: rightDown))
+        XCTAssertNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNil(tap.handle(type: .leftMouseUp, event: leftUp))
+        XCTAssertNil(tap.handle(type: .rightMouseUp, event: rightUp))
+
+        XCTAssertEqual(observed, ["down", "chord:right", "up"])
+    }
+
+    func testChordLeftUpAfterTriggerReleaseIsStillSwallowed() throws {
+        let tap = MouseEventTap()
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let rightUp = try makeMouseEvent(type: .rightMouseUp, button: .right)
+        let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
+        let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: rightDown))
+        XCTAssertNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNil(tap.handle(type: .rightMouseUp, event: rightUp))
+        // The app never saw this down, so it must not see the up either.
+        XCTAssertNil(tap.handle(type: .leftMouseUp, event: leftUp))
+
+        // The next ordinary click belongs to the app again.
+        XCTAssertNotNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNotNil(tap.handle(type: .leftMouseUp, event: leftUp))
+    }
+
+    func testLeftClickPassesThroughWhenSessionDeclinesChords() throws {
+        let tap = MouseEventTap()
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: false) }
+        var observed: [String] = []
+        tap.onEvent = { event, _ in observed.append(Self.describe(event)) }
+        let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let rightUp = try makeMouseEvent(type: .rightMouseUp, button: .right)
+        let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
+        let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: rightDown))
+        XCTAssertNotNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNotNil(tap.handle(type: .leftMouseUp, event: leftUp))
+        XCTAssertNil(tap.handle(type: .rightMouseUp, event: rightUp))
+
+        XCTAssertEqual(observed, ["down", "up"])
+    }
+
+    func testLeftPressHeldBeforeTriggerKeepsItsUp() throws {
+        let tap = MouseEventTap()
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        var observed: [String] = []
+        tap.onEvent = { event, _ in observed.append(Self.describe(event)) }
+        let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let rightUp = try makeMouseEvent(type: .rightMouseUp, button: .right)
+        let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
+        let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
+
+        XCTAssertNotNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: rightDown))
+        // The app received this press's down, so its up is not a chord.
+        XCTAssertNotNil(tap.handle(type: .leftMouseUp, event: leftUp))
+        XCTAssertNil(tap.handle(type: .rightMouseUp, event: rightUp))
+
+        XCTAssertEqual(observed, ["down", "up"])
+    }
+
+    func testInterruptedChordStillOwesItsLeftUp() throws {
+        let tap = MouseEventTap(buttonStateProvider: { _ in false })
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
+        let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: rightDown))
+        XCTAssertNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNotNil(tap.handle(type: .tapDisabledByTimeout, event: leftDown))
+
+        XCTAssertNil(tap.handle(type: .leftMouseUp, event: leftUp))
+    }
+
+    func testFreshLeftPressClearsChordUpLostWhileDisabled() throws {
+        let tap = MouseEventTap(buttonStateProvider: { _ in false })
+        tap.watchedButtons = [.right]
+        tap.shouldCapture = { _, _ in .capture(acceptsChordClick: true) }
+        let rightDown = try makeMouseEvent(type: .rightMouseDown, button: .right)
+        let leftDown = try makeMouseEvent(type: .leftMouseDown, button: .left)
+        let leftUp = try makeMouseEvent(type: .leftMouseUp, button: .left)
+
+        XCTAssertNil(tap.handle(type: .rightMouseDown, event: rightDown))
+        XCTAssertNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        // The owed up reaches the app while the system has the tap disabled.
+        XCTAssertNotNil(tap.handle(type: .tapDisabledByTimeout, event: leftDown))
+
+        XCTAssertNotNil(tap.handle(type: .leftMouseDown, event: leftDown))
+        XCTAssertNotNil(tap.handle(type: .leftMouseUp, event: leftUp))
+    }
+
     func testQuartzLocationConvertsToAppKitCoordinates() {
         let converted = GestureRuntime.appKitLocation(
             fromQuartz: CGPoint(x: 10, y: 30),
@@ -239,6 +363,16 @@ final class MouseEventTapTests: XCTestCase {
             zeroScreenMaxY: 900
         )
         XCTAssertEqual(origin, CGPoint(x: 0, y: 900))
+    }
+
+    private static func describe(_ event: MouseEventTap.EventKind) -> String {
+        switch event {
+        case .buttonDown: return "down"
+        case .buttonUp: return "up"
+        case .chordClick(let button): return "chord:\(button.rawValue)"
+        case .interrupted: return "interrupted"
+        case .drained: return "drained"
+        }
     }
 
     private func maskContains(_ mask: CGEventMask, _ type: CGEventType) -> Bool {

@@ -689,6 +689,9 @@ final class ConfigurationSyncTests: XCTestCase {
         defer { harness.cleanup() }
         let shellBody = "printf 'preview-secret-shell-body'"
         let appleScriptBody = "return \"preview-secret-applescript-body\""
+        let secondaryShellBody = "printf 'preview-secret-secondary-body'"
+        var secondaryShellGesture = makeGesture(name: "Secondary Shell Gesture")
+        secondaryShellGesture.secondaryAction = .shell(secondaryShellBody)
         try harness.store.replaceFromBackup(GestureConfigFile(
             version: Constants.configVersion,
             gestures: [
@@ -701,6 +704,7 @@ final class ConfigurationSyncTests: XCTestCase {
                     name: "AppleScript Gesture",
                     action: .appleScript(appleScriptBody)
                 ),
+                secondaryShellGesture,
             ]
         ))
         try await connect(harness.sync, automatic: false)
@@ -712,12 +716,13 @@ final class ConfigurationSyncTests: XCTestCase {
         let preview = try XCTUnwrap(harness.sync.history.preview)
         XCTAssertEqual(
             preview.privilegedGestureNames,
-            ["Shell Gesture", "AppleScript Gesture"]
+            ["Shell Gesture", "AppleScript Gesture", "Secondary Shell Gesture"]
         )
         XCTAssertTrue(preview.containsScripts)
         let publicDescription = String(describing: preview)
         XCTAssertFalse(publicDescription.contains(shellBody))
         XCTAssertFalse(publicDescription.contains(appleScriptBody))
+        XCTAssertFalse(publicDescription.contains(secondaryShellBody))
     }
 
     func testEncryptedSnapshotOnAnotherMacRequiresThenAcceptsPassword() async throws {

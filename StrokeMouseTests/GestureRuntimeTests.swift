@@ -1511,6 +1511,267 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(platform.shortcutCount, 0)
     }
 
+    // MARK: - Secondary action (left-click chord)
+
+    func testChordClickRunsOnlySecondaryAction() async throws {
+        var profile = drawnShortcutProfile(
+            id: UUID(),
+            name: "Paste",
+            activation: .mouse(.default)
+        )
+        profile.secondaryAction = .shortcut(keyCode: 1, modifiers: 0, display: "S")
+
+        let draw = try await drawUpWithRightButton(
+            profiles: [profile],
+            clickingLeft: true
+        )
+
+        XCTAssertEqual(
+            draw.mouse.lastCaptureDecision,
+            .capture(acceptsChordClick: true)
+        )
+        XCTAssertEqual(draw.platform.shortcutKeyCodes, [1])
+        XCTAssertEqual(draw.matches.map(\.usesSecondaryAction), [true])
+        XCTAssertEqual(draw.mouse.replayedClicks, 0)
+    }
+
+    func testDrawWithoutChordClickRunsPrimaryAction() async throws {
+        var profile = drawnShortcutProfile(
+            id: UUID(),
+            name: "Paste",
+            activation: .mouse(.default)
+        )
+        profile.secondaryAction = .shortcut(keyCode: 1, modifiers: 0, display: "S")
+
+        let draw = try await drawUpWithRightButton(
+            profiles: [profile],
+            clickingLeft: false
+        )
+
+        XCTAssertEqual(draw.platform.shortcutKeyCodes, [0])
+        XCTAssertEqual(draw.matches.map(\.usesSecondaryAction), [false])
+    }
+
+    func testChordClickOnGestureWithoutSecondaryActionRunsNothing()
+        async throws
+    {
+        let plain = drawnShortcutProfile(
+            id: UUID(),
+            name: "Copy",
+            activation: .mouse(.default)
+        )
+        let other = GestureProfile(
+            name: "Paste",
+            input: .drawn(DrawnGesture(
+                activation: .mouse(.default),
+                points: PathTemplates.down
+            )),
+            secondaryAction: .shortcut(keyCode: 1, modifiers: 0, display: "S")
+        )
+
+        let draw = try await drawUpWithRightButton(
+            profiles: [plain, other],
+            clickingLeft: true
+        )
+
+        // The path still resolves to the gesture it matches; no fallback to
+        // its primary action and no lower-scoring gesture takes over.
+        XCTAssertTrue(draw.platform.shortcutKeyCodes.isEmpty)
+        XCTAssertTrue(draw.matches.isEmpty)
+        XCTAssertEqual(
+            draw.runtime.state.lastOutcome,
+            .secondaryActionUnavailable(profileID: plain.id)
+        )
+    }
+
+    func testChordCaptureIgnoresSecondaryActionsOutsideTargetApplication()
+        async throws
+    {
+        let plain = drawnShortcutProfile(
+            id: UUID(),
+            name: "Copy",
+            activation: .mouse(.default)
+        )
+        let elsewhere = GestureProfile(
+            name: "Paste",
+            input: .drawn(DrawnGesture(
+                activation: .mouse(.default),
+                points: PathTemplates.down
+            )),
+            secondaryAction: .shortcut(keyCode: 1, modifiers: 0, display: "S"),
+            scope: .apps(["com.example.elsewhere"])
+        )
+
+        let draw = try await drawUpWithRightButton(
+            profiles: [plain, elsewhere],
+            clickingLeft: true
+        )
+
+        XCTAssertTrue(draw.mouse.installedChordClicks)
+        XCTAssertEqual(
+            draw.mouse.lastCaptureDecision,
+            .capture(acceptsChordClick: false)
+        )
+        // The left click stayed with the app, so the primary action runs.
+        XCTAssertEqual(draw.platform.shortcutKeyCodes, [0])
+    }
+
+    func testChordClickWithoutStrokeCancelsWithoutReplayingClick()
+        async throws
+    {
+        let mouse = RuntimeMouseEventSource()
+        let platform = RuntimeActionPlatform()
+        let screen = try XCTUnwrap(NSScreen.screens.first)
+        let pressPoint = CGPoint(x: 20, y: 300)
+        let sampledPoint = GestureRuntime.appKitLocation(
+            fromQuartz: pressPoint,
+            zeroScreenMaxY: screen.frame.maxY
+        )
+        let sampled = expectation(description: "Press sampled")
+        var pendingSample: XCTestExpectation? = sampled
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            pointerLocation: {
+                pendingSample?.fulfill()
+                pendingSample = nil
+                return sampledPoint
+            },
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        var profile = drawnShortcutProfile(
+            id: UUID(),
+            name: "Paste",
+            activation: .mouse(.default)
+        )
+        profile.secondaryAction = .shortcut(keyCode: 1, modifiers: 0, display: "S")
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [profile]
+        ))
+
+        XCTAssertTrue(mouse.press(.right, at: pressPoint))
+        await fulfillment(of: [sampled], timeout: 1)
+        XCTAssertTrue(mouse.clickLeft())
+        await drainMainActor()
+        mouse.release(.right, at: pressPoint)
+        await drainMainActor()
+
+        XCTAssertEqual(mouse.replayedClicks, 0)
+        XCTAssertEqual(runtime.state.lastOutcome, .cancelled)
+        XCTAssertEqual(platform.shortcutCount, 0)
+    }
+
+    func testMouseTapInstallsChordMaskOnlyWhileSecondaryActionsExist()
+        throws
+    {
+        let mouse = RuntimeMouseEventSource()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(),
+            targetCapturer: RuntimeTargetCapturer(),
+            mouseEventTap: mouse,
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        let plain = drawnShortcutProfile(
+            id: UUID(),
+            name: "Copy",
+            activation: .mouse(.default)
+        )
+        var chorded = plain
+        chorded.secondaryAction = GestureAction.none
+        var modifierOnly = drawnShortcutProfile(
+            id: UUID(),
+            name: "Fn",
+            activation: .modifier(.function)
+        )
+        modifierOnly.secondaryAction = GestureAction.none
+
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [plain, modifierOnly]
+        ))
+        XCTAssertTrue(mouse.isActive)
+        XCTAssertFalse(mouse.installedChordClicks)
+        let stopsBeforeChord = mouse.stopCount
+
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: true,
+            profiles: [chorded]
+        ))
+        XCTAssertTrue(mouse.installedChordClicks)
+        XCTAssertEqual(mouse.stopCount, stopsBeforeChord + 1)
+
+        try runtime.apply(configuration(
+            revision: 3,
+            enabled: true,
+            profiles: [plain]
+        ))
+        XCTAssertFalse(mouse.installedChordClicks)
+    }
+
+    private struct RightButtonDraw {
+        let runtime: GestureRuntime
+        let mouse: RuntimeMouseEventSource
+        let platform: RuntimeActionPlatform
+        let matches: [GestureMatchResult]
+    }
+
+    private func drawUpWithRightButton(
+        profiles: [GestureProfile],
+        clickingLeft: Bool
+    ) async throws -> RightButtonDraw {
+        let mouse = RuntimeMouseEventSource()
+        let platform = RuntimeActionPlatform()
+        let screen = try XCTUnwrap(NSScreen.screens.first)
+        let sampledPoint = GestureRuntime.appKitLocation(
+            fromQuartz: CGPoint(x: 20, y: 200),
+            zeroScreenMaxY: screen.frame.maxY
+        )
+        let sampled = expectation(description: "Draw sampled")
+        var pendingSample: XCTestExpectation? = sampled
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: MutableRuntimeTargetCapturer(processIdentifier: 101),
+            mouseEventTap: mouse,
+            pointerLocation: {
+                pendingSample?.fulfill()
+                pendingSample = nil
+                return sampledPoint
+            },
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        var matches: [GestureMatchResult] = []
+        runtime.onMatch = { matches.append($0) }
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: profiles
+        ))
+
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 20, y: 300)))
+        await fulfillment(of: [sampled], timeout: 1)
+        if clickingLeft {
+            mouse.clickLeft()
+            await drainMainActor()
+        }
+        mouse.release(.right, at: CGPoint(x: 20, y: 100))
+        await drainMainActor()
+
+        return RightButtonDraw(
+            runtime: runtime,
+            mouse: mouse,
+            platform: platform,
+            matches: matches
+        )
+    }
+
     func testDiagnosticModifierInputReportsNoMatchWithoutConfiguredProfile()
         async throws
     {
@@ -2440,18 +2701,28 @@ private final class RuntimePermissionProvider: GesturePermissionProviding {
 
 private final class RuntimeMouseEventSource: MouseGestureEventSource {
     var watchedButtons = Set<MouseTriggerButton>()
+    var interceptsChordClicks = false
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)?
-    var shouldCapture: ((MouseTriggerButton, CGPoint) -> Bool)?
+    var shouldCapture:
+        ((MouseTriggerButton, CGPoint) -> MouseEventTap.CaptureDecision)?
     private(set) var isActive = false
     private(set) var stopCount = 0
     private(set) var replayedClicks = 0
+    private(set) var lastCaptureDecision: MouseEventTap.CaptureDecision?
+    private(set) var installedChordClicks = false
     private var capturedButtons = Set<MouseTriggerButton>()
+    private var chordClickButtons = Set<MouseTriggerButton>()
     private var interruptedButtons = Set<MouseTriggerButton>()
     private var eventGeneration: UInt64 = 0
 
     func start() -> Bool {
+        // Mirrors `MouseEventTap`: a mask change reinstalls the tap.
+        if isActive, installedChordClicks != interceptsChordClicks {
+            stop()
+        }
         eventGeneration &+= 1
         isActive = true
+        installedChordClicks = interceptsChordClicks
         return true
     }
 
@@ -2462,6 +2733,7 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
         eventGeneration &+= 1
         isActive = false
         capturedButtons.removeAll()
+        chordClickButtons.removeAll()
         interruptedButtons.removeAll()
     }
 
@@ -2483,13 +2755,33 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
     ) -> Bool {
         guard isActive,
               watchedButtons.contains(button),
-              !interruptedButtons.contains(button),
-              shouldCapture?(button, location) ?? true
+              !interruptedButtons.contains(button)
         else {
             return false
         }
+        let decision = shouldCapture?(button, location)
+            ?? .capture(acceptsChordClick: false)
+        lastCaptureDecision = decision
+        guard case .capture(let acceptsChordClick) = decision else {
+            return false
+        }
         capturedButtons.insert(button)
+        if acceptsChordClick {
+            chordClickButtons.insert(button)
+        }
         onEvent?(.buttonDown(button, location), eventGeneration)
+        return true
+    }
+
+    /// Returns whether the left click was swallowed as a chord.
+    @discardableResult
+    func clickLeft() -> Bool {
+        guard installedChordClicks,
+              let owner = chordClickButtons.first
+        else {
+            return false
+        }
+        onEvent?(.chordClick(owner), eventGeneration)
         return true
     }
 
@@ -2502,6 +2794,7 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
             return
         }
         guard capturedButtons.remove(button) != nil else { return }
+        chordClickButtons.remove(button)
         onEvent?(.buttonUp(button, location), eventGeneration)
     }
 
@@ -2754,6 +3047,7 @@ private final class IdentifyingRuntimeTargetCapturer: GestureTargetIdentifying,
 private final class RuntimeActionPlatform: GestureTargetActionPlatform {
     private(set) var shortcutCount = 0
     private(set) var shortcutProcessIdentifiers: [pid_t] = []
+    private(set) var shortcutKeyCodes: [UInt16] = []
 
     func performShortcut(
         keyCode: UInt16,
@@ -2763,6 +3057,7 @@ private final class RuntimeActionPlatform: GestureTargetActionPlatform {
     ) async throws {
         shortcutCount += 1
         shortcutProcessIdentifiers.append(target.processIdentifier)
+        shortcutKeyCodes.append(keyCode)
     }
 
     func performWindow(

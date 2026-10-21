@@ -8785,6 +8785,236 @@
         }
       }
     },
+    "editor.secondaryAction": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secondary Action"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第二动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第二動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보조 동작"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第2アクション"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Второе действие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Action secondaire"
+          }
+        }
+      }
+    },
+    "editor.secondaryActionToggle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Click the left button while drawing to run a secondary action"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "绘制中加按左键时执行第二动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繪製中加按左鍵時執行第二動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그리는 중 왼쪽 버튼을 클릭하면 보조 동작 실행"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "描画中に左クリックすると第2アクションを実行"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Щелчок левой кнопкой во время рисования запускает второе действие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un clic gauche pendant le tracé exécute une action secondaire"
+          }
+        }
+      }
+    },
+    "editor.secondaryActionHelp": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While holding the trigger to draw, click the left button once; after release only the secondary action runs. Without the click, the primary action runs."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住触发键绘制时点击一次左键，松开后只执行第二动作；未加按时执行主动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住觸發鍵繪製時點擊一次左鍵，放開後只執行第二動作；未加按時執行主動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "트리거를 누른 채 그리는 동안 왼쪽 버튼을 한 번 클릭하면, 놓은 뒤 보조 동작만 실행됩니다. 클릭하지 않으면 기본 동작이 실행됩니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トリガーを押したまま描画中に左ボタンを一度クリックすると、離したあと第2アクションだけを実行します。クリックしなければ通常のアクションを実行します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удерживая кнопку‑триггер, щёлкните левой кнопкой во время рисования: после отпускания выполнится только второе действие. Без щелчка выполняется основное действие."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En dessinant avec le déclencheur enfoncé, faites un clic gauche : au relâchement, seule l’action secondaire s’exécute. Sans clic, l’action principale s’exécute."
+          }
+        }
+      }
+    },
+    "editor.secondaryActionModifierHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only mouse drawing can add a left click; trackpad drawing always runs the primary action."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅鼠标绘制可加按左键，触控板绘制始终执行主动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅滑鼠繪製可加按左鍵，觸控式軌跡板繪製始終執行主動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "왼쪽 클릭 추가는 마우스 그리기에서만 가능하며, 트랙패드 그리기는 항상 기본 동작을 실행합니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左クリックの併用はマウス描画のみです。トラックパッド描画では常に通常のアクションを実行します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить левый щелчок можно только при рисовании мышью; рисование на трекпаде всегда выполняет основное действие."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seul le dessin à la souris accepte un clic gauche ; le dessin au trackpad exécute toujours l’action principale."
+          }
+        }
+      }
+    },
+    "editor.testSecondaryAction": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test Secondary Action"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试第二动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "測試第二動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보조 동작 테스트"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第2アクションをテスト"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить второе действие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tester l’action secondaire"
+          }
+        }
+      }
+    },
     "editor.scope": {
       "localizations": {
         "en": {
@@ -13845,6 +14075,52 @@
         }
       }
     },
+    "gestures.actionWithSecondary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · Left click: %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · 加按左键：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · 加按左鍵：%2$@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · 왼쪽 클릭: %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · 左クリック併用：%2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · левый щелчок: %2$@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · clic gauche : %2$@"
+          }
+        }
+      }
+    },
     "gestures.col.scope": {
       "localizations": {
         "en": {
@@ -14305,6 +14581,98 @@
         }
       }
     },
+    "hud.secondaryActionBadge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secondary"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第二动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第二動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보조 동작"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第2アクション"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Второе действие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secondaire"
+          }
+        }
+      }
+    },
+    "toast.matchedSecondary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · Secondary  (%d%%)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · 第二动作  (匹配度 %d%%)"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · 第二動作  (匹配度 %d%%)"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · 보조 동작  (일치도 %d%%)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · 第2アクション  （一致度 %d%%）"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · второе действие  (совпадение %d%%)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "✓ %@ · action secondaire  (correspondance %d%%)"
+          }
+        }
+      }
+    },
     "toast.noMatch": {
       "localizations": {
         "en": {
@@ -14347,6 +14715,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aucun geste correspondant"
+          }
+        }
+      }
+    },
+    "toast.secondaryActionMissing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@” has no secondary action"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”未设置第二动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”未設定第二動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”에 보조 동작이 설정되지 않았습니다"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”に第2アクションが設定されていません"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У «%@» нет второго действия"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ » n’a pas d’action secondaire"
           }
         }
       }
@@ -21523,6 +21937,52 @@
           "stringUnit": {
             "state": "translated",
             "value": "Geste annulé"
+          }
+        }
+      }
+    },
+    "gestureTest.chordClicked": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left click added: the secondary action is selected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已加按左键，将选用第二动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已加按左鍵，將選用第二動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "왼쪽 클릭이 추가되어 보조 동작이 선택됩니다"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左クリックが併用され、第2アクションが選択されます"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавлен левый щелчок: выбрано второе действие"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clic gauche ajouté : l’action secondaire est sélectionnée"
           }
         }
       }

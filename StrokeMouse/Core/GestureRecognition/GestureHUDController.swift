@@ -14,7 +14,12 @@ final class GestureHUDController {
 
     /// - Parameter lineColorOverride: When non-nil, replaces the configured trail color
     ///   (used for live mismatch feedback). Start-point color is unchanged.
-    func showPath(_ points: [CGPoint], lineColorOverride: NSColor? = nil) {
+    /// - Parameter badge: Short label drawn beside the stroke head.
+    func showPath(
+        _ points: [CGPoint],
+        lineColorOverride: NSColor? = nil,
+        badge: String? = nil
+    ) {
         // points are AppKit global coordinates (origin bottom-left of primary screen space).
         ensureWindows()
         guard !points.isEmpty else {
@@ -35,6 +40,7 @@ final class GestureHUDController {
             }
             pathViews[index].points = local
             pathViews[index].style = style
+            pathViews[index].badge = badge
             pathViews[index].needsDisplay = true
         }
     }
@@ -42,6 +48,7 @@ final class GestureHUDController {
     func hide() {
         for view in pathViews {
             view.points = []
+            view.badge = nil
             view.needsDisplay = true
         }
         for window in windows {
@@ -106,6 +113,7 @@ final class GestureHUDController {
 final class GesturePathView: NSView {
     var points: [CGPoint] = []
     var style: DrawingStyle.Snapshot = DrawingStyle.snapshot()
+    var badge: String?
 
     override var isFlipped: Bool { false }
 
@@ -143,6 +151,9 @@ final class GesturePathView: NSView {
                 lineColor.setStroke()
                 dot.lineWidth = 2
                 dot.stroke()
+                if let badge {
+                    drawBadge(badge, near: last, offset: r + 6, color: lineColor)
+                }
             }
         }
 
@@ -161,5 +172,27 @@ final class GesturePathView: NSView {
             NSColor.white.setFill()
             inner.fill()
         }
+    }
+
+    private func drawBadge(
+        _ text: String,
+        near point: CGPoint,
+        offset: CGFloat,
+        color: NSColor
+    ) {
+        let label = NSAttributedString(string: text, attributes: [
+            .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
+            .foregroundColor: NSColor.white,
+        ])
+        let size = label.size()
+        let frame = CGRect(
+            x: point.x + offset,
+            y: point.y + offset,
+            width: size.width + 12,
+            height: size.height + 4
+        )
+        color.withAlphaComponent(0.95).setFill()
+        NSBezierPath(roundedRect: frame, xRadius: frame.height / 2, yRadius: frame.height / 2).fill()
+        label.draw(at: CGPoint(x: frame.minX + 6, y: frame.minY + 2))
     }
 }

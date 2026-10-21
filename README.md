@@ -34,7 +34,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 
 - **Menu bar app**: enable/disable gestures, open settings, quit; icon tints by status (normal / paused / needs permission); optional **hide menu bar icon** (confirm if Dock is also hidden; reopen via Dock or relaunch to open settings)
 - **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
-- **Mouse drawing**: each gesture can independently use the right, middle, or a side button; only buttons referenced by enabled profiles are monitored
+- **Mouse drawing**: each gesture can independently use the right, middle, or a side button; only buttons referenced by enabled profiles are monitored; optionally add a **left-click secondary action**—click the left button once while drawing and only that action runs on release
 - **Trackpad Draw**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
 - **Experimental Touch Gestures**: the built-in trackpad supports 34 gesture classes—three- to five-finger taps, double taps, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
 - **Touch Gestures master switch**: disable Touch Gestures without deleting configured gestures; private-backend failures degrade only the trackpad channel, leaving mouse and Trackpad Draw available
@@ -160,7 +160,7 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 4. Choose an input: draw while holding a mouse trigger, Trackpad Draw while holding one modifier key, or perform a configured Touch Gesture
 5. On a successful match, the bound action runs  
 
-> **Short click vs gesture**: trigger down/up is temporarily captured by the engine. If you release before the minimum stroke distance, a normal click is replayed so the context menu still works. Once drawing starts, drag still moves the system cursor and stroke HUD, but the frontmost app does not receive a paired down/up—so no context menu appears or is selected. Left click and buttons not configured as triggers are always passed through.
+> **Short click vs gesture**: trigger down/up is temporarily captured by the engine. If you release before the minimum stroke distance, a normal click is replayed so the context menu still works. Once drawing starts, drag still moves the system cursor and stroke HUD, but the frontmost app does not receive a paired down/up—so no context menu appears or is selected. Buttons not configured as triggers always pass through. Left click passes through too, unless a gesture available in the target app has a **secondary action**: while you hold the trigger, a left click is consumed and, on release, only the matched gesture's secondary action runs (nothing runs if that gesture has none; a click without a stroke cancels).
 
 > **Trackpad Draw**: modifier monitoring is listen-only and never consumes keyboard events; a short path runs no action. The path follows the system pointer, so either a trackpad or mouse can move it. StrokeMouse does not suppress the modifier's normal effect in the active app.
 

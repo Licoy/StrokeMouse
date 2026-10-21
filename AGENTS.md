@@ -137,7 +137,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ## 权限与安全注意
 
 - `MouseEventTap` 依赖 `AXIsProcessTrusted()`；未授权时不得假装在监听。
-- `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎。左键、未监控按钮和没有配对 down 的事件始终放行。
+- `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎。未监控按钮和没有配对 down 的事件始终放行。左键默认放行：仅当已启用的鼠标绘制 profile 存在 `secondaryAction` 时，left down/up 才进入同一 tap 掩码（在无会话时重装 tap 切换）；且只有本次会话的候选含第二动作时，触发键按住期间的 left down 与其配对 up 才被成对吞掉，用于选择第二动作。触发键之前已按下的左键保留其 up；新的 left down 清除遗留的待吞 up。leftMouseDragged 同样不得进入掩码。
 - **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
 - `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
 - `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。不得写入 `location`：创建时已带当前光标，过期坐标会被系统当成指针位置。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
@@ -157,9 +157,10 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
    - 不再使用结构门控或曲线 / 折线分通道：自然抖动、端点小钩、比例变化连续降分，反向、镜像、截断、明显多画的尾巴因代价过高被拒绝；不使用开放头尾、镜像、逆序或 near-miss 兜底
    - 实时 HUD 用 32 点粗剖面比较整条模板及其 10%–80% 前缀，先用平均代价下界剪枝，再算完整距离；终态识别不使用前缀
    - 调整参数前用 `Issue17LetterRecognitionTests`（Issue #17 真实字母轨迹）与各录制 fixture 回归，详见 `docs/elastic-path-recognition.md`
-4. 触控手势支持 34 类：三至五指单击 / 双击 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝
-5. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零
-6. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
+4. 鼠标绘制可选 `GestureProfile.secondaryAction`：会话中点击过左键则只执行匹配手势的第二动作，匹配手势没有第二动作时不执行任何动作（`secondaryActionUnavailable`）；所有候选仍参与匹配，左键只选择动作；未达到有效轨迹的左键会话直接取消、不回放点击；触控板绘制与触控手势始终执行主动作
+5. 触控手势支持 34 类：三至五指单击 / 双击 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝
+6. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零
+7. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
 
 调参常量见 `Constants.swift`。
 

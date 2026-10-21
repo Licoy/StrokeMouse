@@ -901,6 +901,9 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
     var isEnabled: Bool
     var input: GestureInput
     var action: GestureAction
+    /// Runs instead of `action` when the left button is clicked while this
+    /// mouse-drawn gesture is held. `nil` leaves the left button untouched.
+    var secondaryAction: GestureAction?
     var scope: AppScope
     var targetPolicy: GestureTargetPolicy
     var notes: String
@@ -911,6 +914,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         isEnabled: Bool = true,
         input: GestureInput,
         action: GestureAction = .none,
+        secondaryAction: GestureAction? = nil,
         scope: AppScope = .global,
         targetPolicy: GestureTargetPolicy = .frontmostWindow,
         notes: String = ""
@@ -920,6 +924,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         self.isEnabled = isEnabled
         self.input = input
         self.action = action
+        self.secondaryAction = secondaryAction
         self.scope = scope
         self.targetPolicy = targetPolicy
         self.notes = notes
@@ -960,6 +965,10 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         input = try container.decode(GestureInput.self, forKey: .input)
         action = try container.decodeIfPresent(GestureAction.self, forKey: .action) ?? .none
+        secondaryAction = try container.decodeIfPresent(
+            GestureAction.self,
+            forKey: .secondaryAction
+        )
         if let groupID = try container.decodeIfPresent(UUID.self, forKey: .appGroup) {
             scope = .group(groupID)
         } else {
@@ -977,6 +986,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(input, forKey: .input)
         try container.encode(action, forKey: .action)
+        try container.encodeIfPresent(secondaryAction, forKey: .secondaryAction)
         switch scope {
         case .group(let groupID):
             // Older versions only know `global` / `apps`; an empty app list
@@ -996,6 +1006,7 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
             && isEnabled == other.isEnabled
             && input == other.input
             && action == other.action
+            && secondaryAction == other.secondaryAction
             && scope == other.scope
             && targetPolicy == other.targetPolicy
             && notes == other.notes
@@ -1003,7 +1014,39 @@ struct GestureProfile: Identifiable, Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case id, name, isEnabled, input
-        case action, scope, appGroup, targetPolicy, notes
+        case action, secondaryAction, scope, appGroup, targetPolicy, notes
+    }
+}
+
+extension GestureProfile {
+    /// Only mouse-drawn sessions can see a left click while the trigger is held.
+    static func supportsSecondaryAction(_ input: GestureInput) -> Bool {
+        guard case .drawn(let drawn) = input,
+              case .mouse = drawn.activation
+        else {
+            return false
+        }
+        return true
+    }
+
+    var acceptsChordClick: Bool {
+        secondaryAction != nil && Self.supportsSecondaryAction(input)
+    }
+
+    var actions: [GestureAction] {
+        [action] + [secondaryAction].compactMap { $0 }
+    }
+
+    /// Shell and AppleScript need an explicit confirmation on import / restore.
+    var containsPrivilegedAction: Bool {
+        actions.contains {
+            switch $0 {
+            case .shell, .appleScript:
+                return true
+            default:
+                return false
+            }
+        }
     }
 }
 

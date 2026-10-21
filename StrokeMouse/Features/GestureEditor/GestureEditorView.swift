@@ -4,6 +4,10 @@ struct GestureEditorView: View {
     @Environment(AppState.self) private var appState
     @State private var profile: GestureProfile
     @State private var actionKind: ActionKind
+    @State private var isSecondaryActionEnabled: Bool
+    @State private var secondaryActionKind: ActionKind
+    /// Kept while the toggle is off so re-enabling restores the draft.
+    @State private var secondaryActionDraft: GestureAction
     @State private var scopeMode: AppScopeMode = .global
     @State private var scopeBundleIds: [String] = []
     @State private var scopeGroupID: UUID?
@@ -29,6 +33,10 @@ struct GestureEditorView: View {
         }
         _sampleState = State(initialValue: GestureSampleEditorState(paths: paths))
         _actionKind = State(initialValue: ActionKind.from(profile.action))
+        let secondaryAction = profile.secondaryAction ?? .none
+        _isSecondaryActionEnabled = State(initialValue: profile.secondaryAction != nil)
+        _secondaryActionKind = State(initialValue: ActionKind.from(secondaryAction))
+        _secondaryActionDraft = State(initialValue: secondaryAction)
         switch profile.scope {
         case .global:
             _scopeMode = State(initialValue: .global)
@@ -113,6 +121,10 @@ struct GestureEditorView: View {
                 }
             }
 
+            if GestureProfile.supportsSecondaryAction(profile.input) {
+                secondaryActionSection
+            }
+
             Section(L10n.string("editor.target")) {
                 Picker(
                     L10n.string("editor.targetWindow"),
@@ -128,7 +140,7 @@ struct GestureEditorView: View {
                     .foregroundStyle(.secondary)
 
                 if profile.targetPolicy == .windowUnderPointer,
-                   actionKind == .shortcut
+                   usesShortcutAction
                 {
                     Label(
                         L10n.string("editor.targetPointerShortcutWarning"),
@@ -156,6 +168,59 @@ struct GestureEditorView: View {
         .formStyle(.grouped)
     }
 
+    private var secondaryActionSection: some View {
+        Section(L10n.string("editor.secondaryAction")) {
+            Toggle(
+                L10n.string("editor.secondaryActionToggle"),
+                isOn: $isSecondaryActionEnabled
+            )
+            Text(L10n.string("editor.secondaryActionHelp"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            if isSecondaryActionEnabled {
+                ActionPickerView(
+                    kind: $secondaryActionKind,
+                    action: $secondaryActionDraft
+                )
+                if case .drawn(let drawn) = profile.input,
+                   drawn.trackpadModifierKey != nil
+                {
+                    Text(L10n.string("editor.secondaryActionModifierHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if secondaryActionDraft.requiresCapturedTarget {
+                    Text(L10n.string("editor.testActionNeedsTarget"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Button(L10n.string("editor.testSecondaryAction")) {
+                        testAction(secondaryActionDraft)
+                    }
+                }
+            }
+        }
+    }
+
+    private var usesShortcutAction: Bool {
+        actionKind == .shortcut
+            || (isSecondaryActionEnabled
+                && GestureProfile.supportsSecondaryAction(profile.input)
+                && secondaryActionKind == .shortcut)
+    }
+
+    private func testAction(_ action: GestureAction) {
+        Task { @MainActor in
+            do {
+                try await appState.actionExecutor.executeForTesting(action)
+            } catch {
+                GestureToastController.shared.showActionError(
+                    error.localizedDescription
+                )
+            }
+        }
+    }
+
     private var footerBar: some View {
         HStack {
             Button(L10n.string("common.cancel")) { onCancel() }
@@ -168,15 +233,7 @@ struct GestureEditorView: View {
             }
             Spacer()
             Button(L10n.string("common.testAction")) {
-                Task { @MainActor in
-                    do {
-                        try await appState.actionExecutor.executeForTesting(profile.action)
-                    } catch {
-                        GestureToastController.shared.showActionError(
-                            error.localizedDescription
-                        )
-                    }
-                }
+                testAction(profile.action)
             }
             .disabled(profile.action.requiresCapturedTarget)
             Button(L10n.string("common.save")) {
@@ -196,6 +253,10 @@ struct GestureEditorView: View {
             drawn.additionalPaths = Array(sampleState.samples.dropFirst())
             profile.input = .drawn(drawn)
         }
+        profile.secondaryAction = isSecondaryActionEnabled
+            && GestureProfile.supportsSecondaryAction(profile.input)
+            ? secondaryActionDraft
+            : nil
         switch scopeMode {
         case .global:
             profile.scope = .global

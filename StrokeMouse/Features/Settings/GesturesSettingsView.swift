@@ -81,10 +81,13 @@ struct GesturesSettingsView: View {
         if !q.isEmpty {
             items = items.filter { gesture in
                 gesture.name.localizedCaseInsensitiveContains(q)
-                    || gesture.action.detail.localizedCaseInsensitiveContains(q)
                     || gesture.notes.localizedCaseInsensitiveContains(q)
                     || gesture.input.displaySummary.localizedCaseInsensitiveContains(q)
-                    || L10n.string(gesture.action.summaryKey).localizedCaseInsensitiveContains(q)
+                    || gesture.actions.contains { action in
+                        action.detail.localizedCaseInsensitiveContains(q)
+                            || L10n.string(action.summaryKey)
+                                .localizedCaseInsensitiveContains(q)
+                    }
             }
         }
 
@@ -1061,8 +1064,22 @@ struct GesturesSettingsView: View {
     // MARK: - Actions
 
     private func actionLabel(for gesture: GestureProfile) -> String {
-        let type = L10n.string(gesture.action.summaryKey)
-        return "\(type): \(gesture.action.detail)"
+        let primary = Self.actionLabel(gesture.action)
+        guard gesture.acceptsChordClick,
+              let secondaryAction = gesture.secondaryAction
+        else {
+            return primary
+        }
+        return String(
+            format: L10n.string("gestures.actionWithSecondary"),
+            locale: L10n.locale,
+            primary,
+            Self.actionLabel(secondaryAction)
+        )
+    }
+
+    private static func actionLabel(_ action: GestureAction) -> String {
+        "\(L10n.string(action.summaryKey)): \(action.detail)"
     }
 
     private func toggleSelectAllDisplayed() {
@@ -1285,14 +1302,7 @@ struct GesturesSettingsView: View {
     private func confirmHighPrivilegeImportIfNeeded(
         _ profiles: [GestureProfile]
     ) -> Bool {
-        let privileged = profiles.filter {
-            switch $0.action {
-            case .shell, .appleScript:
-                return true
-            default:
-                return false
-            }
-        }
+        let privileged = profiles.filter(\.containsPrivilegedAction)
         guard !privileged.isEmpty else { return true }
 
         let alert = NSAlert()

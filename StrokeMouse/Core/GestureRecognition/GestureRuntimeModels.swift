@@ -4,6 +4,7 @@ import Foundation
 struct GestureMatchResult: Sendable {
     let profile: GestureProfile
     let score: Double
+    let usesSecondaryAction: Bool
 }
 
 @MainActor
@@ -19,7 +20,12 @@ protocol MouseGestureEventSource: AnyObject {
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)? { get set }
     /// Receives the Quartz location of the down edge so the owner can decide
     /// from the target application before the event is swallowed.
-    var shouldCapture: ((MouseTriggerButton, CGPoint) -> Bool)? { get set }
+    var shouldCapture:
+        ((MouseTriggerButton, CGPoint) -> MouseEventTap.CaptureDecision)? {
+        get set
+    }
+    /// Left clicks only enter the tap while some gesture has a secondary action.
+    var interceptsChordClicks: Bool { get set }
     var isActive: Bool { get }
 
     func start() -> Bool
@@ -118,6 +124,8 @@ struct GestureDrawDiagnostic {
     let evaluation: GestureRecognitionEvaluation?
     let outcome: GestureRuntimeOutcome
     let configurationRevision: UInt64
+    /// The left button was clicked while the mouse trigger was held.
+    let chordClicked: Bool
 
     init(
         source: GestureInputSource,
@@ -125,7 +133,8 @@ struct GestureDrawDiagnostic {
         evaluation: GestureRecognitionEvaluation?,
         outcome: GestureRuntimeOutcome,
         id: UUID = UUID(),
-        configurationRevision: UInt64 = 0
+        configurationRevision: UInt64 = 0,
+        chordClicked: Bool = false
     ) {
         self.id = id
         self.source = source
@@ -133,6 +142,7 @@ struct GestureDrawDiagnostic {
         self.evaluation = evaluation
         self.outcome = outcome
         self.configurationRevision = configurationRevision
+        self.chordClicked = chordClicked
     }
 }
 
@@ -142,6 +152,8 @@ enum GestureRuntimeOutcome: Equatable, Sendable {
     case conflict([UUID])
     case rejected(TrackpadGestureRejection)
     case cancelled
+    /// A chord click matched a gesture that has no secondary action.
+    case secondaryActionUnavailable(profileID: UUID)
     case actionFailed(String)
 }
 

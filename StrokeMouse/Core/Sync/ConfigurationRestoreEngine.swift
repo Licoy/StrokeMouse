@@ -54,15 +54,9 @@ final class ConfigurationRestoreEngine {
                 && !duplicateIDs.contains($0.id)
                 && !conflictIDs.contains($0.id)
         }.count
-        let privilegedGestureNames = decoded.payload.gestures.gestures.compactMap {
-            profile -> String? in
-            switch profile.action {
-            case .shell, .appleScript:
-                return profile.name
-            default:
-                return nil
-            }
-        }
+        let privilegedGestureNames = decoded.payload.gestures.gestures
+            .filter(\.containsPrivilegedAction)
+            .map(\.name)
 
         let preview = BackupPreviewState(
             backupID: backupID,

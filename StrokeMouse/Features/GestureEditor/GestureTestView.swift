@@ -253,6 +253,14 @@ struct GestureTestView: View {
                     systemImage: trackpadOutcomeSymbol(diagnostic.outcome)
                 )
                 .font(.caption)
+                if diagnostic.chordClicked {
+                    Label(
+                        L10n.string("gestureTest.chordClicked"),
+                        systemImage: "computermouse"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             } else {
                 Text(L10n.string("gestureTest.mouseRuntimeWaiting"))
                     .font(.caption)
@@ -676,6 +684,14 @@ struct GestureTestView: View {
             return L10n.string(reason.displayKey)
         case .cancelled:
             return L10n.string("gestureTest.trackpadCancelled")
+        case .secondaryActionUnavailable(let profileID):
+            return String(
+                format: L10n.string("toast.secondaryActionMissing"),
+                locale: L10n.locale,
+                appState.configStore.gestures.first {
+                    $0.id == profileID
+                }?.name ?? ""
+            )
         case .actionFailed(let detail):
             return detail
         }
@@ -687,7 +703,7 @@ struct GestureTestView: View {
         switch outcome {
         case .matched: return "checkmark.circle.fill"
         case .noMatch, .cancelled: return "minus.circle"
-        case .conflict, .rejected, .actionFailed:
+        case .conflict, .rejected, .secondaryActionUnavailable, .actionFailed:
             return "exclamationmark.triangle.fill"
         }
     }

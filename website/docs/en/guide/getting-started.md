@@ -51,7 +51,7 @@ On match, the bound action runs. While holding the trigger, a **live stroke HUD*
 | Press trigger, **almost no move**, release | Short click: synthetic click is replayed — **context menu still works** |
 | Move beyond min stroke distance, release | Gesture mode: the down/drag/up sequence is for gestures only — **no** context menu |
 
-Left button and unmonitored buttons always pass through.
+Unmonitored buttons always pass through. The left button does too, except that a left click while holding the trigger selects a gesture's secondary action when one is configured.
 
 ## Next
 

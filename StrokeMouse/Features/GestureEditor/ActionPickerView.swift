@@ -324,6 +324,8 @@ struct ActionPickerView: View {
         unsupportedShortcutModifier = false
         shortcutLivePreview = ""
         let tap = ShortcutRecorderTap.shared
+        // The editor can show two pickers; let the current owner reset first.
+        tap.onCancel?()
         tap.onPreview = { display in
             shortcutLivePreview = display
         }

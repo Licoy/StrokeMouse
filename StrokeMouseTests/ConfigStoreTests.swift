@@ -32,6 +32,68 @@ final class ConfigStoreTests: XCTestCase {
         XCTAssertNil(decoded.trackpadModifierKey)
     }
 
+    func testSecondaryActionRoundTripsAndStaysOffForLegacyProfiles()
+        throws
+    {
+        let plain = GestureProfile(
+            name: "Paste",
+            pattern: .freePath(PathTemplates.down),
+            action: .shortcut(keyCode: 9, modifiers: 0, display: "V")
+        )
+        let plainObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(plain))
+                as? [String: Any]
+        )
+        // Existing files keep their bytes: the key is only written when set.
+        XCTAssertNil(plainObject["secondaryAction"])
+        XCTAssertNil(
+            try JSONDecoder().decode(
+                GestureProfile.self,
+                from: JSONEncoder().encode(plain)
+            ).secondaryAction
+        )
+
+        var chorded = plain
+        chorded.secondaryAction = .applicationSwitch(.commandTab)
+        let decoded = try JSONDecoder().decode(
+            GestureProfile.self,
+            from: JSONEncoder().encode(chorded)
+        )
+        XCTAssertEqual(decoded, chorded)
+        XCTAssertFalse(plain.isContentEqual(to: chorded))
+        XCTAssertTrue(chorded.acceptsChordClick)
+        XCTAssertFalse(plain.acceptsChordClick)
+    }
+
+    func testSecondaryActionOnlyAppliesToMouseDrawing() {
+        let modifier = GestureProfile(
+            name: "Fn",
+            input: .drawn(DrawnGesture(
+                activation: .modifier(.function),
+                points: PathTemplates.up
+            )),
+            secondaryAction: GestureAction.none
+        )
+        let trackpad = GestureProfile(
+            name: "Swipe",
+            input: .trackpad(.swipe(.three, .left)),
+            secondaryAction: GestureAction.none
+        )
+
+        XCTAssertFalse(modifier.acceptsChordClick)
+        XCTAssertFalse(trackpad.acceptsChordClick)
+    }
+
+    func testSecondaryScriptCountsAsPrivilegedAction() {
+        var profile = GestureProfile(
+            name: "Paste",
+            pattern: .freePath(PathTemplates.down)
+        )
+        XCTAssertFalse(profile.containsPrivilegedAction)
+        profile.secondaryAction = .shell("echo hi")
+        XCTAssertTrue(profile.containsPrivilegedAction)
+    }
+
     func testV2ProfileEncodingUsesTaggedInputWithoutLegacyFields() throws {
         let profile = GestureProfile(
             name: "Fn Drawing",

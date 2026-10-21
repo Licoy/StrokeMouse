@@ -11,11 +11,22 @@ final class GestureToastController {
 
     private init() {}
 
-    func showMatched(name: String, score: Double) {
+    func showMatched(name: String, score: Double, usesSecondaryAction: Bool = false) {
         guard DrawingStyle.showMatchToast else { return }
         let pct = Int((score * 100).rounded())
-        let text = String(format: L10n.string("toast.matched"), locale: L10n.locale, name, pct)
+        let key = usesSecondaryAction ? "toast.matchedSecondary" : "toast.matched"
+        let text = String(format: L10n.string(key), locale: L10n.locale, name, pct)
         present(text: text, isSuccess: true)
+    }
+
+    /// A chord click is deliberate input, so this miss always surfaces.
+    func showSecondaryActionMissing(name: String) {
+        let text = String(
+            format: L10n.string("toast.secondaryActionMissing"),
+            locale: L10n.locale,
+            name
+        )
+        present(text: text, isSuccess: false)
     }
 
     func showNoMatch() {

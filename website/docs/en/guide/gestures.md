@@ -29,7 +29,16 @@ Per gesture:
 | Middle | Wheel click |
 | Side back / forward | Typical thumb buttons |
 
-Left button and unmonitored buttons **always** pass through.
+Unmonitored buttons **always** pass through. The left button passes through too, except as described in [Secondary action](#secondary-action).
+
+## Secondary action
+
+A mouse-drawn gesture can enable a **secondary action** in the editor: while holding the trigger to draw, click the left button once and only the secondary action runs on release; without the click, the primary action runs.
+
+- Left down/up are consumed as a pair only while you hold the trigger and a gesture available in the target app has a secondary action; otherwise left clicks pass through as usual
+- Recognition still considers every candidate; the left click only chooses which action runs. If the matched gesture has no secondary action, nothing runs and a notice appears
+- A left click without a valid stroke cancels the gesture; no trigger click is replayed
+- Trackpad Draw and Touch Gestures do not support secondary actions and always run the primary action
 
 ## Short-click replay
 
