@@ -1566,7 +1566,7 @@ final class GestureRuntime {
                     score: nil, mode: mode, source: source)
         } else {
             recordOutcome(.conflict(preferred.map(\.profile.id)), source: source)
-            if mode.showsToast { GestureToastController.shared.showButtonMappingConflict() }
+            if mode.showsToast { GestureToastController.shared.showCombinationConflict() }
         }
         return true
     }

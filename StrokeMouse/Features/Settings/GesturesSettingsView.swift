@@ -639,7 +639,7 @@ struct GesturesSettingsView: View {
                             )
                         }
                     }
-                    Button(L10n.string("editor.input.mouseCombination")) {
+                    Button(L10n.string("gestures.add.mouseCombination")) {
                         editorProfile = makeNewProfile(input: .mouseCombination(MouseCombinationGesture()))
                     }
                     Menu(L10n.string("gestures.add.mouseButton")) {

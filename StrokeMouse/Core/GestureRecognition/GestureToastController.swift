@@ -8,6 +8,8 @@ final class GestureToastController {
 
     private var panel: NSPanel?
     private var hideWorkItem: DispatchWorkItem?
+    /// The toast on screen until its fade-out starts.
+    private var presented: (text: String, isSuccess: Bool)?
 
     private init() {}
 
@@ -37,6 +39,14 @@ final class GestureToastController {
         )
     }
 
+    /// Wheel ticks repeat this many times a second; `present` keeps one toast up.
+    func showCombinationConflict() {
+        present(
+            text: L10n.string("toast.combinationConflict"),
+            isSuccess: false
+        )
+    }
+
     func showNoMatch() {
         guard DrawingStyle.showMissToast else { return }
         present(text: L10n.string("toast.noMatch"), isSuccess: false)
@@ -54,6 +64,13 @@ final class GestureToastController {
 
     private func present(text: String, isSuccess: Bool) {
         hideWorkItem?.cancel()
+        // Repeating the visible toast only extends it; re-presenting fades it
+        // back in from zero and flickers.
+        if let presented, presented.text == text, presented.isSuccess == isSuccess {
+            scheduleDismiss()
+            return
+        }
+        presented = (text, isSuccess)
 
         let root = ToastBannerView(text: text, isSuccess: isSuccess)
         let hosting = NSHostingView(rootView: root)
@@ -85,6 +102,10 @@ final class GestureToastController {
             panel.animator().alphaValue = 1
         }
 
+        scheduleDismiss()
+    }
+
+    private func scheduleDismiss() {
         let work = DispatchWorkItem { [weak self] in
             self?.dismiss()
         }
@@ -93,6 +114,7 @@ final class GestureToastController {
     }
 
     private func dismiss() {
+        presented = nil
         guard let panel else { return }
         NSAnimationContext.runAnimationGroup({ ctx in
             ctx.duration = 0.2

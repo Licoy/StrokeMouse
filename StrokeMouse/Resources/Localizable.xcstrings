@@ -37137,6 +37137,17 @@
         "fr": {"stringUnit": {"state": "translated", "value": "Nouvelle association de bouton"}}
       }
     },
+    "gestures.add.mouseCombination": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Mouse Combinations"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "鼠标组合"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "滑鼠組合"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "마우스 조합"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "マウスの組み合わせ"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Комбинации мыши"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Combinaisons souris"}}
+      }
+    },
     "mouseButton.preset.sideBackBack": {
       "localizations": {
         "en": {"stringUnit": {"state": "translated", "value": "Back Side Button · Go Back"}},
@@ -37168,6 +37179,17 @@
         "ja": {"stringUnit": {"state": "translated", "value": "同じ範囲に複数のボタン割り当てがあるため、実行しませんでした"}},
         "ru": {"stringUnit": {"state": "translated", "value": "Здесь действует несколько назначений кнопки, ни одно не выполнено"}},
         "fr": {"stringUnit": {"state": "translated", "value": "Plusieurs associations de bouton s’appliquent ici, aucune n’a été exécutée"}}
+      }
+    },
+    "toast.combinationConflict": {
+      "localizations": {
+        "en": {"stringUnit": {"state": "translated", "value": "Several mouse combinations apply here, so none ran"}},
+        "zh-Hans": {"stringUnit": {"state": "translated", "value": "同一范围内有多条鼠标组合，未执行动作"}},
+        "zh-Hant": {"stringUnit": {"state": "translated", "value": "同一範圍內有多條滑鼠組合，未執行動作"}},
+        "ko": {"stringUnit": {"state": "translated", "value": "같은 범위에 마우스 조합이 여러 개 있어 실행하지 않았습니다"}},
+        "ja": {"stringUnit": {"state": "translated", "value": "同じ範囲に複数のマウスの組み合わせがあるため、実行しませんでした"}},
+        "ru": {"stringUnit": {"state": "translated", "value": "Здесь действует несколько комбинаций мыши, ни одна не выполнена"}},
+        "fr": {"stringUnit": {"state": "translated", "value": "Plusieurs combinaisons souris s’appliquent ici, aucune n’a été exécutée"}}
       }
     },
     "editor.mouseButtonModifierSupport": {
@@ -37209,7 +37231,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mouse combinations"
+            "value": "Mouse Combination"
           }
         },
         "zh-Hans": {
@@ -37239,13 +37261,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Комбинации мыши"
+            "value": "Комбинация мыши"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Combinaisons souris"
+            "value": "Combinaison souris"
           }
         }
       }
@@ -37262,25 +37284,25 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "鼠标组合"
+            "value": "组合"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "滑鼠組合"
+            "value": "組合"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "마우스 조합"
+            "value": "조합"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "マウス組み合わせ"
+            "value": "組み合わせ"
           }
         },
         "ru": {
@@ -37303,7 +37325,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mouse combinations"
+            "value": "Mouse Combinations"
           }
         },
         "zh-Hans": {
