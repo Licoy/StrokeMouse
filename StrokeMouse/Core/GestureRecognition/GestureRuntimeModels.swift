@@ -28,10 +28,13 @@ protocol MouseGestureEventSource: AnyObject {
     }
     /// Left clicks only enter the tap while some gesture has a secondary action.
     var interceptsChordClicks: Bool { get set }
+    var interceptsScroll: Bool { get set }
+    var shouldCaptureScroll: ((MouseWheelDirection, CGPoint) -> Bool)? { get set }
     var isActive: Bool { get }
 
     func start() -> Bool
     func stop()
+    func replayScroll(_ event: CGEvent)
     func isCurrentEventGeneration(_ generation: UInt64) -> Bool
     func replayClick(
         button: MouseTriggerButton,

@@ -210,7 +210,7 @@ enum ScrollEventClassifier {
         }
     }
 
-    private static func axisDirection(
+    static func axisDirection(
         _ sample: ScrollEventSample,
         vertical: Bool
     ) -> Int {

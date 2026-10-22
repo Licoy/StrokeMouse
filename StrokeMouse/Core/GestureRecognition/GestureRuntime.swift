@@ -138,6 +138,9 @@ final class GestureRuntime {
         var samplesSinceLiveEval: Int
         /// Sticky: one left click selects the secondary action at release.
         var chordClicked = false
+        var combinationTriggered = false
+        var combinationLeftClicked = false
+        var wheelRepeatGate = MouseCombinationWheelRepeatGate()
     }
 
     private struct DirectSession {
@@ -180,9 +183,11 @@ final class GestureRuntime {
     private let actionExecutor: ActionExecutor
     private let targetCapturer: any GestureTargetCapturing
     private let pointerLocation: () -> CGPoint
+    private let wheelActionTime: () -> TimeInterval
     private let multitouchSourceFactory: () -> any MultitouchFrameSource
     private let inputCoreQueue: DispatchQueue
     private let sessionGate = GestureSessionGate()
+    private let combinationEnvironment = MouseCombinationEnvironment()
     private let drawCallbackGeneration = DrawCallbackGeneration()
     private let multitouchAdmission = MultitouchSessionAdmission()
     private let pressArbiter = TrackpadPressArbiter()
@@ -200,6 +205,8 @@ final class GestureRuntime {
         directTrackpadEnabled: true
     )
     private var drawSession: DrawSession?
+    private var edgeWheelRepeatGate = MouseCombinationWheelRepeatGate(interval: 0.1)
+    private var edgeWheelRepeatProfiles: [UUID] = []
     private var directSession: DirectSession?
     private var ignoresDirectTouchesUntilEmpty = false
     private var sampleTimer: Timer?
@@ -213,6 +220,7 @@ final class GestureRuntime {
     private var suppressionTokens = Set<UUID>()
     private var diagnosticTokens = Set<UUID>()
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var displayObserver: NSObjectProtocol?
     private var isSystemSleeping = false
 
     var onMatch: ((GestureMatchResult) -> Void)?
@@ -227,6 +235,7 @@ final class GestureRuntime {
             TrackpadClickEventTap(),
         doubleClickInterval: TimeInterval = NSEvent.doubleClickInterval,
         pointerLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
+        wheelActionTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
         multitouchSourceFactory: @escaping () -> any MultitouchFrameSource
     ) {
         let resolvedTargetCapturer =
@@ -238,6 +247,7 @@ final class GestureRuntime {
         self.actionExecutor = actionExecutor
         self.targetCapturer = resolvedTargetCapturer
         self.pointerLocation = pointerLocation
+        self.wheelActionTime = wheelActionTime
         self.mouseEventTap = mouseEventTap
         self.modifierEventTap = modifierEventTap
         self.trackpadClickEventTap = trackpadClickEventTap
@@ -253,12 +263,14 @@ final class GestureRuntime {
         )
         let drawCallbacks = drawCallbackGeneration
         let pendingMouseCapture = PendingMouseCapture()
+        let combinationEnvironment = self.combinationEnvironment
+        let wheelCaptureQueue = DispatchQueue(label: "com.strokemouse.app.gesture-runtime.wheel-target")
         // The target is resolved before the down edge is swallowed: when the
         // target application has no candidate for this button, the physical
         // down/up pair reaches it untouched (native drag / hold semantics).
         mouseEventTap.shouldCapture = {
             [weak sessionGate] button, location, flags in
-            guard let callbackToken = drawCallbacks.token else {
+            guard let callbackToken = drawCallbacks.token, combinationEnvironment.wheelAdmission == nil else {
                 return .passThrough
             }
             return inputCoreQueue.sync {
@@ -279,11 +291,17 @@ final class GestureRuntime {
                     for: admission,
                     snapshot: snapshot,
                     heldModifiers: heldModifiers
-                )
+                ).filter { item in
+                    guard case .mouseCombination(let gesture) = item.profile.input else { return true }
+                    // Edge wheels are admitted by the wheel itself, never by a right press.
+                    return (gesture.needsHeldRight || gesture.action == .rightClick)
+                        && gesture.accepts(location: location, displays: combinationEnvironment.displays)
+                }
                 guard admission.context.isDiagnostic || !targeted.isEmpty else {
                     sessionGate.release(admission)
                     return .passThrough
                 }
+                combinationEnvironment.held = button == .right ? targeted : []
                 pendingMouseCapture.store(
                     .init(snapshot: snapshot, heldModifiers: heldModifiers),
                     for: admission.id
@@ -291,11 +309,46 @@ final class GestureRuntime {
                 // Left clicks stay with the app unless a reachable gesture
                 // can turn them into its secondary action.
                 return .capture(
-                    acceptsChordClick: targeted.contains {
-                        $0.profile.acceptsChordClick
+                    acceptsChordClick: targeted.contains { item in
+                        if item.profile.acceptsChordClick { return true }
+                        if case .mouseCombination(let combo) = item.profile.input {
+                            return combo.needsHeldRight && combo.action == .leftClick
+                        }
+                        return false
                     }
                 )
             }
+        }
+        mouseEventTap.shouldCaptureScroll = { [weak sessionGate] direction, location in
+            guard let callbackToken = drawCallbacks.token,
+                  drawCallbacks.isCurrent(callbackToken), let sessionGate else { return false }
+            // Only locked value-state here; target capture runs on a separate queue.
+            if sessionGate.activeSource == .mouse(.right), combinationEnvironment.wheelAdmission == nil {
+                return combinationEnvironment.held.contains { item in
+                    guard case .mouseCombination(let combo) = item.profile.input else { return false }
+                    return combo.needsHeldRight && combo.action.wheelDirection == direction
+                }
+            }
+            let admission: GestureInputAdmission
+            if let existing = combinationEnvironment.wheelAdmission,
+               sessionGate.admission(for: .mouse(.right))?.id == existing.id {
+                admission = existing
+            } else {
+                guard sessionGate.activeSource == nil,
+                      let claimed = sessionGate.claim(.mouse(.right)) else { return false }
+                admission = claimed
+            }
+            let hasPotentialMatch = admission.context.configuration.profiles.contains { profile in
+                guard profile.isEnabled, case .mouseCombination(let combo) = profile.input else { return false }
+                return !combo.needsHeldRight && combo.action.wheelDirection == direction
+                    && combo.accepts(location: location, displays: combinationEnvironment.displays)
+            }
+            guard hasPotentialMatch else {
+                if combinationEnvironment.wheelAdmission == nil { sessionGate.release(admission) }
+                return false
+            }
+            combinationEnvironment.storeWheel(admission)
+            return true
         }
         mouseEventTap.onEvent = {
             [weak self, weak sessionGate, weak mouseEventTap]
@@ -306,6 +359,24 @@ final class GestureRuntime {
                 return
             }
             guard let callbackToken = drawCallbacks.token else { return }
+            if case .scroll(let direction, let location, let original) = event,
+               let wheelAdmission = combinationEnvironment.wheelAdmission {
+                wheelCaptureQueue.async { [weak self, weak sessionGate] in
+                    let snapshot = Self.captureTargetSnapshot(
+                        for: wheelAdmission, at: location, using: resolvedTargetCapturer
+                    )
+                    DispatchQueue.main.async { [weak self] in
+                        defer {
+                            combinationEnvironment.finishWheel(wheelAdmission, gate: sessionGate)
+                        }
+                        self?.handleStandaloneWheel(
+                            direction, location: location, original: original,
+                            admission: wheelAdmission, snapshot: snapshot
+                        )
+                    }
+                }
+                return
+            }
             inputCoreQueue.sync {
                 guard drawCallbacks.isCurrent(callbackToken),
                       mouseEventTap.isCurrentEventGeneration(sourceGeneration)
@@ -331,6 +402,7 @@ final class GestureRuntime {
                             )
                     }
                 case .buttonUp(let button, _):
+                    combinationEnvironment.held = []
                     if let completed = sessionGate?.admission(
                         for: .mouse(button)
                     ) {
@@ -338,10 +410,14 @@ final class GestureRuntime {
                     }
                     admission = nil
                     capture = nil
+                case .scroll:
+                    admission = nil
+                    capture = nil
                 case .chordClick:
                     admission = nil
                     capture = nil
                 case .interrupted(let button, _):
+                    combinationEnvironment.held = []
                     _ = sessionGate?.interrupt(.mouse(button))
                     admission = nil
                     capture = nil
@@ -471,6 +547,7 @@ final class GestureRuntime {
             pendingClickTimer?.invalidate()
             mouseEventTap.onEvent = nil
             mouseEventTap.shouldCapture = nil
+            mouseEventTap.shouldCaptureScroll = nil
             modifierEventTap.onEvent = nil
             trackpadClickEventTap.onPress = nil
             mouseEventTap.stop()
@@ -478,6 +555,7 @@ final class GestureRuntime {
             trackpadClickEventTap.stop()
             multitouchCallbackGeneration.invalidate()
             multitouchSource?.stop()
+            if let displayObserver { NotificationCenter.default.removeObserver(displayObserver) }
             let center = NSWorkspace.shared.notificationCenter
             for observer in workspaceObservers {
                 center.removeObserver(observer)
@@ -707,6 +785,11 @@ final class GestureRuntime {
 
         mouseEventTap.watchedButtons = demand.mouseButtons
         mouseEventTap.interceptsChordClicks = demand.needsChordClicks
+        refreshCombinationDisplays()
+        mouseEventTap.interceptsScroll = configuration.profiles.contains {
+            guard $0.isEnabled, case .mouseCombination(let combo) = $0.input else { return false }
+            return combo.isValid && combo.action.wheelDirection != nil
+        }
         modifierEventTap.watchedKeys = demand.modifierKeys
         trackpadClickEventTap.interceptsPresses =
             demand.interceptsTrackpadClicks
@@ -792,6 +875,11 @@ final class GestureRuntime {
                 case .tap: directTaps = true
                 case .click: directClicks = true
                 case .swipe, .pinch, .rotate: break
+                }
+            case .mouseCombination(let combo):
+                if combo.isValid {
+                    buttons.insert(.right)
+                    chordClicks = chordClicks || (combo.needsHeldRight && combo.action == .leftClick)
                 }
             case .mouseButton(let gesture):
                 if MouseButtonGesture.supportedButtons.contains(gesture.button) {
@@ -1088,6 +1176,9 @@ final class GestureRuntime {
     }
 
     private func cancelActiveSessions() {
+        edgeWheelRepeatGate = MouseCombinationWheelRepeatGate(interval: 0.1)
+        edgeWheelRepeatProfiles = []
+        combinationEnvironment.reset()
         stopSampling()
         drawSession = nil
         directSession = nil
@@ -1126,7 +1217,14 @@ final class GestureRuntime {
                 wasCancelled: false
             )
         case .chordClick(let button):
+            if button == .right, triggerHeldCombination(action: .leftClick) { return }
             registerChordClick(source: .mouse(button))
+        case .scroll(let direction, _, let event):
+            let preciseTimestamp: TimeInterval? = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
+                ? (event.timestamp == 0 ? ProcessInfo.processInfo.systemUptime : Double(event.timestamp) / 1_000_000_000)
+                : nil
+            _ = triggerHeldCombination(action: direction == .up ? .wheelUp : .wheelDown,
+                                       preciseTimestamp: preciseTimestamp)
         case .interrupted(let button, let quartzLocation):
             finishDraw(
                 source: .mouse(button),
@@ -1199,7 +1297,11 @@ final class GestureRuntime {
             for: admission,
             snapshot: snapshot,
             heldModifiers: heldModifiers
-        )
+        ).filter { item in
+            guard case .mouseCombination(let combo) = item.profile.input else { return true }
+            return (combo.needsHeldRight || combo.action == .rightClick)
+                && combo.accepts(location: quartzLocation, displays: combinationEnvironment.displays)
+        }
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
         let mode: SessionMode = admission.context.isDiagnostic
             || !diagnosticTokens.isEmpty
@@ -1333,7 +1435,7 @@ final class GestureRuntime {
             reconcileChannels()
             return
         }
-        if session.tracksPath {
+        if session.tracksPath && !session.combinationTriggered {
             appendDrawSample(Self.appKitLocation(fromQuartz: quartzLocation))
         }
         let finished = drawSession ?? session
@@ -1355,6 +1457,18 @@ final class GestureRuntime {
             )
             return
         }
+        if finished.combinationTriggered {
+            return
+        }
+        if !finished.isDrawing, performCombination(
+            finished.targeted.filter {
+                if case .mouseCombination(let combo) = $0.profile.input {
+                    return !combo.needsHeldRight && combo.action == .rightClick
+                        && combo.accepts(location: quartzLocation, displays: combinationEnvironment.displays)
+                }
+                return false
+            }, mode: finished.mode, source: source
+        ) { return }
         if finished.isDrawing || finished.mode == .diagnostic {
             recognizeDrawn(finished)
         } else if finished.chordClicked {
@@ -1373,6 +1487,76 @@ final class GestureRuntime {
             lastError = "Failed to replay mouse click"
             state.lastOutcome = .actionFailed(lastError ?? "")
         }
+    }
+
+    /// Left clicks fire once per right-button hold; wheel ticks may repeat.
+    private func triggerHeldCombination(action: MouseCombinationAction, preciseTimestamp: TimeInterval? = nil) -> Bool {
+        guard var session = drawSession, session.source == .mouse(.right) else { return false }
+        let candidates = session.targeted.filter {
+            guard case .mouseCombination(let combo) = $0.profile.input else { return false }
+            return combo.needsHeldRight && combo.action == action
+        }
+        guard !candidates.isEmpty else { return false }
+        if action == .leftClick, session.combinationLeftClicked { return true }
+        if action == .leftClick { session.combinationLeftClicked = true }
+        if !session.wheelRepeatGate.shouldExecute(action: action, preciseTimestamp: preciseTimestamp) {
+            drawSession = session
+            return true
+        }
+        session.combinationTriggered = true
+        drawSession = session
+        stopSampling()
+        currentPath = []
+        isDrawing = false
+        GestureHUDController.shared.hide()
+        return performCombination(candidates, mode: session.mode, source: session.source)
+    }
+
+    private func handleStandaloneWheel(
+        _ direction: MouseWheelDirection, location: CGPoint, original: CGEvent,
+        admission: GestureInputAdmission, snapshot: GestureTargetSnapshot
+    ) {
+        defer { reconcileChannels() }
+        let candidates = Self.targetedCandidates(for: admission, snapshot: snapshot).filter {
+            guard case .mouseCombination(let combo) = $0.profile.input else { return false }
+            return !combo.needsHeldRight && combo.action.wheelDirection == direction
+                && combo.accepts(location: location, displays: combinationEnvironment.displays)
+        }
+        guard sessionGate.isValid(admission), suppressionTokens.isEmpty, !candidates.isEmpty else {
+            // No mapping in this app: replay the exact wheel event. The distinct
+            // marker skips combination routing but still permits scroll enhancement.
+            mouseEventTap.replayScroll(original)
+            return
+        }
+        let profileIDs = candidates.map(\.profile.id)
+        if profileIDs != edgeWheelRepeatProfiles {
+            edgeWheelRepeatProfiles = profileIDs
+            edgeWheelRepeatGate = MouseCombinationWheelRepeatGate(interval: 0.1)
+        }
+        // Use processing time rather than replayed event timestamps: a queue of
+        // delayed frames must never turn into a sudden burst of media actions.
+        guard edgeWheelRepeatGate.shouldExecute(
+            action: direction == .up ? .wheelUp : .wheelDown,
+            preciseTimestamp: wheelActionTime()
+        ) else { return }
+        _ = performCombination(candidates, mode: admission.context.isDiagnostic ? .diagnostic : .normal,
+                               source: .mouse(.right))
+    }
+
+    @discardableResult
+    private func performCombination(
+        _ candidates: [TargetedGesture], mode: SessionMode, source: GestureInputSource
+    ) -> Bool {
+        guard let tier = candidates.map({ GestureScopeTier($0.profile.scope) }).min() else { return false }
+        let preferred = candidates.filter { GestureScopeTier($0.profile.scope) == tier }
+        if preferred.count == 1 {
+            perform(preferred[0], action: preferred[0].profile.action, announcesMatch: false,
+                    score: nil, mode: mode, source: source)
+        } else {
+            recordOutcome(.conflict(preferred.map(\.profile.id)), source: source)
+            if mode.showsToast { GestureToastController.shared.showButtonMappingConflict() }
+        }
+        return true
     }
 
     /// Runs the button mapping for a press that never became a stroke. Only
@@ -2340,7 +2524,19 @@ final class GestureRuntime {
 
     // MARK: - Sleep / wake
 
+    private func refreshCombinationDisplays() {
+        combinationEnvironment.displays = NSScreen.screens.compactMap { screen in
+            guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return nil }
+            return CGDisplayBounds(CGDirectDisplayID(number.uint32Value))
+        }
+    }
+
     private func installWorkspaceObservers() {
+        displayObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.refreshCombinationDisplays() }
+        }
         let center = NSWorkspace.shared.notificationCenter
         workspaceObservers.append(center.addObserver(
             forName: NSWorkspace.willSleepNotification,

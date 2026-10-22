@@ -17,6 +17,8 @@ enum GestureInputMatcher {
                 return false
             }
             return button == trigger.button
+        case (.mouse(.right), .mouseCombination(let gesture)):
+            return gesture.isValid
         case (.mouse(let button), .mouseButton(let gesture)):
             return button == gesture.button
                 && MouseButtonGesture.supportedButtons.contains(button)
