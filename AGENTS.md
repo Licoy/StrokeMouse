@@ -4,7 +4,7 @@
 
 ## 一句话
 
-**StrokeMouse** 是 macOS 上的鼠标与触控板手势自定义应用：统一处理鼠标绘制、鼠标按键映射（侧键 / 中键单击）、触控板绘制（单修饰键 + 指针轨迹）和实验性触控手势（多指），匹配配置后执行动作。
+**StrokeMouse** 是 macOS 上的鼠标与触控板手势自定义应用：统一处理鼠标绘制、鼠标按键映射（侧键 / 中键单击）、鼠标组合（按住右键 + 滚轮 / 左键、屏幕边缘右键 / 滚轮）、触控板绘制（单修饰键 + 指针轨迹）和实验性触控手势（多指），匹配配置后执行动作。
 
 Bundle ID：Release `com.strokemouse.app`；Debug `com.strokemouse.app.dev`（显示名 **StrokeMouse Dev**，与正式版在辅助功能中分开授权）。
 
@@ -128,7 +128,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 2. **中文 UI 提示断句**：hint / help / caption / empty subtitle / footer / warning 等短提示中，同一条提示内的并列或承接分句使用 **逗号（，）或分号（；）**，不要用 **句号（。）** 把短提示拆成多句。句号仅用于提示真正结束，或长文案中语义独立的段落 / 列表项。英文保持正常句号习惯。  
    - 反例：`为此应用添加手势。在此新建的手势会默认绑定该应用。`  
    - 正例：`为此应用添加手势，在此新建的手势会默认绑定该应用。`
-3. **产品对外名称**（UI / 用户文档）：「鼠标绘制」「鼠标按键」（按键映射）「触控板绘制」「触控手势」。其中「触控板绘制」对应单修饰键 + 指针轨迹；「修饰按键」选择器标签保持不变。工程代码与技术描述仍可用 modifier / multitouch 等术语。触控手势中「轻点」指只触碰不按下（`tap`），「点按」指物理按下触控板（`click`），中文 UI 不再用「单击 / 双击」描述轻点。
+3. **产品对外名称**（UI / 用户文档）：「鼠标绘制」「鼠标按键」（按键映射）「鼠标组合」「触控板绘制」「触控手势」。其中「触控板绘制」对应单修饰键 + 指针轨迹；「修饰按键」选择器标签保持不变。工程代码与技术描述仍可用 modifier / multitouch 等术语。触控手势中「轻点」指只触碰不按下（`tap`），「点按」指物理按下触控板（`click`），中文 UI 不再用「单击 / 双击」描述轻点。
 4. 新配置字段加入 `ConfigModels` 时保持 `Codable` 向后兼容（缺省值 / 可选字段）。
 5. 主线程：UI 与 `@MainActor` Service（`ConfigStore`、`GestureRuntime`、`ScrollEngine`、`AppState`）；耗时脚本用 `async` 后台。
 6. 避免无关大重构；改动聚焦需求。
@@ -138,10 +138,11 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ## 权限与安全注意
 
 - `MouseEventTap` 依赖 `AXIsProcessTrusted()`；未授权时不得假装在监听。
-- `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎；唯一例外是冻结目标存在该按键的鼠标按键映射，此时短按执行映射且不回放。未监控按钮和没有配对 down 的事件始终放行。左键默认放行：仅当已启用的鼠标绘制 profile 存在 `secondaryAction` 时，left down/up 才进入同一 tap 掩码（在无会话时重装 tap 切换）；且只有本次会话的候选含第二动作时，触发键按住期间的 left down 与其配对 up 才被成对吞掉，用于选择第二动作。触发键之前已按下的左键保留其 up；新的 left down 清除遗留的待吞 up。leftMouseDragged 同样不得进入掩码。
+- `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎；唯一例外是冻结目标存在该按键的鼠标按键映射，此时短按执行映射且不回放。未监控按钮和没有配对 down 的事件始终放行。左键默认放行：仅当已启用的鼠标绘制 profile 存在 `secondaryAction`，或存在「按住右键 + 左键」鼠标组合时，left down/up 才进入同一 tap 掩码（在无会话时重装 tap 切换）；且只有本次会话的候选含第二动作或该组合时，触发键按住期间的 left down 与其配对 up 才被成对吞掉，组合优先于第二动作。触发键之前已按下的左键保留其 up；新的 left down 清除遗留的待吞 up。leftMouseDragged 同样不得进入掩码。
+- `MouseEventTap` 仅在存在已启用的滚轮鼠标组合时把 `scrollWheel` 加入掩码（无会话时重装 tap 切换）。只有无 `eventSourceUserData` 标记、scroll / momentum phase 均为 0 的设备滚轮参与判断：按住右键时只吞会话候选含该方向组合的刻度；边缘滚轮不占用 session gate，只用 `GestureSessionGate.transientAdmission` 冻结配置，按未过滤作用域的配置先吞下，再在独立队列解析目标。被吞的刻度要么执行组合，要么回放，不得丢失；回放必须按原增量新建事件并带 `combinationReplayMarker`，不得重投原事件副本（其 `location` 已过期）。右键按下在 AX 目标查询前先做纯位置过滤，只有边缘组合可用的按下在其他位置直接放行。
 - **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
 - `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
-- `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。不得写入 `location`：创建时已带当前光标，过期坐标会被系统当成指针位置。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
+- `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用；经 `MouseCombinationScrollBridge` 调用的 `MouseEventTap` 滚轮判断同样只读加锁状态，后续工作全部异步。滚动增强前先经该 bridge 询问鼠标组合是否消费此刻度（与两个 tap 的安装顺序无关），反向前给设备事件打 `combinationInspectedMarker`，避免另一个 tap 把反向后的事件当成反方向组合。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。不得写入 `location`：创建时已带当前光标，过期坐标会被系统当成指针位置。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
 - `TrackpadClickEventTap` 的掩码只含 left down/up，不得加入 `leftMouseDragged` 或其他移动事件。回调只访问加锁状态（`TrackpadPressArbiter`），禁止 AX、NSWorkspace、IPC 或主线程同步调用。存在已启用的点按 profile 或诊断进行中时以 `.defaultTap` 安装；只有轻点 profile 时为 listen-only，仅标记按下过的序列；其他情况不安装。它依赖 multitouch 通道处于监听且辅助功能已授权，失败时通过 `trackpadClick` 通道状态可见。只有触点仍在、手指数已按冻结目标 arm、无抬起、落指间隔不超过 `maximumLandingSpread` 且位移不超过 `maximumPressTravel` 的按下才算点按并吞掉；吞掉的 down 必须同时吞掉配对 up，新的 down 清除遗留的待吞 up，带回放标记的事件直接放行。
 - Event tap 的 CFRunLoop source 跑在**专用线程**（非主线程），避免 UI/主线程卡顿拖死光标投递。
 - 触控手势（多指）只允许通过本地 C bridge `dlopen` / `dlsym` 解析 `MultitouchSupport`；禁止静态链接私有框架或引入第三方二进制。私有 callback 必须先复制成稳定值，再送入 Swift 串行队列；stop/unregister 后不得留下悬空 callback。
@@ -161,9 +162,10 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
    - 调整参数前用 `Issue17LetterRecognitionTests`（Issue #17 真实字母轨迹）与各录制 fixture 回归，详见 `docs/elastic-path-recognition.md`
 4. 鼠标绘制可选 `GestureProfile.secondaryAction`：会话中点击过左键则只执行匹配手势的第二动作，匹配手势没有第二动作时不执行任何动作（`secondaryActionUnavailable`）；所有候选仍参与匹配，左键只选择动作；未达到有效轨迹的左键会话直接取消、不回放点击；触控板绘制与触控手势始终执行主动作
 5. 鼠标按键映射复用 mouse 会话与 `MouseEventTap`，不新增 tap 或掩码：按住期间位移未达 `minStrokeDistance` 时在松开执行映射，超过则走绘制识别、不执行映射；冻结目标没有该按键的绘制候选时不采样、不显示 HUD，松开即按单击执行。只取最具体作用域层（应用 > 应用组 > 全局），同层多条为冲突，执行零个动作并提示；成功不弹匹配提示。全局映射受 `GestureInputKind.mouseButton` 抑制，与鼠标绘制分开。修饰键取自按下事件自身的 flags（`shouldCapture` 第三个参数，经 `ModifierEventTap.supportedKeys` 换算），在 tap 线程决定捕获前过滤候选：按住的支持键集合必须与映射配置的修饰键（或空集）完全相等，绘制候选不看修饰键；所选修饰键若同时用于触控板绘制，modifier 会话先占用 session gate，映射不会触发
-6. 触控手势支持 40 类：三至五指轻点 / 轻点两下 / 点按 / 点按两下 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝。物理按下过触控板的触点序列不得识别为任何轻点 / 滑动等触控手势（`.physicallyPressed`）；点按在按下时执行，单 / 双次由独立的 `clickResolver` 判定，截止计时不因触点序列进行中而顺延
-7. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零
-8. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
+6. 鼠标组合保存在 `GestureInput.mouseCombination`：「按住右键 + 滚轮 / 左键」复用右键 mouse 会话与冻结目标，触发后松开右键不再识别绘制、不回放点击，左键每次按住只触发一次，普通滚轮每格触发、高精度（continuous）滚轮按事件时间戳限频 120ms；「边缘 + 右键」在未开始绘制且松开时仍在所选边缘时执行；「边缘 + 滚轮」按处理时间限频 100ms，未命中作用域时回放。作用域优先级与冲突规则同鼠标按键映射，全局组合受 `GestureInputKind.mouseCombination` 抑制。边缘为各显示器 Quartz 边界内 3 点，相邻显示器接缝也算边缘
+7. 触控手势支持 40 类：三至五指轻点 / 轻点两下 / 点按 / 点按两下 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝。物理按下过触控板的触点序列不得识别为任何轻点 / 滑动等触控手势（`.physicallyPressed`）；点按在按下时执行，单 / 双次由独立的 `clickResolver` 判定，截止计时不因触点序列进行中而顺延
+8. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零；单个边缘滚轮刻度不是会话，不得占用 gate
+9. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
 
 调参常量见 `Constants.swift`。
 
