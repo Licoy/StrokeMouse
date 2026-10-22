@@ -6,6 +6,7 @@ enum GestureInputCategory: String, CaseIterable, Identifiable {
     case all
     case drawn
     case mouseButton
+    case mouseCombination
     case trackpad
 
     var id: String { rawValue }
@@ -18,6 +19,7 @@ extension GestureInput {
         case .drawn: return .drawn
         case .trackpad: return .trackpad
         case .mouseButton: return .mouseButton
+        case .mouseCombination: return .mouseCombination
         }
     }
 
@@ -50,6 +52,8 @@ extension GestureInput {
             }
         case .trackpad(let gesture):
             return gesture.displaySummary
+        case .mouseCombination(let gesture):
+            return gesture.displaySummary
         case .mouseButton(let gesture):
             if let key = gesture.modifier {
                 return String(
@@ -78,6 +82,8 @@ extension GestureInput {
             return gesture.systemImage
         case .mouseButton:
             return "button.programmable"
+        case .mouseCombination:
+            return "computermouse.fill"
         }
     }
 }
@@ -276,5 +282,17 @@ enum TrackpadGesturePresetCatalog {
                 keyCode: keyCode
             )
         )
+    }
+}
+
+
+extension MouseCombinationGesture {
+    var displaySummary: String {
+        if let edge {
+            return String(format: L10n.string("combination.summary.edge"), locale: L10n.locale,
+                          L10n.string(edge.displayKey), L10n.string(action.displayKey))
+        }
+        return String(format: L10n.string("combination.summary.held"), locale: L10n.locale,
+                      L10n.string(action.displayKey))
     }
 }

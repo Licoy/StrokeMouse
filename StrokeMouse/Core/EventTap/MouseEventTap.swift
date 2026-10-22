@@ -36,6 +36,7 @@ final class MouseEventTap: @unchecked Sendable {
         case buttonUp(MouseTriggerButton, CGPoint)
         /// Left button pressed while this trigger's chord-capable gesture is held.
         case chordClick(MouseTriggerButton)
+        case scroll(MouseWheelDirection, CGPoint, CGEvent)
         case interrupted(MouseTriggerButton, CGPoint)
         case drained(MouseTriggerButton)
     }
@@ -48,6 +49,8 @@ final class MouseEventTap: @unchecked Sendable {
 
     static let tapOptions: CGEventTapOptions = .defaultTap
     static let replayEventMarker: Int64 = 0x5354524F4B454D4F
+    static let combinationReplayMarker: Int64 = 0x53544D434F4D424F
+    static let combinationInspectedMarker: Int64 = 0x53544D434845434B
 
     /// Trigger-button edges only. All continuous movement stays outside the tap so
     /// the system updates the cursor without entering this process.
@@ -87,6 +90,18 @@ final class MouseEventTap: @unchecked Sendable {
         get { stateLock.withLock { interceptsChordClicksStorage } }
         set { stateLock.withLock { interceptsChordClicksStorage = newValue } }
     }
+
+    var interceptsScroll: Bool {
+        get { stateLock.withLock { interceptsScrollStorage } }
+        set { stateLock.withLock { interceptsScrollStorage = newValue } }
+    }
+    var shouldCaptureScroll: ((MouseWheelDirection, CGPoint) -> Bool)? {
+        get { stateLock.withLock { shouldCaptureScrollStorage } }
+        set { stateLock.withLock { shouldCaptureScrollStorage = newValue } }
+    }
+    private var interceptsScrollStorage = false
+    private var shouldCaptureScrollStorage: ((MouseWheelDirection, CGPoint) -> Bool)?
+    private var installedScroll = false
 
     private var watchedButtonsStorage: Set<MouseTriggerButton> = [.right]
     private var interceptsChordClicksStorage = false
@@ -151,8 +166,9 @@ final class MouseEventTap: @unchecked Sendable {
 
     func start() -> Bool {
         let includesChordClicks = interceptsChordClicks
+        let includesScroll = interceptsScroll
         let maskChanged = controlQueue.sync {
-            isRunning && installedChordClicks != includesChordClicks
+            isRunning && (installedChordClicks != includesChordClicks || installedScroll != includesScroll)
         }
         if maskChanged {
             stop()
@@ -183,7 +199,8 @@ final class MouseEventTap: @unchecked Sendable {
                 }
                 if let self {
                     installed = self.installTapOnCurrentRunLoop(
-                        includingChordClicks: includesChordClicks
+                        includingChordClicks: includesChordClicks,
+                        includingScroll: includesScroll
                     )
                 }
                 ready.signal()
@@ -201,6 +218,8 @@ final class MouseEventTap: @unchecked Sendable {
             ready.wait()
             isRunning = installed
             installedChordClicks = includesChordClicks
+            installedScroll = includesScroll
+            if installed { MouseCombinationScrollBridge.shared.install(self) }
             stateLock.withLock {
                 acceptingEvents = installed
             }
@@ -212,6 +231,7 @@ final class MouseEventTap: @unchecked Sendable {
     }
 
     func stop() {
+        MouseCombinationScrollBridge.shared.remove(self)
         controlQueue.sync {
             guard isRunning || runLoop != nil || thread != nil else { return }
 
@@ -260,6 +280,11 @@ final class MouseEventTap: @unchecked Sendable {
             events.up.post(tap: .cghidEventTap)
         }
         return true
+    }
+
+    func replayScroll(_ event: CGEvent) {
+        event.setIntegerValueField(.eventSourceUserData, value: Self.combinationReplayMarker)
+        event.post(tap: .cgSessionEventTap)
     }
 
     func isCurrentEventGeneration(_ generation: UInt64) -> Bool {
@@ -348,6 +373,30 @@ final class MouseEventTap: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
+        if type == .scrollWheel {
+            // Trigger from untagged device/driver input. Scroll utilities may repost many
+            // frames with reversed deltas; treating those as new wheel input can
+            // make both physical directions execute the same combination.
+            guard event.getIntegerValueField(.eventSourceUserData) == 0,
+                  event.getIntegerValueField(.scrollWheelEventScrollPhase) == 0,
+                  event.getIntegerValueField(.scrollWheelEventMomentumPhase) == 0,
+                  event.getIntegerValueField(.scrollWheelEventMomentumOptionPhase) == 0
+            else { return Unmanaged.passUnretained(event) }
+            guard let copy = event.copy() else { return Unmanaged.passUnretained(event) }
+            let delta = Self.combinationWheelDirection(ScrollEventSample(event: event))
+            guard delta != 0 else { return Unmanaged.passUnretained(event) }
+            let current = stateLock.withLock {
+                (acceptingEvents && interceptsScrollStorage, eventGeneration, shouldCaptureScrollStorage)
+            }
+            let direction: MouseWheelDirection = delta > 0 ? .up : .down
+            guard current.0, current.2?(direction, event.location) == true else {
+                return Unmanaged.passUnretained(event)
+            }
+            guard isCurrentEventGeneration(current.1) else { return Unmanaged.passUnretained(event) }
+            onEvent?(.scroll(direction, event.location, copy), current.1)
+            return nil
+        }
+
         let location = event.location
         let button = resolveButton(type: type, event: event)
         var kind: EventKind?
@@ -428,10 +477,21 @@ final class MouseEventTap: @unchecked Sendable {
         return Unmanaged.passUnretained(event)
     }
 
+    static func combinationWheelDirection(_ sample: ScrollEventSample) -> Int {
+        if sample.isContinuous {
+            for value in [sample.fixedDeltaY, Double(sample.pointDeltaY)]
+                where value.isFinite && value != 0 {
+                return value > 0 ? 1 : -1
+            }
+        }
+        return ScrollEventClassifier.axisDirection(sample, vertical: true)
+    }
+
     // MARK: - Tap thread install
 
     private func installTapOnCurrentRunLoop(
-        includingChordClicks: Bool
+        includingChordClicks: Bool,
+        includingScroll: Bool
     ) -> Bool {
         let callback: CGEventTapCallBack = { _, type, event, refcon in
             guard let refcon else { return Unmanaged.passUnretained(event) }
@@ -452,7 +512,8 @@ final class MouseEventTap: @unchecked Sendable {
             place: .headInsertEventTap,
             options: Self.tapOptions,
             eventsOfInterest: Self.eventsOfInterestMask
-                | (includingChordClicks ? Self.chordClickMask : 0),
+                | (includingChordClicks ? Self.chordClickMask : 0)
+                | (includingScroll ? CGEventMask(1) << CGEventType.scrollWheel.rawValue : 0),
             callback: callback,
             userInfo: retainedContext.toOpaque()
         ) else {

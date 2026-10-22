@@ -161,6 +161,7 @@ final class MouseEventTapTests: XCTestCase {
             case .buttonDown: kind = "down"
             case .buttonUp: kind = "up"
             case .chordClick: kind = "chord"
+            case .scroll: kind = "scroll"
             case .interrupted: kind = "interrupted"
             case .drained: kind = "drained"
             }
@@ -211,6 +212,7 @@ final class MouseEventTapTests: XCTestCase {
             case .buttonDown: observed.append("down")
             case .buttonUp: observed.append("up")
             case .chordClick: observed.append("chord")
+            case .scroll: observed.append("scroll")
             case .interrupted: observed.append("interrupted")
             case .drained: observed.append("drained")
             }
@@ -370,6 +372,7 @@ final class MouseEventTapTests: XCTestCase {
         case .buttonDown: return "down"
         case .buttonUp: return "up"
         case .chordClick(let button): return "chord:\(button.rawValue)"
+        case .scroll: return "scroll"
         case .interrupted: return "interrupted"
         case .drained: return "drained"
         }

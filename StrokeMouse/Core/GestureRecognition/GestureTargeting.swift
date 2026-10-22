@@ -208,6 +208,9 @@ enum GestureCandidateSelector {
                     )
                 suppressedByPolicy[policy] = suppressed
             }
+            if case .mouseCombination = profile.input {
+                return suppressed.contains(.mouseCombination)
+            }
             if case .mouseButton = profile.input {
                 return suppressed.contains(.mouseButton)
             }

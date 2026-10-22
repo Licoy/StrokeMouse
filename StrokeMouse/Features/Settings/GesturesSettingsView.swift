@@ -639,6 +639,9 @@ struct GesturesSettingsView: View {
                             )
                         }
                     }
+                    Button(L10n.string("editor.input.mouseCombination")) {
+                        editorProfile = makeNewProfile(input: .mouseCombination(MouseCombinationGesture()))
+                    }
                     Menu(L10n.string("gestures.add.mouseButton")) {
                         Button(L10n.string("gestures.add.mouseButton.custom")) {
                             editorProfile = makeNewProfile(
@@ -1602,7 +1605,7 @@ private struct GestureInputMiniPreview: View {
                     .background(.regularMaterial, in: Circle())
                     .offset(x: 15, y: -8)
             }
-        case .mouseButton:
+        case .mouseButton, .mouseCombination:
             iconTile { EmptyView() }
         }
     }

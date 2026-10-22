@@ -3,6 +3,7 @@ import SwiftUI
 private enum GestureEditorInputKind: String, CaseIterable, Identifiable {
     case mouseDraw
     case mouseButton
+    case mouseCombination
     case modifierDraw
     case directTrackpad
 
@@ -53,6 +54,8 @@ struct GestureInputEditorView: View {
                 directEditor(gesture)
             case .mouseButton:
                 mouseButtonEditor
+            case .mouseCombination:
+                MouseCombinationEditor(gesture: combinationGesture)
             }
         }
     }
@@ -322,6 +325,8 @@ struct GestureInputEditorView: View {
                     return .directTrackpad
                 case .mouseButton:
                     return .mouseButton
+                case .mouseCombination:
+                    return .mouseCombination
                 }
             },
             set: { kind in
@@ -335,6 +340,8 @@ struct GestureInputEditorView: View {
                     input = .drawn(sampleState.drawnGesture(
                         activation: .modifier(.function)
                     ))
+                case .mouseCombination:
+                    input = .mouseCombination(MouseCombinationGesture())
                 case .mouseButton:
                     input = .mouseButton(MouseButtonGesture(button: .sideBack))
                 case .directTrackpad:
@@ -342,6 +349,13 @@ struct GestureInputEditorView: View {
                 }
             }
         )
+    }
+
+    private var combinationGesture: Binding<MouseCombinationGesture> {
+        Binding(get: {
+            if case .mouseCombination(let gesture) = input { return gesture }
+            return MouseCombinationGesture()
+        }, set: { input = .mouseCombination($0) })
     }
 
     private var mappedGesture: Binding<MouseButtonGesture> {
@@ -603,4 +617,52 @@ struct GestureInputEditorView: View {
         )
     }
 
+}
+
+
+private struct MouseCombinationEditor: View {
+    @Binding var gesture: MouseCombinationGesture
+
+    var body: some View {
+        Form {
+            Section {
+                Picker(L10n.string("combination.mode"), selection: edgeMode) {
+                    Text(L10n.string("combination.mode.held")).tag(false)
+                    Text(L10n.string("combination.mode.edge")).tag(true)
+                }
+                if gesture.edge != nil {
+                    Picker(L10n.string("combination.edge"), selection: edge) {
+                        ForEach(MouseScreenEdge.allCases) { edge in
+                            Text(L10n.string(edge.displayKey)).tag(edge)
+                        }
+                    }
+                }
+                Picker(L10n.string("combination.action"), selection: $gesture.action) {
+                    ForEach(MouseCombinationAction.allCases.filter {
+                        gesture.edge == nil ? $0 != .rightClick : $0 != .leftClick
+                    }) { action in
+                        Text(L10n.string(action.displayKey)).tag(action)
+                    }
+                }
+            }
+            Section {
+                Label(gesture.displaySummary, systemImage: "computermouse.fill")
+                    .font(.headline)
+                Text(L10n.string(gesture.edge == nil ? "combination.hint.held" : "combination.hint.edge"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var edgeMode: Binding<Bool> {
+        Binding(get: { gesture.edge != nil }, set: { enabled in
+            gesture.edge = enabled ? .top : nil
+            if !gesture.isValid { gesture.action = .wheelUp }
+        })
+    }
+    private var edge: Binding<MouseScreenEdge> {
+        Binding(get: { gesture.edge ?? .top }, set: { gesture.edge = $0 })
+    }
 }

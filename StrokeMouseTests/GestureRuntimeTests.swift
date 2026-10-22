@@ -2754,8 +2754,191 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(state.inputs.mouse, .notRequested)
     }
 
+    func testRightWheelRepeatsAndSuppressesClickReplay() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let combo = combinationProfile(action: .wheelUp)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        XCTAssertTrue(mouse.interceptsScroll)
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        XCTAssertTrue(mouse.scroll(.up, at: CGPoint(x: 200, y: 200)))
+        XCTAssertFalse(mouse.scroll(.down, at: CGPoint(x: 200, y: 200)))
+        XCTAssertTrue(mouse.scroll(.up, at: CGPoint(x: 200, y: 200)))
+        mouse.release(.right, at: CGPoint(x: 200, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 2)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+        XCTAssertEqual(runtime.state.lastOutcome, .matched(profileID: combo.id, score: nil))
+    }
+
+    func testLogitechSmoothWheelRunsShortcutWithoutRepeatingEveryFrame() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let combo = combinationProfile(action: .wheelUp)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        let location = CGPoint(x: 200, y: 200)
+        XCTAssertTrue(mouse.press(.right, at: location))
+        for frame in 0...10 {
+            XCTAssertTrue(mouse.scroll(.up, at: location, preciseTimestamp: 1 + Double(frame) / 100))
+        }
+        mouse.release(.right, at: location)
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+        // A new hold fires immediately, even within the previous hold's cooldown.
+        XCTAssertTrue(mouse.press(.right, at: location))
+        XCTAssertTrue(mouse.scroll(.up, at: location, preciseTimestamp: 1.11))
+        mouse.release(.right, at: location)
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 2)
+    }
+
+    func testRightLeftCombinationNeedsNoStrokeAndFiresOncePerHold() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let combo = combinationProfile(action: .leftClick)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        XCTAssertTrue(mouse.clickLeft())
+        XCTAssertTrue(mouse.clickLeft())
+        mouse.release(.right, at: CGPoint(x: 200, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testUncombinedRightClickStillReplaysContextMenu() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        try runtime.apply(configuration(revision: 1, enabled: true,
+                                        profiles: [combinationProfile(action: .wheelUp)]))
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.release(.right, at: CGPoint(x: 200, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertEqual(mouse.replayedClicks, 1)
+    }
+
+    func testCombinationFiltersAppScopeBeforeCapturingHeldRight() throws {
+        let (runtime, mouse, _) = makeButtonMappingRuntime()
+        let combo = combinationProfile(action: .leftClick, scope: .apps(["com.other"]))
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        XCTAssertFalse(mouse.clickLeft())
+    }
+
+    func testAppCombinationOverridesGlobalAndDuplicateMappingConflicts() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let global = combinationProfile(action: .leftClick)
+        let scoped = combinationProfile(action: .leftClick, scope: .apps(["com.example.target"]))
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [global, scoped]))
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.clickLeft()
+        mouse.release(.right, at: CGPoint(x: 200, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(runtime.state.lastOutcome, .matched(profileID: scoped.id, score: nil))
+        let duplicate = combinationProfile(action: .leftClick, scope: scoped.scope)
+        try runtime.apply(configuration(revision: 2, enabled: true, profiles: [global, scoped, duplicate]))
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.clickLeft()
+        mouse.release(.right, at: CGPoint(x: 200, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(runtime.state.lastOutcome, .conflict([scoped.id, duplicate.id]))
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testEdgeRightClickAndInteriorNativeClick() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let combo = combinationProfile(edge: .top, action: .rightClick)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: frame.midX, y: frame.midY)))
+        XCTAssertTrue(mouse.press(.right, at: edge))
+        mouse.release(.right, at: edge)
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testEdgeWheelResolvesAppScopeAndReplaysUnmappedWheel() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let combo = combinationProfile(edge: .top, action: .wheelUp)
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        XCTAssertFalse(mouse.press(.right, at: edge), "Wheel-only edges must not capture right clicks")
+        XCTAssertFalse(mouse.scroll(.up, at: CGPoint(x: frame.midX, y: frame.midY)))
+        XCTAssertTrue(mouse.scroll(.up, at: edge))
+        await waitForCombination { platform.shortcutCount == 1 }
+        XCTAssertEqual(mouse.replayedScrolls, 0)
+        let otherApp = combinationProfile(edge: .top, action: .wheelUp, scope: .apps(["com.other"]))
+        try runtime.apply(configuration(revision: 2, enabled: true, profiles: [otherApp]))
+        XCTAssertTrue(mouse.scroll(.up, at: edge))
+        await waitForCombination { mouse.replayedScrolls == 1 }
+        XCTAssertEqual(platform.shortcutCount, 1)
+    }
+
+    func testEdgeWheelOnlyRunsMappedDirectionAndLimitsActionRate() async throws {
+        var now: TimeInterval = 10
+        let (runtime, mouse, platform) = makeButtonMappingRuntime(wheelActionTime: { now })
+        let combo = combinationProfile(edge: .top, action: .wheelUp)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        var matches = 0
+        runtime.onMatch = { _ in matches += 1 }
+        XCTAssertFalse(mouse.scroll(.down, at: edge))
+        XCTAssertTrue(mouse.scroll(.up, at: edge))
+        await waitForCombination { matches == 1 }
+        // Include an app-scoped opposite mapping as a FIFO replay barrier.
+        let otherApp = combinationProfile(edge: .top, action: .wheelDown, scope: .apps(["com.other"]))
+        try runtime.apply(configuration(revision: 2, enabled: true, profiles: [combo, otherApp]))
+        // A rapid burst is consumed without dispatching more actions, for both
+        // precise and line-based wheels. Direction filtering stays exact.
+        now = 10.05
+        for _ in 0..<30 { XCTAssertTrue(mouse.scroll(.up, at: edge, preciseTimestamp: 100)) }
+        for _ in 0..<30 { XCTAssertTrue(mouse.scroll(.up, at: edge)) }
+        // FIFO queue barrier: an unmapped-app event is replayed after the burst.
+        XCTAssertTrue(mouse.scroll(.down, at: edge))
+        await waitForCombination { mouse.replayedScrolls == 1 }
+        XCTAssertEqual(matches, 1)
+        XCTAssertEqual(platform.shortcutCount, 1)
+        now = 10.11
+        XCTAssertTrue(mouse.scroll(.up, at: edge))
+        await waitForCombination { matches == 2 && platform.shortcutCount == 2 }
+        XCTAssertEqual(platform.shortcutCount, 2)
+    }
+
+    func testCombinationSuppressionAndPausePreventCapture() throws {
+        let (runtime, mouse, _) = makeButtonMappingRuntime()
+        let rules = GestureAppRules(policies: [AppGesturePolicy(
+            bundleIdentifier: "com.example.target",
+            suppressedGlobalInputs: SuppressedGlobalInputs(kinds: [.mouseCombination])
+        )], groups: [])
+        try runtime.apply(configuration(revision: 1, enabled: true,
+            profiles: [combinationProfile(action: .wheelUp)], appRules: rules))
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        try runtime.apply(configuration(revision: 2, enabled: false,
+                                        profiles: [combinationProfile(action: .wheelUp)]))
+        XCTAssertFalse(mouse.scroll(.up, at: CGPoint(x: 200, y: 200)))
+    }
+
+    private func waitForCombination(_ predicate: () -> Bool) async {
+        for _ in 0..<200 {
+            if predicate() { return }
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTFail("Timed out waiting for combination routing")
+    }
+
+    private func combinationProfile(
+        edge: MouseScreenEdge? = nil, action: MouseCombinationAction, scope: AppScope = .global
+    ) -> GestureProfile {
+        GestureProfile(name: "Combo", input: .mouseCombination(MouseCombinationGesture(edge: edge, action: action)),
+                       action: .shortcut(keyCode: 1, modifiers: 0, display: "S", orderedChord: nil), scope: scope)
+    }
+
     private func makeButtonMappingRuntime(
-        bundleIdentifier: String = "com.example.target"
+        bundleIdentifier: String = "com.example.target",
+        wheelActionTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
     ) -> (GestureRuntime, RuntimeMouseEventSource, RuntimeActionPlatform) {
         let mouse = RuntimeMouseEventSource()
         let platform = RuntimeActionPlatform()
@@ -2768,6 +2951,7 @@ final class GestureRuntimeTests: XCTestCase {
             ),
             mouseEventTap: mouse,
             trackpadClickEventTap: RuntimeTrackpadClickSource(),
+            wheelActionTime: wheelActionTime,
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         return (runtime, mouse, platform)
@@ -3354,6 +3538,8 @@ private final class RuntimePermissionProvider: GesturePermissionProviding {
 private final class RuntimeMouseEventSource: MouseGestureEventSource {
     var watchedButtons = Set<MouseTriggerButton>()
     var interceptsChordClicks = false
+    var interceptsScroll = false
+    var shouldCaptureScroll: ((MouseWheelDirection, CGPoint) -> Bool)?
     var onEvent: ((MouseEventTap.EventKind, UInt64) -> Void)?
     var shouldCapture:
         ((MouseTriggerButton, CGPoint, CGEventFlags)
@@ -3361,6 +3547,7 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
     private(set) var isActive = false
     private(set) var stopCount = 0
     private(set) var replayedClicks = 0
+    private(set) var replayedScrolls = 0
     private(set) var lastCaptureDecision: MouseEventTap.CaptureDecision?
     private(set) var installedChordClicks = false
     private var capturedButtons = Set<MouseTriggerButton>()
@@ -3392,6 +3579,24 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
 
     func isCurrentEventGeneration(_ generation: UInt64) -> Bool {
         isActive && eventGeneration == generation
+    }
+
+    func replayScroll(_ event: CGEvent) { replayedScrolls += 1 }
+
+    @discardableResult
+    func scroll(_ direction: MouseWheelDirection, at location: CGPoint,
+                preciseTimestamp: TimeInterval? = nil) -> Bool {
+        guard isActive, interceptsScroll,
+              shouldCaptureScroll?(direction, location) == true,
+              let event = CGEvent(scrollWheelEvent2Source: nil, units: .line,
+                                  wheelCount: 1, wheel1: direction == .up ? 1 : -1,
+                                  wheel2: 0, wheel3: 0) else { return false }
+        if let preciseTimestamp {
+            event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)
+            event.timestamp = CGEventTimestamp(preciseTimestamp * 1_000_000_000)
+        }
+        onEvent?(.scroll(direction, location, event), eventGeneration)
+        return true
     }
 
     func replayClick(

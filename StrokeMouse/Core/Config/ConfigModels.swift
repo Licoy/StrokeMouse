@@ -400,6 +400,7 @@ enum GestureInput: Codable, Equatable, Sendable {
     case drawn(DrawnGesture)
     case trackpad(DirectTrackpadGesture)
     case mouseButton(MouseButtonGesture)
+    case mouseCombination(MouseCombinationGesture)
 
     private enum CodingKeys: String, CodingKey {
         case type
@@ -410,6 +411,7 @@ enum GestureInput: Codable, Equatable, Sendable {
         case drawn
         case trackpad
         case mouseButton
+        case mouseCombination
     }
 
     init(from decoder: Decoder) throws {
@@ -419,6 +421,8 @@ enum GestureInput: Codable, Equatable, Sendable {
             self = .drawn(try container.decode(DrawnGesture.self, forKey: .value))
         case .trackpad:
             self = .trackpad(try container.decode(DirectTrackpadGesture.self, forKey: .value))
+        case .mouseCombination:
+            self = .mouseCombination(try container.decode(MouseCombinationGesture.self, forKey: .value))
         case .mouseButton:
             self = .mouseButton(
                 try container.decode(MouseButtonGesture.self, forKey: .value)
@@ -434,6 +438,9 @@ enum GestureInput: Codable, Equatable, Sendable {
             try container.encode(gesture, forKey: .value)
         case .trackpad(let gesture):
             try container.encode(Kind.trackpad, forKey: .type)
+            try container.encode(gesture, forKey: .value)
+        case .mouseCombination(let gesture):
+            try container.encode(Kind.mouseCombination, forKey: .type)
             try container.encode(gesture, forKey: .value)
         case .mouseButton(let gesture):
             try container.encode(Kind.mouseButton, forKey: .type)
@@ -820,6 +827,7 @@ enum GestureInputKind: String, Codable, CaseIterable, Hashable, Identifiable, Se
     case mouseDrawing
     /// Button mappings arrive through the mouse source but are their own family.
     case mouseButton
+    case mouseCombination
     case trackpadDrawing
     case touchGesture
 

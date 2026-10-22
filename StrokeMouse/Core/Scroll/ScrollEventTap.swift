@@ -170,6 +170,11 @@ final class ScrollEventTap: ScrollEventSource, @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
+        if MouseCombinationScrollBridge.shared.consume(event) {
+            onAnimationCancelRequested?()
+            return nil
+        }
+
         let captured = stateLock.withLock {
             (
                 acceptingEvents,
@@ -191,6 +196,10 @@ final class ScrollEventTap: ScrollEventSource, @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         case .reverse(let vertical, let horizontal, let cancelsAnimation):
             if cancelsAnimation { captured.3?() }
+            // The gesture router already checked this device event above. Mark
+            // before reversing so a later mouse tap cannot reinterpret the same
+            // wheel movement as the opposite trigger, regardless of tap order.
+            MouseCombinationScrollBridge.shared.markInspectedBeforeReversing(event)
             ScrollEventMutator.reverse(
                 event,
                 vertical: vertical,
