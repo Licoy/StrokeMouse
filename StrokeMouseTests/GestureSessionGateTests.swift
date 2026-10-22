@@ -85,6 +85,22 @@ final class GestureSessionGateTests: XCTestCase {
         XCTAssertNil(gate.activeSource)
     }
 
+    func testTransientAdmissionNeverHoldsTheGate() {
+        let gate = makeGate()
+
+        let tick = tryUnwrap(gate.transientAdmission(.mouse(.right)))
+        XCTAssertNil(gate.activeSource)
+        let press = tryUnwrap(gate.claim(.mouse(.right)))
+        XCTAssertNotEqual(press.id, tick.id)
+        XCTAssertNil(gate.transientAdmission(.mouse(.right)))
+        gate.release(press)
+
+        XCTAssertNotNil(gate.claim(.modifier(.function)))
+        XCTAssertTrue(gate.isValid(tick))
+        gate.reset()
+        XCTAssertFalse(gate.isValid(tick))
+    }
+
     func testHardResetInvalidatesQueuedAdmissionButPhysicalReleaseDoesNot() {
         let gate = makeGate()
         let physicallyCompleted = tryUnwrap(gate.claim(.mouse(.right)))

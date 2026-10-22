@@ -5,8 +5,6 @@ final class MouseCombinationEnvironment: @unchecked Sendable {
     private let lock = NSLock()
     private var displayBounds: [CGRect] = []
     private var heldCandidates: [TargetedGesture] = []
-    private var pendingWheel: GestureInputAdmission?
-    private var pendingWheelCount = 0
 
     var displays: [CGRect] {
         get { lock.withLock { displayBounds } }
@@ -16,22 +14,8 @@ final class MouseCombinationEnvironment: @unchecked Sendable {
         get { lock.withLock { heldCandidates } }
         set { lock.withLock { heldCandidates = newValue } }
     }
-    func storeWheel(_ admission: GestureInputAdmission) {
-        lock.withLock { pendingWheel = admission; pendingWheelCount += 1 }
-    }
-    var wheelAdmission: GestureInputAdmission? { lock.withLock { pendingWheel } }
-    func finishWheel(_ admission: GestureInputAdmission, gate: GestureSessionGate?) {
-        lock.withLock {
-            guard pendingWheel?.id == admission.id else { return }
-            pendingWheelCount -= 1
-            if pendingWheelCount == 0 {
-                gate?.release(admission)
-                pendingWheel = nil
-            }
-        }
-    }
     func reset() {
-        lock.withLock { pendingWheel = nil; pendingWheelCount = 0; heldCandidates = [] }
+        lock.withLock { heldCandidates = [] }
     }
 }
 

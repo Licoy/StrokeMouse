@@ -119,18 +119,43 @@ final class GestureSessionGate: @unchecked Sendable {
                 ? activeAdmission
                 : nil
         }
+        guard let admission = makeAdmissionLocked(proposed) else {
+            return nil
+        }
+        activeAdmission = admission
+        return admission
+    }
+
+    /// Freezes the current context for instantaneous input (one wheel tick)
+    /// without becoming the active session. Nothing is held, so nothing can
+    /// leak or block other sources, and `isValid` still rejects it after a reset.
+    func transientAdmission(
+        _ proposed: GestureInputSource
+    ) -> GestureInputAdmission? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard drawInputsEnabled || proposed == .multitouch,
+              drainingSource == nil,
+              activeAdmission == nil
+        else {
+            return nil
+        }
+        return makeAdmissionLocked(proposed)
+    }
+
+    private func makeAdmissionLocked(
+        _ proposed: GestureInputSource
+    ) -> GestureInputAdmission? {
         guard let currentContext, currentContext.accepts(proposed) else {
             return nil
         }
         nextAdmissionID &+= 1
-        let admission = GestureInputAdmission(
+        return GestureInputAdmission(
             id: nextAdmissionID,
             epoch: epoch(for: proposed),
             source: proposed,
             context: currentContext
         )
-        activeAdmission = admission
-        return admission
     }
 
     func admission(for source: GestureInputSource) -> GestureInputAdmission? {

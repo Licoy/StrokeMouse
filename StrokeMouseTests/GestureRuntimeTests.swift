@@ -2921,6 +2921,49 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertFalse(mouse.scroll(.up, at: CGPoint(x: 200, y: 200)))
     }
 
+    func testEdgeWheelNeverHoldsTheSessionGate() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [
+            combinationProfile(edge: .top, action: .wheelUp),
+            combinationProfile(action: .leftClick),
+        ]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        let interior = CGPoint(x: frame.midX, y: frame.midY)
+        // A tick admitted and then dropped by a reinstalling tap leaves nothing behind.
+        XCTAssertEqual(mouse.shouldCaptureScroll?(.up, edge), true)
+        // A tick still resolving its target does not block a right press.
+        XCTAssertTrue(mouse.scroll(.up, at: edge))
+        XCTAssertTrue(mouse.press(.right, at: interior))
+        XCTAssertTrue(mouse.clickLeft())
+        mouse.release(.right, at: interior)
+        await waitForCombination { platform.shortcutCount == 2 }
+        XCTAssertEqual(mouse.replayedScrolls, 0)
+    }
+
+    func testSwallowedWheelIsReplayedWhenNoCombinationRuns() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [
+            combinationProfile(edge: .top, action: .wheelUp),
+            combinationProfile(action: .wheelUp),
+        ]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        let interior = CGPoint(x: frame.midX, y: frame.midY)
+        // Delivered after the tap was reinstalled: generation 0 predates every install.
+        mouse.deliverSwallowedScroll(.up, at: edge, generation: 0)
+        XCTAssertEqual(mouse.replayedScrolls, 1)
+        // Decided as held, delivered with no matching held combination.
+        XCTAssertTrue(mouse.press(.right, at: interior))
+        mouse.deliverSwallowedScroll(.down, at: interior)
+        await waitForCombination { mouse.replayedScrolls == 2 }
+        mouse.release(.right, at: interior)
+        // Decided as held, delivered after the release.
+        mouse.deliverSwallowedScroll(.up, at: interior)
+        await waitForCombination { mouse.replayedScrolls == 3 }
+        XCTAssertEqual(platform.shortcutCount, 0)
+    }
+
     private func waitForCombination(_ predicate: () -> Bool) async {
         for _ in 0..<200 {
             if predicate() { return }
@@ -3597,6 +3640,19 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
         }
         onEvent?(.scroll(direction, location, event), eventGeneration)
         return true
+    }
+
+    /// Delivers a tick the tap already swallowed, as when its capture decision
+    /// raced with a release or a tap reinstall.
+    func deliverSwallowedScroll(
+        _ direction: MouseWheelDirection,
+        at location: CGPoint,
+        generation: UInt64? = nil
+    ) {
+        guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .line,
+                                  wheelCount: 1, wheel1: direction == .up ? 1 : -1,
+                                  wheel2: 0, wheel3: 0) else { return }
+        onEvent?(.scroll(direction, location, event), generation ?? eventGeneration)
     }
 
     func replayClick(

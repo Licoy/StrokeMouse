@@ -270,7 +270,7 @@ final class GestureRuntime {
         // down/up pair reaches it untouched (native drag / hold semantics).
         mouseEventTap.shouldCapture = {
             [weak sessionGate] button, location, flags in
-            guard let callbackToken = drawCallbacks.token, combinationEnvironment.wheelAdmission == nil else {
+            guard let callbackToken = drawCallbacks.token else {
                 return .passThrough
             }
             return inputCoreQueue.sync {
@@ -323,52 +323,49 @@ final class GestureRuntime {
             guard let callbackToken = drawCallbacks.token,
                   drawCallbacks.isCurrent(callbackToken), let sessionGate else { return false }
             // Only locked value-state here; target capture runs on a separate queue.
-            if sessionGate.activeSource == .mouse(.right), combinationEnvironment.wheelAdmission == nil {
+            if sessionGate.activeSource == .mouse(.right) {
                 return combinationEnvironment.held.contains { item in
                     guard case .mouseCombination(let combo) = item.profile.input else { return false }
                     return combo.needsHeldRight && combo.action.wheelDirection == direction
                 }
             }
-            let admission: GestureInputAdmission
-            if let existing = combinationEnvironment.wheelAdmission,
-               sessionGate.admission(for: .mouse(.right))?.id == existing.id {
-                admission = existing
-            } else {
-                guard sessionGate.activeSource == nil,
-                      let claimed = sessionGate.claim(.mouse(.right)) else { return false }
-                admission = claimed
-            }
-            let hasPotentialMatch = admission.context.configuration.profiles.contains { profile in
+            // An edge tick is instantaneous: it never holds the session gate.
+            // App scope is unknown until the target resolves, so any enabled
+            // edge wheel here reserves the tick and an unmatched one is replayed.
+            guard let admission = sessionGate.transientAdmission(.mouse(.right)) else { return false }
+            return admission.context.configuration.profiles.contains { profile in
                 guard profile.isEnabled, case .mouseCombination(let combo) = profile.input else { return false }
                 return !combo.needsHeldRight && combo.action.wheelDirection == direction
                     && combo.accepts(location: location, displays: combinationEnvironment.displays)
             }
-            guard hasPotentialMatch else {
-                if combinationEnvironment.wheelAdmission == nil { sessionGate.release(admission) }
-                return false
-            }
-            combinationEnvironment.storeWheel(admission)
-            return true
         }
         mouseEventTap.onEvent = {
             [weak self, weak sessionGate, weak mouseEventTap]
             event, sourceGeneration in
             guard let mouseEventTap else { return }
-            guard mouseEventTap.isCurrentEventGeneration(sourceGeneration)
-            else {
-                return
-            }
-            guard let callbackToken = drawCallbacks.token else { return }
-            if case .scroll(let direction, let location, let original) = event,
-               let wheelAdmission = combinationEnvironment.wheelAdmission {
-                wheelCaptureQueue.async { [weak self, weak sessionGate] in
+            if case .scroll(let direction, let location, let original) = event {
+                // The tap already swallowed this tick. Every path below runs a
+                // combination or replays the tick, so wheel input is never lost.
+                guard mouseEventTap.isCurrentEventGeneration(sourceGeneration),
+                      drawCallbacks.token != nil
+                else {
+                    mouseEventTap.replayScroll(original)
+                    return
+                }
+                guard let wheelAdmission = sessionGate?.transientAdmission(.mouse(.right)) else {
+                    // A held right button owns the session; its candidates are matched on main.
+                    DispatchQueue.main.async { [weak self] in
+                        MainActor.assumeIsolated {
+                            self?.handleMouseEvent(event, admission: nil, snapshot: nil, heldModifiers: [])
+                        }
+                    }
+                    return
+                }
+                wheelCaptureQueue.async { [weak self] in
                     let snapshot = Self.captureTargetSnapshot(
                         for: wheelAdmission, at: location, using: resolvedTargetCapturer
                     )
                     DispatchQueue.main.async { [weak self] in
-                        defer {
-                            combinationEnvironment.finishWheel(wheelAdmission, gate: sessionGate)
-                        }
                         self?.handleStandaloneWheel(
                             direction, location: location, original: original,
                             admission: wheelAdmission, snapshot: snapshot
@@ -377,6 +374,11 @@ final class GestureRuntime {
                 }
                 return
             }
+            guard mouseEventTap.isCurrentEventGeneration(sourceGeneration)
+            else {
+                return
+            }
+            guard let callbackToken = drawCallbacks.token else { return }
             inputCoreQueue.sync {
                 guard drawCallbacks.isCurrent(callbackToken),
                       mouseEventTap.isCurrentEventGeneration(sourceGeneration)
@@ -410,10 +412,7 @@ final class GestureRuntime {
                     }
                     admission = nil
                     capture = nil
-                case .scroll:
-                    admission = nil
-                    capture = nil
-                case .chordClick:
+                case .scroll, .chordClick:
                     admission = nil
                     capture = nil
                 case .interrupted(let button, _):
@@ -1223,8 +1222,11 @@ final class GestureRuntime {
             let preciseTimestamp: TimeInterval? = event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0
                 ? (event.timestamp == 0 ? ProcessInfo.processInfo.systemUptime : Double(event.timestamp) / 1_000_000_000)
                 : nil
-            _ = triggerHeldCombination(action: direction == .up ? .wheelUp : .wheelDown,
-                                       preciseTimestamp: preciseTimestamp)
+            // The hold may have ended before this tick reached main: scroll natively.
+            if !triggerHeldCombination(action: direction == .up ? .wheelUp : .wheelDown,
+                                       preciseTimestamp: preciseTimestamp) {
+                mouseEventTap.replayScroll(event)
+            }
         case .interrupted(let button, let quartzLocation):
             finishDraw(
                 source: .mouse(button),
@@ -1516,7 +1518,6 @@ final class GestureRuntime {
         _ direction: MouseWheelDirection, location: CGPoint, original: CGEvent,
         admission: GestureInputAdmission, snapshot: GestureTargetSnapshot
     ) {
-        defer { reconcileChannels() }
         let candidates = Self.targetedCandidates(for: admission, snapshot: snapshot).filter {
             guard case .mouseCombination(let combo) = $0.profile.input else { return false }
             return !combo.needsHeldRight && combo.action.wheelDirection == direction
