@@ -357,7 +357,8 @@ final class GestureRuntime {
                 guard mouseEventTap.isCurrentEventGeneration(sourceGeneration),
                       drawCallbacks.token != nil
                 else {
-                    mouseEventTap.replayScroll(original)
+                    // Post off the tap thread, in order with the other replays on main.
+                    DispatchQueue.main.async { mouseEventTap.replayScroll(original) }
                     return
                 }
                 guard let wheelAdmission = sessionGate?.transientAdmission(.mouse(.right)) else {

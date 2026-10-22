@@ -2952,7 +2952,7 @@ final class GestureRuntimeTests: XCTestCase {
         let interior = CGPoint(x: frame.midX, y: frame.midY)
         // Delivered after the tap was reinstalled: generation 0 predates every install.
         mouse.deliverSwallowedScroll(.up, at: edge, generation: 0)
-        XCTAssertEqual(mouse.replayedScrolls, 1)
+        await waitForCombination { mouse.replayedScrolls == 1 }
         // Decided as held, delivered with no matching held combination.
         XCTAssertTrue(mouse.press(.right, at: interior))
         mouse.deliverSwallowedScroll(.down, at: interior)
