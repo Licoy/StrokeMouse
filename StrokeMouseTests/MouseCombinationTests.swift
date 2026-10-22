@@ -175,6 +175,25 @@ final class MouseCombinationTests: XCTestCase {
         XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis1), 1)
     }
 
+    func testScrollReplayIsFreshEventWithOriginalDeltas() throws {
+        let precise = try wheel(1, units: .pixel)
+        precise.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: 0.75)
+        precise.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: 3)
+        precise.flags = .maskShift
+        for original in [precise, try wheel(-2)] {
+            // A swallowed tick's location goes stale while its target resolves.
+            let stale = CGPoint(x: -31_337, y: -31_337)
+            original.location = stale
+            let replay = try XCTUnwrap(MouseEventTap.makeScrollReplayEvent(from: original))
+            XCTAssertNotEqual(replay.location, stale)
+            XCTAssertEqual(ScrollEventSample(event: replay), ScrollEventSample(event: original))
+            XCTAssertEqual(
+                replay.getIntegerValueField(.eventSourceUserData),
+                MouseEventTap.combinationReplayMarker
+            )
+        }
+    }
+
     private func wheel(_ delta: Int32, units: CGScrollEventUnit = .line, marker: Int64 = 0) throws -> CGEvent {
         let source = try XCTUnwrap(CGEventSource(stateID: .combinedSessionState))
         source.userData = marker

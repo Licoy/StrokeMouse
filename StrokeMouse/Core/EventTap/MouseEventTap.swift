@@ -283,8 +283,49 @@ final class MouseEventTap: @unchecked Sendable {
     }
 
     func replayScroll(_ event: CGEvent) {
-        event.setIntegerValueField(.eventSourceUserData, value: Self.combinationReplayMarker)
-        event.post(tap: .cgSessionEventTap)
+        Self.makeScrollReplayEvent(from: event)?.post(tap: .cgSessionEventTap)
+    }
+
+    /// A fresh event with the swallowed tick's deltas. Re-posting the original
+    /// would carry the pointer location from when it was swallowed, and
+    /// WindowServer applies a stale point as the pointer position.
+    static func makeScrollReplayEvent(from original: CGEvent) -> CGEvent? {
+        let sample = ScrollEventSample(event: original)
+        guard let event = CGEvent(
+            scrollWheelEvent2Source: nil,
+            units: sample.isContinuous ? .pixel : .line,
+            wheelCount: 2,
+            wheel1: Int32(clamping: sample.lineDeltaY),
+            wheel2: Int32(clamping: sample.lineDeltaX),
+            wheel3: 0
+        ) else {
+            return nil
+        }
+        event.flags = sample.flags
+        event.setIntegerValueField(
+            .scrollWheelEventIsContinuous,
+            value: sample.isContinuous ? 1 : 0
+        )
+        // Line, then fixed, then point, then accelerated / raw: writing an
+        // earlier field can make WindowServer rewrite a later one.
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: sample.lineDeltaY)
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: sample.lineDeltaX)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: sample.fixedDeltaY)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: sample.fixedDeltaX)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: sample.pointDeltaY)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: sample.pointDeltaX)
+        event.setIntegerValueField(
+            .scrollWheelEventAcceleratedDeltaAxis1,
+            value: sample.acceleratedDeltaY
+        )
+        event.setIntegerValueField(
+            .scrollWheelEventAcceleratedDeltaAxis2,
+            value: sample.acceleratedDeltaX
+        )
+        event.setIntegerValueField(.scrollWheelEventRawDeltaAxis1, value: sample.rawDeltaY)
+        event.setIntegerValueField(.scrollWheelEventRawDeltaAxis2, value: sample.rawDeltaX)
+        event.setIntegerValueField(.eventSourceUserData, value: combinationReplayMarker)
+        return event
     }
 
     func isCurrentEventGeneration(_ generation: UInt64) -> Bool {

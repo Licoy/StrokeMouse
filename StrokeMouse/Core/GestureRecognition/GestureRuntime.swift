@@ -1524,7 +1524,7 @@ final class GestureRuntime {
                 && combo.accepts(location: location, displays: combinationEnvironment.displays)
         }
         guard sessionGate.isValid(admission), suppressionTokens.isEmpty, !candidates.isEmpty else {
-            // No mapping in this app: replay the exact wheel event. The distinct
+            // No mapping in this app: replay the tick's deltas. The distinct
             // marker skips combination routing but still permits scroll enhancement.
             mouseEventTap.replayScroll(original)
             return
