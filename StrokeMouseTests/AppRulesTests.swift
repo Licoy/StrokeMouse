@@ -448,6 +448,38 @@ final class AppRulesTests: XCTestCase {
         XCTAssertEqual(decoded.suppressedGlobalInputs.kinds, [.mouseDrawing])
     }
 
+    func testLegacySuppressAllCoversKindsAddedSince() throws {
+        // "Suppress all" as written before button mappings, then before combinations.
+        let legacy = Data(#"""
+        {"version": 2, "gestures": [],
+         "appPolicies": [{"bundleIdentifier": "com.example.App",
+                          "suppressedGlobalInputs": ["mouseDrawing", "trackpadDrawing", "touchGesture"]}],
+         "appGroups": [{"id": "6F9619FF-8B86-D011-B42D-00C04FC964FF", "name": "Editors",
+                        "suppressedGlobalInputs": ["mouseDrawing", "mouseButton", "trackpadDrawing", "touchGesture"]}]}
+        """#.utf8)
+        let file = try JSONDecoder().decode(GestureConfigFile.self, from: legacy)
+
+        XCTAssertEqual(file.appPolicies.first?.suppressedGlobalInputs, .all)
+        XCTAssertEqual(file.appGroups.first?.suppressedGlobalInputs, .all)
+    }
+
+    func testNarrowedSelectionCoveringFirstReleaseKindsRoundTrips() throws {
+        var kinds = SuppressedGlobalInputs.all.kinds
+        kinds.remove(.mouseCombination)
+        let narrowed = SuppressedGlobalInputs(kinds: kinds)
+
+        let data = try JSONEncoder().encode(narrowed)
+        XCTAssertEqual(
+            try JSONDecoder().decode([String].self, from: data),
+            ["mouseDrawing", "mouseButton", "trackpadDrawing", "touchGesture", "exact"]
+        )
+        XCTAssertEqual(try JSONDecoder().decode(SuppressedGlobalInputs.self, from: data), narrowed)
+
+        let all = try JSONEncoder().encode(SuppressedGlobalInputs.all)
+        XCTAssertFalse(try JSONDecoder().decode([String].self, from: all).contains("exact"))
+        XCTAssertEqual(try JSONDecoder().decode(SuppressedGlobalInputs.self, from: all), .all)
+    }
+
     // MARK: - Helpers
 
     private func snapshot(bundleIdentifier: String) -> GestureTargetSnapshot {

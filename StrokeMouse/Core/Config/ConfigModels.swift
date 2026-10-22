@@ -839,11 +839,22 @@ enum GestureInputKind: String, Codable, CaseIterable, Hashable, Identifiable, Se
 /// Global gestures suppressed while the target application matches a rule.
 /// Encoded as a sorted array so persisted bytes stay stable; unknown kinds
 /// written by newer versions are ignored.
+///
+/// "Suppress all" is stored as every kind the writer knew, so a list that
+/// covers the first release's kinds also suppresses kinds added since.
+/// A narrower selection that still covers them carries `exactMarker`;
+/// older readers drop the marker like any unknown kind.
 struct SuppressedGlobalInputs: Codable, Equatable, Hashable, Sendable {
     var kinds: Set<GestureInputKind>
 
     static let none = SuppressedGlobalInputs(kinds: [])
     static let all = SuppressedGlobalInputs(kinds: Set(GestureInputKind.allCases))
+
+    /// Every writer knew these, so covering them means "suppress all".
+    private static let firstReleaseKinds: Set<GestureInputKind> = [
+        .mouseDrawing, .trackpadDrawing, .touchGesture,
+    ]
+    private static let exactMarker = "exact"
 
     init(kinds: Set<GestureInputKind>) {
         self.kinds = kinds
@@ -859,13 +870,18 @@ struct SuppressedGlobalInputs: Codable, Equatable, Hashable, Sendable {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode([String].self)
         kinds = Set(raw.compactMap(GestureInputKind.init(rawValue:)))
+        if !raw.contains(Self.exactMarker), kinds.isSuperset(of: Self.firstReleaseKinds) {
+            kinds = Self.all.kinds
+        }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(
-            GestureInputKind.allCases.filter(kinds.contains).map(\.rawValue)
-        )
+        var raw = GestureInputKind.allCases.filter(kinds.contains).map(\.rawValue)
+        if kinds != Self.all.kinds, kinds.isSuperset(of: Self.firstReleaseKinds) {
+            raw.append(Self.exactMarker)
+        }
+        try container.encode(raw)
     }
 }
 
