@@ -415,6 +415,14 @@ final class MouseEventTap: @unchecked Sendable {
         }
 
         if type == .scrollWheel {
+            // Scroll enhancement consults this for every tick, combinations or not:
+            // bail out on locked state before reading fields or copying.
+            let current = stateLock.withLock {
+                (acceptingEvents && interceptsScrollStorage, eventGeneration, shouldCaptureScrollStorage)
+            }
+            guard current.0, let shouldCaptureScroll = current.2 else {
+                return Unmanaged.passUnretained(event)
+            }
             // Trigger from untagged device/driver input. Scroll utilities may repost many
             // frames with reversed deltas; treating those as new wheel input can
             // make both physical directions execute the same combination.
@@ -423,17 +431,15 @@ final class MouseEventTap: @unchecked Sendable {
                   event.getIntegerValueField(.scrollWheelEventMomentumPhase) == 0,
                   event.getIntegerValueField(.scrollWheelEventMomentumOptionPhase) == 0
             else { return Unmanaged.passUnretained(event) }
-            guard let copy = event.copy() else { return Unmanaged.passUnretained(event) }
             let delta = Self.combinationWheelDirection(ScrollEventSample(event: event))
             guard delta != 0 else { return Unmanaged.passUnretained(event) }
-            let current = stateLock.withLock {
-                (acceptingEvents && interceptsScrollStorage, eventGeneration, shouldCaptureScrollStorage)
-            }
             let direction: MouseWheelDirection = delta > 0 ? .up : .down
-            guard current.0, current.2?(direction, event.location) == true else {
+            guard shouldCaptureScroll(direction, event.location),
+                  isCurrentEventGeneration(current.1),
+                  let copy = event.copy()
+            else {
                 return Unmanaged.passUnretained(event)
             }
-            guard isCurrentEventGeneration(current.1) else { return Unmanaged.passUnretained(event) }
             onEvent?(.scroll(direction, event.location, copy), current.1)
             return nil
         }

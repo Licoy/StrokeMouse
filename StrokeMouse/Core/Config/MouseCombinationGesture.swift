@@ -57,6 +57,13 @@ struct MouseCombinationGesture: Codable, Equatable, Hashable, Sendable {
     func accepts(location: CGPoint, displays: [CGRect]) -> Bool {
         isValid && (edge?.contains(location, in: displays) ?? true)
     }
+
+    /// Held combinations and an edge right click reserve a right press here;
+    /// edge wheels are admitted by the wheel alone.
+    func acceptsRightPress(at location: CGPoint, displays: [CGRect]) -> Bool {
+        (needsHeldRight || action == .rightClick)
+            && accepts(location: location, displays: displays)
+    }
 }
 
 /// Smooth scrolling delivers many frames for a single wheel movement. Consume

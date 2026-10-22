@@ -2964,6 +2964,39 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(platform.shortcutCount, 0)
     }
 
+    func testEdgeOnlyCombinationsSkipTargetLookupForOtherPresses() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let capturer = IdentifyingRuntimeTargetCapturer(
+            processIdentifier: 101,
+            bundleIdentifier: "com.example.target"
+        )
+        let platform = RuntimeActionPlatform()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: capturer,
+            mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [
+            combinationProfile(edge: .top, action: .wheelUp),
+            combinationProfile(edge: .left, action: .rightClick),
+        ]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let top = CGPoint(x: frame.midX, y: frame.minY + 1)
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: frame.midX, y: frame.midY)))
+        XCTAssertFalse(mouse.press(.right, at: top), "Wheel-only edges never reserve a press")
+        XCTAssertEqual(capturer.identityCount, 0)
+        XCTAssertEqual(capturer.windowCaptureCount, 0)
+        let left = CGPoint(x: frame.minX + 1, y: frame.midY)
+        XCTAssertTrue(mouse.press(.right, at: left))
+        mouse.release(.right, at: left)
+        await drainMainActor()
+        XCTAssertEqual(capturer.identityCount, 1)
+        XCTAssertEqual(platform.shortcutCount, 1)
+    }
+
     private func waitForCombination(_ predicate: () -> Bool) async {
         for _ in 0..<200 {
             if predicate() { return }

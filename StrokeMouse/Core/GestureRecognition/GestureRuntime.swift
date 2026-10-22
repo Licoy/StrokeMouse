@@ -280,6 +280,19 @@ final class GestureRuntime {
                 else {
                     return .passThrough
                 }
+                let displays = combinationEnvironment.displays
+                // Location is pure: a press that only edge combinations elsewhere
+                // could use passes through before any Accessibility lookup.
+                guard admission.context.isDiagnostic
+                    || admission.context.configuration.profiles.contains(where: {
+                        $0.isEnabled
+                            && GestureInputMatcher.matches(source: .mouse(button), input: $0.input)
+                            && Self.reachesPress($0.input, at: location, displays: displays)
+                    })
+                else {
+                    sessionGate.release(admission)
+                    return .passThrough
+                }
                 let heldModifiers = ModifierEventTap.supportedKeys(in: flags)
                 let snapshot = Self.captureTargetSnapshot(
                     for: admission,
@@ -291,12 +304,7 @@ final class GestureRuntime {
                     for: admission,
                     snapshot: snapshot,
                     heldModifiers: heldModifiers
-                ).filter { item in
-                    guard case .mouseCombination(let gesture) = item.profile.input else { return true }
-                    // Edge wheels are admitted by the wheel itself, never by a right press.
-                    return (gesture.needsHeldRight || gesture.action == .rightClick)
-                        && gesture.accepts(location: location, displays: combinationEnvironment.displays)
-                }
+                ).filter { Self.reachesPress($0.profile.input, at: location, displays: displays) }
                 guard admission.context.isDiagnostic || !targeted.isEmpty else {
                     sessionGate.release(admission)
                     return .passThrough
@@ -1299,10 +1307,12 @@ final class GestureRuntime {
             for: admission,
             snapshot: snapshot,
             heldModifiers: heldModifiers
-        ).filter { item in
-            guard case .mouseCombination(let combo) = item.profile.input else { return true }
-            return (combo.needsHeldRight || combo.action == .rightClick)
-                && combo.accepts(location: quartzLocation, displays: combinationEnvironment.displays)
+        ).filter {
+            Self.reachesPress(
+                $0.profile.input,
+                at: quartzLocation,
+                displays: combinationEnvironment.displays
+            )
         }
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
         let mode: SessionMode = admission.context.isDiagnostic
@@ -1687,6 +1697,17 @@ final class GestureRuntime {
             configurationRevision: session.revision,
             chordClicked: session.chordClicked
         )
+    }
+
+    /// Whether a mouse press at this location can reach the input. Only
+    /// combinations depend on location; every other input keeps its source match.
+    nonisolated private static func reachesPress(
+        _ input: GestureInput,
+        at quartzLocation: CGPoint,
+        displays: [CGRect]
+    ) -> Bool {
+        guard case .mouseCombination(let combo) = input else { return true }
+        return combo.acceptsRightPress(at: quartzLocation, displays: displays)
     }
 
     /// Candidates for the admission's source after app scope, app groups and
