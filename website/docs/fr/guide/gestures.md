@@ -42,6 +42,24 @@ Dans **Ajouter → Boutons souris**, associez une action à un bouton latéral (
 - Si l’app cible n’a ni geste ni association pour ce bouton, le clic passe tel quel, par exemple pour garder le précédent / suivant natif du navigateur
 - Le bouton droit ne peut pas être associé, pour ne pas bloquer le menu contextuel ; une association réussie n’affiche pas de notification de correspondance
 
+## Combinaisons souris
+
+Créez-en une dans **Ajouter → Combinaisons souris** : aucun tracé à enregistrer, et toutes les actions, fenêtres cibles et portées s’appliquent.
+
+| Déclencheur | Action de la souris | Quand elle s’exécute |
+|--------|------|------|
+| Maintenir le bouton droit | Défiler vers le haut / bas | À chaque cran de molette, donc répétable |
+| Maintenir le bouton droit | Clic gauche | Le premier clic gauche de chaque maintien du bouton droit |
+| Bord de l’écran (haut / bas / gauche / droite) | Clic droit | Bouton droit appuyé puis relâché au bord choisi, sans commencer de tracé |
+| Bord de l’écran (haut / bas / gauche / droite) | Défiler vers le haut / bas | Sans bouton droit, au plus une fois toutes les 100 ms |
+
+- Un maintien ou un clic droit qui lance une combinaison n’ouvre pas le menu contextuel et n’est pas reconnu comme un tracé ; un clic droit qui ne déclenche rien ouvre le menu comme d’habitude
+- « Maintenir le bouton droit + clic gauche » passe avant l’action secondaire ; sans cette combinaison, l’action secondaire fonctionne comme avant
+- Les sens de molette non configurés et les apps sans combinaison défilent normalement ; les crans utilisés par une combinaison ne font pas défiler la page
+- Bouton droit maintenu, une molette haute précision exécute l’action au plus toutes les 120 ms, pour qu’un seul défilement ne change pas plusieurs onglets d’affilée ; le trackpad, le défilement inertiel et les images de lissage d’autres outils de défilement ne déclenchent jamais d’action
+- Un bord correspond aux 3 points à l’intérieur des limites de chaque écran, jonction entre écrans adjacents comprise ; un coin qui correspond à deux réglages du même niveau est un conflit
+- Portées et conflits fonctionnent comme pour les associations de boutons : seul le niveau le plus précis compte, et plusieurs entrées à ce niveau forment un conflit, donc rien ne s’exécute et une notification s’affiche ; une politique d’app peut désactiver à part les « Combinaisons souris » globales
+
 ## Rejeu du clic court
 
 Après que le moteur a capturé l’appui du déclencheur :

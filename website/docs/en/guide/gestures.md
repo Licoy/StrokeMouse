@@ -51,6 +51,24 @@ Choose **Add → Mouse Buttons** to map a side button (back / forward) or the mi
 - When the target app has no gesture or mapping for the button, the click passes through untouched, for example to keep the browser's native back / forward
 - The right button cannot be mapped, so context menus keep working; a successful mapping shows no match toast
 
+## Mouse combinations
+
+Choose **Add → Mouse Combinations** to create one. No stroke recording is needed, and every action, target window and scope applies.
+
+| Trigger | Mouse action | When it runs |
+|--------|------|------|
+| Hold right button | Scroll up / down | Once per wheel tick, so it can repeat |
+| Hold right button | Left click | The first left click of each right-button hold |
+| Screen edge (top / bottom / left / right) | Right click | The right button is pressed and released at the chosen edge without starting a stroke |
+| Screen edge (top / bottom / left / right) | Scroll up / down | No right button needed; at most once every 100 ms |
+
+- A right-button hold or click that runs a combination neither opens the context menu nor counts as a drawing; a right click that triggers nothing still opens the menu
+- “Hold right + left click” takes precedence over a secondary action; without that combination the secondary action works as before
+- Unconfigured wheel directions and apps without a combination scroll normally; ticks a combination uses do not scroll the page
+- While the right button is held, a high-precision wheel runs the action at most every 120 ms, so one scroll cannot flip through many tabs; trackpads, momentum scrolling and smoothing frames from other scroll tools never trigger actions
+- An edge is the 3 points inside each display’s bounds, including the seam between adjacent displays; a corner that matches two configurations in the same tier is a conflict
+- Scopes and conflicts work like button mappings: only the most specific tier counts, and several entries there are a conflict, so nothing runs and a notice appears; an app policy can turn off global “Mouse Combinations” on its own
+
 ## Short-click replay
 
 After the engine captures trigger-down:
