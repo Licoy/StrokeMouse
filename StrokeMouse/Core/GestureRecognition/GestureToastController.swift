@@ -47,6 +47,14 @@ final class GestureToastController {
         )
     }
 
+    /// Drag scrolling and right-button drawing own the same movement.
+    func showMovementConflict() {
+        present(
+            text: L10n.string("toast.movementConflict"),
+            isSuccess: false
+        )
+    }
+
     func showNoMatch() {
         guard DrawingStyle.showMissToast else { return }
         present(text: L10n.string("toast.noMatch"), isSuccess: false)

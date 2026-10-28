@@ -1,6 +1,6 @@
 ---
 title: "Actions"
-description: "StrokeMouse actions: shortcuts, open app, URL, media keys, window commands, Shell, and AppleScript."
+description: "StrokeMouse actions: shortcuts, system commands, open app, URL, media keys, window commands, Shell, and AppleScript."
 titleTemplate: "StrokeMouse"
 ---
 
@@ -14,6 +14,7 @@ On a successful match, `ActionExecutor` dispatches the configured action.
 |------|----------------|-------|
 | None | Match-only / testing | — |
 | **Shortcut** | Inject key chord | Needs Accessibility |
+| **System** | Mission Control, Application Windows, Previous / Next Space | Needs Accessibility; must match system shortcuts |
 | **Open app** | Pick an installed app by icon and launch | Stored as bundle id |
 | **Open URL** | Default browser / handler | — |
 | **Media** | Play/pause, tracks, volume, mute | — |
@@ -25,9 +26,30 @@ On a successful match, `ActionExecutor` dispatches the configured action.
 
 Shortcuts are configured by recording only; the display field is read-only. Click **Record**, press the keys in the intended order, then release all keys to finish. Press Esc by itself to cancel.
 
-Both shortcuts with a regular key (for example, `⌘⌥Q`) and modifier-only shortcuts (for example, `⌘⌥`) are supported. The result is displayed in the order the keys were pressed. Supported modifier keys are Command, Option, Control, and Shift.
+Both shortcuts with a regular key (for example, `⌘⌥Q`) and modifier-only shortcuts (for example, `⌘⌥`) are supported. The result is displayed in the order the keys were pressed. Supported modifier keys are Command, Option, Control, Shift, and Fn/Globe. Fn can be used alone or combined with other keys, for example `fn⌃⇧←`, which arranges windows left and right on macOS 15 and later.
+
+Release all modifier keys before you start recording, then press the keys in the order you want them replayed. Fn must be pressed physically; a key remapped to Fn in System Settings, such as Caps Lock, also works. Caps Lock may remain enabled once its key is released.
 
 After recording a shortcut, click **Add Follow-up Key** to record up to 3 more chords. They are pressed in order in the same target, about 50 ms apart, and the sequence stops at the first failure. For example, `⌘V` followed by `↩` pastes and sends in a chat app. Older versions run only the first chord.
+
+## System
+
+Choose the **System** action type to run one of these commands:
+
+| Command | Default shortcut | Target |
+|---------|------------------|--------|
+| Mission Control | ⌃↑ | Current desktop; the captured window is not activated |
+| Application Windows | ⌃↓ | Activates the captured app and window first |
+| Previous Space | ⌃← | Current desktop; the captured window is not activated |
+| Next Space | ⌃→ | Current desktop; the captured window is not activated |
+
+System commands send the matching shortcut from System Settings › Keyboard › Keyboard Shortcuts › Mission Control; the defaults are the macOS defaults. If you changed them in macOS, record a different shortcut in the editor to override the default, or click **Restore default shortcut**. The editor reads those system settings and warns when the matching system shortcut is turned off or differs from the one configured here; **Use System Shortcut** adopts the system setting. StrokeMouse never changes system settings.
+
+If a command uses its default binding but that shortcut is turned off in System Settings, running it shows an error instead of silently doing nothing.
+
+These are discrete commands that run once per trigger, not the native interactive four-finger animations that follow your fingers. The four-finger swipe up / down Touch Gesture presets use the Mission Control and Application Windows system commands.
+
+Libraries and exports containing system commands or drag to scroll use format **v4**; Fn shortcuts alone use **v3**, and everything else stays **v2**. Older versions cannot read v3 / v4 files.
 
 ## Open app
 
@@ -84,6 +106,7 @@ Same class of risk as Shell. Never run untrusted scripts.
 | Goal | Prefer |
 |------|--------|
 | System / app hotkeys | Shortcut |
+| Mission Control / Spaces | System |
 | Launch software | Open app |
 | Bookmark-like jump | Open URL |
 | Music & volume | Media |

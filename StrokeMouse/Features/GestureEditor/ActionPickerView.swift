@@ -55,6 +55,7 @@ struct ActionPickerView: View {
     @State private var mediaCommand: MediaCommand = .playPause
     @State private var windowActionSelection: WindowActionSelection = .window(.minimize)
     @State private var systemAction = SystemAction(command: .missionControl)
+    @State private var systemShortcutStatus = SystemShortcutStatus.unknown
     @State private var appleScriptPreset: AppleScriptPreset = .sleep
     @State private var appleScript = AppleScriptPreset.sleep.source ?? ""
     /// Draft kept while the user is on a built-in so switching back to Custom restores it.
@@ -202,13 +203,13 @@ struct ActionPickerView: View {
     }
 
     @ViewBuilder
-    private var shortcutRecordingStatus: some View {
+    private func shortcutRecordingStatus(helpKey: String) -> some View {
         if isRecordingShortcut {
             Text(L10n.string("action.shortcutRecordingHint"))
                 .font(.caption)
                 .foregroundStyle(.orange)
         } else {
-            Text(L10n.string("action.shortcutHelp"))
+            Text(L10n.string(helpKey))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -230,6 +231,37 @@ struct ActionPickerView: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         }
+    }
+
+    /// Warns when macOS would ignore the chord this action posts.
+    @ViewBuilder
+    private var systemShortcutNotice: some View {
+        switch systemShortcutStatus {
+        case .disabled:
+            Text(L10n.string("action.systemShortcutDisabled"))
+                .font(.caption)
+                .foregroundStyle(.orange)
+        case .enabled(let chord) where !SystemCommand.chordsMatch(chord, systemAction.effectiveChord):
+            Text(String(
+                format: L10n.string("action.systemShortcutMismatch"),
+                locale: L10n.locale,
+                KeyCodeNames.shortcutDisplay(chord: chord)
+            ))
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Button(L10n.string("action.systemUseSystemShortcut")) {
+                stopRecording()
+                let matchesDefault = SystemCommand.chordsMatch(chord, systemAction.command.defaultChord)
+                systemAction.shortcutOverride = matchesDefault ? nil : chord
+                action = .system(systemAction)
+            }
+        case .enabled, .unknown:
+            EmptyView()
+        }
+    }
+
+    private func refreshSystemShortcutStatus() {
+        systemShortcutStatus = systemAction.command.currentSystemShortcut()
     }
 
     private var openAppInfo: AppInfoLookup.Info? {
@@ -303,7 +335,7 @@ struct ActionPickerView: View {
                     shortcutSequenceEditor
                 }
 
-                shortcutRecordingStatus
+                shortcutRecordingStatus(helpKey: "action.shortcutHelp")
 
             case .system:
                 Picker(L10n.string("action.systemCommand"), selection: Binding(
@@ -318,6 +350,12 @@ struct ActionPickerView: View {
                         Text(L10n.string(command.displayKey)).tag(command)
                     }
                 }
+                .onAppear(perform: refreshSystemShortcutStatus)
+                .onChange(of: systemAction.command) { _, _ in refreshSystemShortcutStatus() }
+                // Pick up edits made in System Settings while the editor stays open.
+                .onReceive(NotificationCenter.default.publisher(
+                    for: NSApplication.didBecomeActiveNotification
+                )) { _ in refreshSystemShortcutStatus() }
                 shortcutRecorderControl
                 Button(L10n.string("action.systemResetShortcut")) {
                     stopRecording()
@@ -325,10 +363,8 @@ struct ActionPickerView: View {
                     action = .system(systemAction)
                 }
                 .disabled(systemAction.shortcutOverride == nil)
-                Text(L10n.string("action.systemShortcutHelp"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                shortcutRecordingStatus
+                systemShortcutNotice
+                shortcutRecordingStatus(helpKey: "action.systemShortcutHelp")
 
             case .openApp:
                 openAppEditor

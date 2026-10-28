@@ -800,7 +800,9 @@ struct GesturesSettingsView: View {
     // MARK: - Table
 
     private var gestureTable: some View {
-        Table(displayedGestures, selection: $selection, sortOrder: $sortOrder) {
+        // Restored backups and older libraries can already contain conflicts.
+        let movementConflictIDs = MouseMovementConflict.conflictingIDs(in: appState.configStore.gestures)
+        return Table(displayedGestures, selection: $selection, sortOrder: $sortOrder) {
             TableColumn(L10n.string("gestures.col.enabled")) { gesture in
                 Toggle("", isOn: Binding(
                     get: { gesture.isEnabled },
@@ -822,9 +824,16 @@ struct GesturesSettingsView: View {
             .width(min: 56, ideal: 64, max: 80)
 
             TableColumn(L10n.string("gestures.col.name"), value: \.name) { gesture in
-                Text(gesture.name)
-                    .lineLimit(1)
-                    .foregroundStyle(gesture.isEnabled ? .primary : .secondary)
+                HStack(spacing: 4) {
+                    Text(gesture.name)
+                        .lineLimit(1)
+                        .foregroundStyle(gesture.isEnabled ? .primary : .secondary)
+                    if movementConflictIDs.contains(gesture.id) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .help(L10n.string("gestures.movementConflictBadge"))
+                    }
+                }
             }
 
             TableColumn(L10n.string("gestures.col.trigger")) { gesture in
@@ -1045,6 +1054,13 @@ struct GesturesSettingsView: View {
                 from: appState.configStore.gestures
             ).map(\.id)
         )
+        // Keeping the gestures moves them to global, which can clash there.
+        if disposition == .makeGlobal,
+           blocksMovementConflict(changing: groupGestureIDs, { $0.scope = .global })
+        {
+            pendingDeleteGroupID = nil
+            return
+        }
         appState.configStore.deleteAppGroup(id: id, gestures: disposition)
         if disposition == .delete {
             selection.subtract(groupGestureIDs)
@@ -1056,6 +1072,7 @@ struct GesturesSettingsView: View {
     }
 
     private func moveGestures(_ ids: Set<GestureProfile.ID>, to scope: AppScope) {
+        guard !blocksMovementConflict(changing: ids, { $0.scope = scope }) else { return }
         appState.configStore.setScope(scope, forGestureIDs: ids)
         if let failure = appState.configStore.lastFailure {
             alertMessage = AlertMessage(
@@ -1127,10 +1144,11 @@ struct GesturesSettingsView: View {
         enabled: Bool
     ) {
         if enabled,
-           !confirmExperimentalTrackpadIfNeeded(
-               [profile],
-               includesDisabled: true
-           )
+           blocksMovementConflict(changing: [profile.id], { $0.isEnabled = true })
+            || !confirmExperimentalTrackpadIfNeeded(
+                [profile],
+                includesDisabled: true
+            )
         {
             return
         }
@@ -1142,6 +1160,7 @@ struct GesturesSettingsView: View {
         enabled: Bool
     ) {
         if enabled {
+            guard !blocksMovementConflict(changing: ids, { $0.isEnabled = true }) else { return }
             let profiles = appState.configStore.gestures.filter {
                 ids.contains($0.id)
             }
@@ -1153,6 +1172,24 @@ struct GesturesSettingsView: View {
             }
         }
         appState.configStore.setEnabled(ids: ids, enabled: enabled)
+    }
+
+    /// Refuses edits that would give one scope two owners of right-button movement.
+    private func blocksMovementConflict(
+        changing ids: Set<GestureProfile.ID>,
+        _ change: (inout GestureProfile) -> Void
+    ) -> Bool {
+        let conflicts = MouseMovementConflict.conflicts(
+            afterChanging: ids,
+            in: appState.configStore.gestures,
+            change
+        )
+        guard !conflicts.isEmpty else { return false }
+        alertMessage = AlertMessage(
+            title: L10n.string("gestures.movementConflictTitle"),
+            detail: MouseMovementConflict.conflictMessage(conflicts)
+        )
+        return true
     }
 
     private func confirmExperimentalTrackpadIfNeeded(
@@ -1266,6 +1303,13 @@ struct GesturesSettingsView: View {
         var copy = gesture
         copy.id = UUID()
         copy.name = gesture.name + " " + L10n.string("gestures.copySuffix")
+        // A copy shares its original's scope, so keep a conflicting copy off.
+        if MouseMovementConflict.hasConflict(
+            draft: copy, scope: copy.scope,
+            profiles: appState.configStore.gestures
+        ) {
+            copy.isEnabled = false
+        }
         guard confirmExperimentalTrackpadIfNeeded(
             [copy],
             includesDisabled: true
@@ -1317,10 +1361,24 @@ struct GesturesSettingsView: View {
                 return
             }
 
-            let newIDs = try appState.configStore.importProfiles(profilesToImport)
+            let resolved = MouseMovementConflict.disablingConflicts(
+                in: profilesToImport,
+                existing: appState.configStore.gestures
+            )
+            let newIDs = try appState.configStore.importProfiles(resolved.profiles)
             selection = Set(newIDs)
             if let first = appState.configStore.gestures.first(where: { newIDs.contains($0.id) }) {
                 selectSidebar(for: first.scope)
+            }
+            if !resolved.disabled.isEmpty {
+                alertMessage = AlertMessage(
+                    title: L10n.string("gestures.movementConflictTitle"),
+                    detail: String(
+                        format: L10n.string("gestures.importMovementConflictDisabled"),
+                        locale: L10n.locale,
+                        MouseMovementConflict.displayNames(resolved.disabled)
+                    )
+                )
             }
         } catch {
             alertMessage = AlertMessage(

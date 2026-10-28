@@ -5,28 +5,28 @@ import XCTest
 final class MouseDragScrollTests: XCTestCase {
     func testDeadzoneBothAxesNaturalDirectionAndPairedPhases() {
         var session = MouseDragScrollSession(origin: .zero, configuration: .init())
-        XCTAssertNil(session.sample(CGPoint(x: 2, y: 2)))
-        XCTAssertEqual(session.sample(CGPoint(x: 4, y: 0)), .init(x: 0, y: 0, phase: 1))
-        XCTAssertEqual(session.sample(CGPoint(x: 14, y: 10)), .init(x: 10, y: -10, phase: 2))
+        XCTAssertNil(session.sample(CGPoint(x: 6, y: 6)))
+        XCTAssertEqual(session.sample(CGPoint(x: 10, y: 0)), .init(x: 0, y: 0, phase: 1))
+        XCTAssertEqual(session.sample(CGPoint(x: 20, y: 10)), .init(x: 10, y: -10, phase: 2))
         XCTAssertEqual(session.finish(cancelled: false), .init(x: 0, y: 0, phase: 4))
         XCTAssertNil(session.finish(cancelled: true))
     }
 
     func testFastFirstMovementKeepsDistanceBeyondDeadzoneAndFractionalRemainder() {
         var session = MouseDragScrollSession(origin: .zero, configuration: .init())
-        XCTAssertEqual(session.sample(CGPoint(x: 14, y: 0)), .init(x: 10, y: 0, phase: 1))
+        XCTAssertEqual(session.sample(CGPoint(x: 20, y: 0)), .init(x: 10, y: 0, phase: 1))
         XCTAssertEqual(session.finish(cancelled: false), .init(x: 0, y: 0, phase: 4))
         var fractional = MouseDragScrollSession(origin: .zero, configuration: .init(sensitivity: 0.25))
-        XCTAssertEqual(fractional.sample(CGPoint(x: 10, y: 0)), .init(x: 1, y: 0, phase: 1))
-        XCTAssertEqual(fractional.sample(CGPoint(x: 12, y: 0)), .init(x: 1, y: 0, phase: 2))
+        XCTAssertEqual(fractional.sample(CGPoint(x: 16, y: 0)), .init(x: 1, y: 0, phase: 1))
+        XCTAssertEqual(fractional.sample(CGPoint(x: 18, y: 0)), .init(x: 1, y: 0, phase: 2))
     }
 
     func testFractionalPixelsAreRetainedAndReverseAffectsBothAxes() {
         var session = MouseDragScrollSession(origin: .zero,
             configuration: .init(sensitivity: 0.25, reversesDirection: true))
-        XCTAssertNotNil(session.sample(CGPoint(x: 4, y: 0)))
-        for offset in 1...3 { XCTAssertNil(session.sample(CGPoint(x: 4 + offset, y: offset))) }
-        XCTAssertEqual(session.sample(CGPoint(x: 8, y: 4)), .init(x: -1, y: 1, phase: 2))
+        XCTAssertNotNil(session.sample(CGPoint(x: 10, y: 0)))
+        for offset in 1...3 { XCTAssertNil(session.sample(CGPoint(x: 10 + offset, y: offset))) }
+        XCTAssertEqual(session.sample(CGPoint(x: 14, y: 4)), .init(x: -1, y: 1, phase: 2))
         XCTAssertEqual(session.finish(cancelled: true), .init(x: 0, y: 0, phase: 8))
     }
 

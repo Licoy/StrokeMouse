@@ -1,6 +1,6 @@
 # Mouse Combinations
 
-Configure these under **Settings → Gestures → Add → Mouse Combinations**; no stroke recording is needed. Ordinary combinations use the existing action picker and target window; all combinations support global / app / app group scopes, and is included in import, export, and backups.
+Configure these under **Settings → Gestures → Add → Mouse Combinations**; no stroke recording is needed. Ordinary combinations use the existing action picker and target window; all combinations support global / app / app group scopes and are included in import, export, and backups.
 
 ## Supported triggers
 
@@ -25,11 +25,13 @@ For example, set "hold right + scroll up" to switch to the previous tab, "hold r
 
 ## Drag to scroll
 
-Select **Drag to scroll** in the held-right mode, then adjust sensitivity (0.25–4×) and reverse direction if needed. Content follows the pointer by default, scrolling the content under the pointer when scrolling begins without activating a window. App-scope matching still uses the target frozen at right-button down. This mode uses no ordinary or secondary action; save and test by holding right and moving outside the editor.
+Select **Drag to scroll** in the held-right mode, then adjust sensitivity (0.25–4× in 0.05 steps) and reverse direction if needed. Content follows the pointer by default, scrolling the content under the pointer when scrolling begins without activating a window. App-scope matching still uses the target frozen at right-button down. This mode uses no ordinary or secondary action; save and test by holding right and moving outside the editor.
 
-Releasing stops immediately, with no inertia, pointer lock, or recentering; screen edges therefore limit available travel. A short press below the movement threshold still replays a right click. Once dragging starts, release neither replays a click nor recognizes a stroke.
+Scrolling starts only after the pointer moves at least a fixed 10 points from where the right button was pressed; this threshold does not follow the Minimum Stroke Distance setting. Releasing before that replays a normal right click, so the context menu still works. Once scrolling starts, release neither replays a click nor recognizes a stroke. Releasing stops immediately, with no inertia, pointer lock, or recentering; screen edges therefore limit available travel.
 
-Drag scrolling and right-button drawing share movement input. The most specific scope wins: app, app group, then global, so app drag scrolling can override global drawing and vice versa. A drag-scroll profile together with right-button drawing, or several drag-scroll profiles at the same tier, causes a conflict and runs nothing. The editor blocks definite conflicts between global scopes, intersecting app lists, or the same app group; it never disables or deletes existing drawings. Dynamic overlaps between different groups are resolved at runtime.
+Drag scrolling and right-button drawing share movement input. The most specific scope wins: app, app group, then global, so app drag scrolling can override global drawing and vice versa. Within the most specific matching tier, a drag-scroll profile cannot coexist with right-button drawing or another drag-scroll profile; at runtime such a conflict runs nothing and shows a dedicated conflict toast.
+
+Definite conflicts (global vs. global, intersecting app lists, or the same app group) are prevented everywhere in the UI: saving in the editor, enabling with the checkbox or in a batch, **Move To**, and deleting an app group while keeping its gestures as global are blocked with a message naming the conflicting gestures; **Duplicate** creates the copy disabled if it would conflict; importing brings conflicting gestures in disabled and lists them; and the gesture list shows a warning icon on enabled gestures that already conflict, for example after restoring a backup. Existing gestures are never deleted or disabled automatically. Dynamic overlaps between different app groups are still resolved at runtime.
 
 Exports and backups containing drag scrolling or system actions use v4; Fn-only shortcuts use v3, and ordinary configurations remain v2.
 

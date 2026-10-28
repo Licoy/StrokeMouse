@@ -50,6 +50,7 @@ Créez-en une dans **Ajouter → Combinaisons souris** : aucun tracé à enregis
 |--------|------|------|
 | Maintenir le bouton droit | Défiler vers le haut / bas | À chaque cran de molette, donc répétable |
 | Maintenir le bouton droit | Clic gauche | Le premier clic gauche de chaque maintien du bouton droit |
+| Maintenir le bouton droit | Déplacer pour défiler | Défilement horizontal / vertical dès que le pointeur a bougé d’au moins 10 points ; s’arrête au relâchement |
 | Bord de l’écran (haut / bas / gauche / droite) | Clic droit | Bouton droit appuyé puis relâché au bord choisi, sans commencer de tracé |
 | Bord de l’écran (haut / bas / gauche / droite) | Défiler vers le haut / bas | Sans bouton droit, au plus une fois toutes les 100 ms |
 
@@ -60,12 +61,16 @@ Créez-en une dans **Ajouter → Combinaisons souris** : aucun tracé à enregis
 - Un bord correspond aux 3 points à l’intérieur des limites de chaque écran, jonction entre écrans adjacents comprise ; un coin qui correspond à deux réglages du même niveau est un conflit
 - Portées et conflits fonctionnent comme pour les associations de boutons : seul le niveau le plus précis compte, et plusieurs entrées à ce niveau forment un conflit, donc rien ne s’exécute et une notification s’affiche ; une politique d’app peut désactiver à part les « Combinaisons souris » globales
 
+**Déplacer pour défiler** : choisissez « Déplacer pour défiler » dans le mode « Maintenir le bouton droit », puis réglez si besoin « Sensibilité » (0,25 à 4×, par pas de 0,05) et « Inverser la direction » ; par défaut, le contenu suit le pointeur. Le défilement ne commence qu’une fois que le pointeur a dépassé un seuil fixe de 10 points depuis l’appui du bouton droit, indépendamment de la « Distance minimale de tracé » ; relâcher avant rejoue un clic droit normal, donc le menu contextuel reste utilisable, et une fois le défilement commencé, le relâchement ne rejoue aucun clic et ne reconnaît aucun tracé. C’est le contenu sous le pointeur au début du défilement qui défile, sans activer de fenêtre ; la portée d’app utilise toujours la cible figée à l’appui du bouton droit. Le relâchement arrête tout immédiatement, sans inertie, verrouillage ni recentrage du pointeur, donc les bords de l’écran limitent la course. Ce mode n’a ni action ordinaire ni action secondaire : enregistrez-le, puis testez-le hors de l’éditeur en maintenant le bouton droit et en déplaçant la souris.
+
+Au niveau de portée le plus précis (app > groupe d’apps > global), un geste Déplacer pour défiler ne peut coexister ni avec un dessin au bouton droit ni avec un autre geste Déplacer pour défiler ; à l’exécution, un tel conflit n’exécute rien et affiche une notification dédiée. Les conflits certains (global contre global, listes d’apps qui se recoupent ou même groupe d’apps) sont bloqués partout : l’enregistrement dans l’éditeur, l’activation par case à cocher ou en lot, « Déplacer vers » et la suppression d’un groupe d’apps en gardant ses gestes en global sont refusés avec un message qui nomme les gestes en conflit ; « Dupliquer » crée la copie désactivée si elle devait entrer en conflit ; l’import fait entrer les gestes en conflit désactivés et les liste ; les gestes activés déjà en conflit (par exemple après la restauration d’une sauvegarde) affichent une icône d’avertissement dans la liste des gestes. Les gestes existants ne sont jamais supprimés ni désactivés automatiquement ; les chevauchements dynamiques entre groupes d’apps différents restent résolus à l’exécution.
+
 ## Rejeu du clic court
 
 Après que le moteur a capturé l’appui du déclencheur :
 
-- Distance **sous** `minStrokeDistance` : un down/up synthétique marqué **rejoue** un clic normal (les menus marchent) ; si l’app cible associe ce bouton, l’association s’exécute à la place
-- Dès qu’un vrai trait commence : le groupe down/drag/up est **réservé au geste**, pas livré à l’app de premier plan
+- Distance **sous** `minStrokeDistance` : un down/up synthétique marqué **rejoue** un clic normal (les menus marchent) ; si l’app cible associe ce bouton, l’association s’exécute à la place ; si « Déplacer pour défiler » s’applique au bouton droit, le seuil est fixé à 10 points
+- Dès qu’un vrai trait ou un défilement par déplacement commence : le groupe down/drag/up est **réservé au geste**, pas livré à l’app de premier plan
 
 ## Correspondance de trajectoire libre
 

@@ -114,7 +114,7 @@ struct GestureEditorView: View {
 
             Section(L10n.string("editor.action")) {
                 if isDragScroll {
-                    Text(L10n.string("editor.dragScrollTestHint"))
+                    Text(L10n.string("editor.dragScrollActionHelp"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
@@ -214,11 +214,17 @@ struct GestureEditorView: View {
         }
     }
 
+    /// Shortcuts, including Application Windows, bring the captured target forward first.
     private var usesShortcutAction: Bool {
-        actionKind == .shortcut
+        actionKind == .shortcut || postsToCapturedTarget(profile.action)
             || (isSecondaryActionEnabled
                 && GestureProfile.supportsSecondaryAction(profile.input)
-                && secondaryActionKind == .shortcut)
+                && (secondaryActionKind == .shortcut || postsToCapturedTarget(secondaryActionDraft)))
+    }
+
+    private func postsToCapturedTarget(_ action: GestureAction) -> Bool {
+        if case .system(let system) = action { return system.command.requiresCapturedTarget }
+        return false
     }
 
     private func testAction(_ action: GestureAction) {
@@ -238,7 +244,7 @@ struct GestureEditorView: View {
             Button(L10n.string("common.cancel")) { onCancel() }
                 .keyboardShortcut(.cancelAction)
             if let saveBlocker {
-                Text(L10n.string(saveBlocker))
+                Text(saveBlocker)
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .padding(.leading, 8)
@@ -281,22 +287,22 @@ struct GestureEditorView: View {
 
     private var canSave: Bool { saveBlocker == nil }
 
-    /// Localization key explaining why saving is disabled.
+    /// Localized reason saving is disabled.
     private var saveBlocker: String? {
         if case .drawn = profile.input, !sampleState.canSave {
-            return "editor.saveNeedsPath"
+            return L10n.string("editor.saveNeedsPath")
         }
         if scopeMode == .group,
            !appState.configStore.appGroups.contains(where: { $0.id == scopeGroupID })
         {
-            return "editor.saveNeedsGroup"
+            return L10n.string("editor.saveNeedsGroup")
         }
-        if let draftScope,
-           MouseMovementConflict.hasConflict(
-               draft: profile, scope: draftScope,
-               profiles: appState.configStore.gestures
-           ) {
-            return "editor.saveMovementConflict"
+        if let draftScope {
+            let conflicts = MouseMovementConflict.conflicts(
+                of: profile, scope: draftScope,
+                in: appState.configStore.gestures
+            )
+            if !conflicts.isEmpty { return MouseMovementConflict.conflictMessage(conflicts) }
         }
         return nil
     }

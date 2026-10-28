@@ -1,6 +1,6 @@
 ---
 title: "Actions"
-description: "Actions StrokeMouse : raccourcis, ouvrir une app, URL, touches média, fenêtres, Shell et AppleScript."
+description: "Actions StrokeMouse : raccourcis, commandes système, ouvrir une app, URL, touches média, fenêtres, Shell et AppleScript."
 titleTemplate: "StrokeMouse"
 ---
 
@@ -14,6 +14,7 @@ En cas de correspondance, `ActionExecutor` dispatche l’action configurée.
 |------|----------------|-------|
 | Aucune | Correspondance seule / test | — |
 | **Raccourci** | Injecter un accord de touches | Nécessite l’Accessibilité |
+| **Système** | Mission Control, Fenêtres de l’application, Espace précédent / suivant | Nécessite l’Accessibilité ; doit correspondre aux raccourcis système |
 | **Ouvrir une app** | Choisir une app installée par icône et la lancer | Stocké comme bundle id |
 | **Ouvrir une URL** | Navigateur / gestionnaire par défaut | — |
 | **Média** | Lecture/pause, pistes, volume, sourdine | — |
@@ -25,7 +26,28 @@ En cas de correspondance, `ActionExecutor` dispatche l’action configurée.
 
 Les raccourcis se règlent uniquement par enregistrement ; le champ d’affichage est en lecture seule. Cliquez **Enregistrer**, pressez les touches dans l’ordre voulu, puis relâchez-les toutes. Esc seul annule.
 
-Les raccourcis avec une touche normale (par ex. `⌘⌥Q`) et ceux composés uniquement de modificateurs (par ex. `⌘⌥`) sont pris en charge. Le résultat s’affiche dans l’ordre d’appui. Les modificateurs pris en charge sont Command, Option, Control et Shift.
+Les raccourcis avec une touche normale (par ex. `⌘⌥Q`) et ceux composés uniquement de modificateurs (par ex. `⌘⌥`) sont pris en charge. Le résultat s’affiche dans l’ordre d’appui. Les modificateurs pris en charge sont Command, Option, Control, Shift et Fn/Globe. Fn peut s’utiliser seul ou avec d’autres touches, par ex. `fn⌃⇧←`, qui dispose les fenêtres à gauche et à droite sous macOS 15 ou ultérieur.
+
+Relâchez toutes les touches de modification avant de lancer l’enregistrement, puis appuyez sur les touches dans l’ordre où elles doivent être rejouées. Fn doit être pressée physiquement ; une touche réassignée à Fn dans Réglages Système, comme Verr. Maj (Caps Lock), fonctionne aussi. Verr. Maj peut rester activé après avoir relâché sa touche.
+
+## Système
+
+Choisissez le type d’action « Système » pour exécuter l’une de ces commandes :
+
+| Commande | Raccourci par défaut | Cible |
+|------|------|------|
+| Mission Control | ⌃↑ | Bureau actuel, sans activer la fenêtre figée |
+| Fenêtres de l’application | ⌃↓ | Active d’abord l’app et la fenêtre figées |
+| Espace précédent | ⌃← | Bureau actuel, sans activer la fenêtre figée |
+| Espace suivant | ⌃→ | Bureau actuel, sans activer la fenêtre figée |
+
+Ces commandes envoient le raccourci correspondant défini dans Réglages Système › Clavier › Raccourcis clavier › Mission Control ; les valeurs par défaut sont celles de macOS. Si vous les avez modifiés dans le système, enregistrez un autre raccourci dans l’éditeur ou revenez à l’original avec « Rétablir le raccourci par défaut ». L’éditeur lit ces réglages système et avertit si le raccourci correspondant est désactivé ou diffère de celui configuré ici ; « Utiliser le raccourci système » reprend alors la valeur du système. StrokeMouse ne modifie pas les réglages système.
+
+Si une commande utilise son raccourci par défaut alors qu’il est désactivé dans Réglages Système, son exécution affiche une erreur au lieu de ne rien faire.
+
+Ce sont des commandes ponctuelles, exécutées une fois par déclenchement, sans l’animation interactive qui suit les doigts des gestes natifs à quatre doigts. Les préréglages de gestes tactiles « Quatre doigts vers le haut / bas » utilisent les commandes système Mission Control et Fenêtres de l’application.
+
+Les configurations et exports contenant des commandes système ou Déplacer pour défiler utilisent le format **v4** ; avec seulement des raccourcis Fn, c’est **v3**, sinon **v2**. Les anciennes versions ne peuvent pas lire les fichiers v3/v4.
 
 ## Ouvrir une app
 
@@ -82,6 +104,7 @@ Même classe de risque que le Shell. N’exécutez jamais de scripts non fiables
 | Objectif | Préférer |
 |------|--------|
 | Raccourcis système / d’app | Raccourci |
+| Mission Control / espaces | Système |
 | Lancer un logiciel | Ouvrir une app |
 | Saut façon signet | Ouvrir une URL |
 | Musique et volume | Média |

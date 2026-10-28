@@ -3075,7 +3075,7 @@ final class GestureRuntimeTests: XCTestCase {
         point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
         XCTAssertTrue(mouse.press(.right, at: origin))
         await drainMainActor()
-        point.x += 5
+        point.x += 12
         await waitForCombination { poster.phases == [1] }
         XCTAssertEqual(runtime.state.lastOutcome, .matched(profileID: profile.id, score: nil))
         XCTAssertEqual(runtime.lastMatch?.profile.id, profile.id)
@@ -3085,7 +3085,7 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertTrue(runtime.currentPath.isEmpty)
         XCTAssertFalse(mouse.scroll(.up, at: origin))
         mouse.clickLeft()
-        mouse.release(.right, at: CGPoint(x: origin.x + 15, y: origin.y - 10))
+        mouse.release(.right, at: CGPoint(x: origin.x + 22, y: origin.y - 10))
         await drainMainActor()
         XCTAssertEqual(poster.phases, [1, 2, 4])
         XCTAssertEqual(poster.deltas.last?.x, 0)
@@ -3100,7 +3100,7 @@ final class GestureRuntimeTests: XCTestCase {
         try runtime.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile()]))
         // Both callbacks enqueue before any sampling task, so up is the first moved point.
         XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
-        mouse.release(.right, at: CGPoint(x: 214, y: 200))
+        mouse.release(.right, at: CGPoint(x: 220, y: 200))
         await drainMainActor()
         XCTAssertEqual(poster.phases, [1, 4])
         XCTAssertEqual(poster.deltas, [CGPoint(x: 10, y: 0), .zero])
@@ -3121,7 +3121,7 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertTrue(poster.phases.isEmpty)
         XCTAssertTrue(mouse.press(.right, at: origin))
         await drainMainActor()
-        point.x += 5
+        point.x += 12
         await waitForCombination { poster.phases == [1] }
         runtime.accessibilityTrustDidChange(false)
         XCTAssertEqual(poster.phases, [1, 8])
@@ -3140,9 +3140,9 @@ final class GestureRuntimeTests: XCTestCase {
         point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
         XCTAssertTrue(mouse.press(.right, at: origin))
         await drainMainActor()
-        point.x += 5
+        point.x += 12
         await waitForCombination { runtime.state.lastOutcome == .matched(profileID: profile.id, score: nil) }
-        mouse.release(.right, at: CGPoint(x: 210, y: 200))
+        mouse.release(.right, at: CGPoint(x: 212, y: 200))
         await drainMainActor()
         XCTAssertTrue(poster.phases.isEmpty)
         XCTAssertEqual(mouse.replayedClicks, 0)
@@ -3159,7 +3159,7 @@ final class GestureRuntimeTests: XCTestCase {
         await drainMainActor()
         XCTAssertEqual(mouse.replayedClicks, 1)
         XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
-        mouse.release(.right, at: CGPoint(x: 205, y: 200))
+        mouse.release(.right, at: CGPoint(x: 212, y: 200))
         await drainMainActor()
         XCTAssertEqual(runtime.state.lastOutcome, .conflict([drag.id, drawing.id]))
         XCTAssertTrue(poster.phases.isEmpty)
@@ -3178,7 +3178,7 @@ final class GestureRuntimeTests: XCTestCase {
             point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
             XCTAssertTrue(mouse.press(.right, at: origin))
             await drainMainActor()
-            point.x += 5
+            point.x += 12
             await waitForCombination { poster.phases == [1] }
             switch reason {
             case "sleep": runtime.handleSleep()
@@ -3244,7 +3244,7 @@ final class GestureRuntimeTests: XCTestCase {
         try fixture?.0.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile()]))
         XCTAssertTrue(mouse.press(.right, at: origin))
         await drainMainActor()
-        point.x += 5
+        point.x += 12
         await waitForCombination { poster.phases == [1] }
         fixture = nil
         XCTAssertNil(releasedRuntime)
@@ -3266,7 +3266,7 @@ final class GestureRuntimeTests: XCTestCase {
             point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
             XCTAssertTrue(mouse.press(.right, at: origin))
             await drainMainActor()
-            point.x += 5
+            point.x += 12
             if failedPhase == 2 {
                 await waitForCombination { poster.phases == [1] }
                 point.x += 10

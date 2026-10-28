@@ -647,20 +647,25 @@ private struct MouseCombinationEditor: View {
             }
             if gesture.action == .dragScroll {
                 Section {
-                    HStack {
-                        Text(L10n.string("dragScroll.sensitivity"))
-                        Slider(value: dragConfiguration.sensitivity,
-                               in: MouseDragScrollConfiguration.sensitivityRange) {
+                    // A full-width slider keeps the range usable in the narrow editor pane.
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(L10n.string("dragScroll.sensitivity"))
+                            Spacer()
+                            Text(gesture.resolvedDragScrollConfiguration.sensitivity
+                                .formatted(.number.precision(.fractionLength(2)).locale(L10n.locale)) + "×")
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                        Slider(value: sensitivity, in: MouseDragScrollConfiguration.sensitivityRange) {
                             Text(L10n.string("dragScroll.sensitivity"))
                         }
                         .labelsHidden()
-                        Text(gesture.resolvedDragScrollConfiguration.sensitivity, format: .number.precision(.fractionLength(2)))
-                            .monospacedDigit()
-                            .frame(width: 36, alignment: .trailing)
                     }
                     Toggle(L10n.string("dragScroll.reversesDirection"),
                            isOn: dragConfiguration.reversesDirection)
-                    Text(L10n.string("dragScroll.hint"))
+                    Text(String(format: L10n.string("dragScroll.hint"), locale: L10n.locale,
+                                Int(MouseDragScrollSession.deadzone)))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -668,9 +673,11 @@ private struct MouseCombinationEditor: View {
             Section {
                 Label(gesture.displaySummary, systemImage: "computermouse.fill")
                     .font(.headline)
-                Text(L10n.string(gesture.action == .dragScroll ? "editor.dragScrollTestHint" : (gesture.edge == nil ? "combination.hint.held" : "combination.hint.edge")))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if gesture.action != .dragScroll {
+                    Text(L10n.string(gesture.edge == nil ? "combination.hint.held" : "combination.hint.edge"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
@@ -679,6 +686,15 @@ private struct MouseCombinationEditor: View {
     private var dragConfiguration: Binding<MouseDragScrollConfiguration> {
         Binding(get: { gesture.resolvedDragScrollConfiguration },
                 set: { gesture.dragScroll = $0 })
+    }
+
+    /// Snaps to 0.05 so saved values read cleanly, e.g. 1.25 instead of 1.2473.
+    private var sensitivity: Binding<Double> {
+        Binding(get: { gesture.resolvedDragScrollConfiguration.sensitivity }, set: { value in
+            let range = MouseDragScrollConfiguration.sensitivityRange
+            dragConfiguration.wrappedValue.sensitivity =
+                min(range.upperBound, max(range.lowerBound, (value / 0.05).rounded() * 0.05))
+        })
     }
 
     private var edgeMode: Binding<Bool> {

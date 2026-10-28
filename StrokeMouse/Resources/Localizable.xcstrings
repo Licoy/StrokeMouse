@@ -231,6 +231,52 @@
         }
       }
     },
+    "system.error.shortcutDisabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The “%@” shortcut is turned off in System Settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置中已关闭“%@”快捷键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定中已關閉“%@”快速鍵。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정에서 “%@” 단축키가 꺼져 있습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定で“%@”のショートカットがオフになっています。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сочетание «%@» отключено в Системных настройках."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le raccourci « %@ » est désactivé dans Réglages Système."
+          }
+        }
+      }
+    },
     "action.systemCommand": {
       "localizations": {
         "en": {
@@ -282,43 +328,181 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Match this shortcut to Mission Control in System Settings. StrokeMouse does not change system shortcuts."
+            "value": "Keep this the same as System Settings › Keyboard › Keyboard Shortcuts › Mission Control. StrokeMouse does not change system shortcuts."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请与系统设置中的调度中心快捷键保持一致，StrokeMouse 不会修改系统快捷键"
+            "value": "请与系统设置 › 键盘 › 键盘快捷键 › 调度中心中的快捷键保持一致，StrokeMouse 不会修改系统快捷键。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請與系統設定中的指揮中心快速鍵保持一致，StrokeMouse 不會修改系統快速鍵"
+            "value": "請與系統設定 › 鍵盤 › 鍵盤快速鍵 › 指揮中心中的快速鍵保持一致，StrokeMouse 不會修改系統快速鍵。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "시스템 설정의 Mission Control 단축키와 일치해야 합니다. StrokeMouse는 시스템 단축키를 변경하지 않습니다."
+            "value": "시스템 설정 › 키보드 › 키보드 단축키 › Mission Control의 단축키와 같게 맞추세요. StrokeMouse는 시스템 단축키를 변경하지 않습니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "システム設定のMission Controlのショートカットに合わせてください。StrokeMouseはシステムのショートカットを変更しません。"
+            "value": "システム設定 › キーボード › キーボードショートカット › Mission Controlのショートカットに合わせてください。StrokeMouseはシステムのショートカットを変更しません。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сочетание должно совпадать с настройками Mission Control. StrokeMouse не меняет системные сочетания."
+            "value": "Сочетание должно совпадать с Системные настройки › Клавиатура › Сочетания клавиш › Mission Control. StrokeMouse не меняет системные сочетания."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Utilisez le raccourci défini pour Mission Control dans Réglages Système. StrokeMouse ne modifie pas les raccourcis système."
+            "value": "Utilisez le même raccourci que dans Réglages Système › Clavier › Raccourcis clavier › Mission Control. StrokeMouse ne modifie pas les raccourcis système."
+          }
+        }
+      }
+    },
+    "action.systemShortcutDisabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This shortcut is turned off in System Settings, so the action won’t work. Turn it on there first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置中已关闭此快捷键，动作不会生效，请先在系统设置中开启。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定中已關閉此快速鍵，動作不會生效，請先在系統設定中開啟。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정에서 이 단축키가 꺼져 있어 동작이 실행되지 않습니다. 먼저 시스템 설정에서 켜세요."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このショートカットはシステム設定でオフになっているため、アクションは機能しません。先にシステム設定でオンにしてください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это сочетание отключено в Системных настройках, поэтому действие не сработает. Сначала включите его там."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce raccourci est désactivé dans Réglages Système, l’action ne fonctionnera donc pas. Activez-le d’abord."
+          }
+        }
+      }
+    },
+    "action.systemShortcutMismatch": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System Settings uses %@ for this command, which differs from the shortcut here, so the action may not work."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置中的快捷键为 %@，与此处不一致，动作可能不会生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定中的快速鍵為 %@，與此處不一致，動作可能不會生效。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정의 단축키는 %@(으)로 여기와 달라 동작이 실행되지 않을 수 있습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定のショートカットは %@ で、ここでの設定と異なるため、アクションが機能しない可能性があります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В Системных настройках для этой команды задано %@, это не совпадает с сочетанием здесь, поэтому действие может не сработать."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réglages Système utilise %@ pour cette commande, ce qui diffère du raccourci ici : l’action risque de ne pas fonctionner."
+          }
+        }
+      }
+    },
+    "action.systemUseSystemShortcut": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use System Shortcut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改用系统快捷键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改用系統快速鍵"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 단축키 사용"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムのショートカットを使用"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать системное сочетание"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser le raccourci système"
           }
         }
       }
@@ -512,89 +696,89 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hold right and move to scroll in both axes; content follows the pointer by default. Release to stop, with no inertia or pointer lock; screen edges limit travel."
+            "value": "Hold right and move at least %lld points to scroll in both axes; releasing sooner still counts as a right click. Content follows the pointer by default. Release to stop, with no inertia or pointer lock; screen edges limit travel."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住右键移动即可横向或纵向滚动，默认内容跟随指针，松手即停，无惯性或光标锁定，移动距离受屏幕边缘限制"
+            "value": "按住右键移动达到 %lld 点即开始横向或纵向滚动，未达到时松开仍视为右键单击；默认内容跟随指针，松手即停，无惯性或光标锁定，移动距离受屏幕边缘限制。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "按住右鍵移動即可橫向或縱向捲動，預設內容跟隨指標，放開即停，無慣性或游標鎖定，移動距離受螢幕邊緣限制"
+            "value": "按住右鍵移動達到 %lld 點即開始橫向或縱向捲動，未達到時放開仍視為右鍵按一下；預設內容跟隨指標，放開即停，無慣性或游標鎖定，移動距離受螢幕邊緣限制。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "오른쪽 버튼을 누르고 움직여 가로와 세로로 스크롤합니다. 기본적으로 콘텐츠가 포인터를 따릅니다. 놓으면 즉시 멈추며 관성이나 포인터 잠금이 없어 화면 가장자리에서 이동이 제한됩니다."
+            "value": "오른쪽 버튼을 누르고 %lld포인트 이상 움직이면 가로와 세로로 스크롤하며, 그 전에 놓으면 오른쪽 클릭으로 처리됩니다. 기본적으로 콘텐츠가 포인터를 따릅니다. 놓으면 즉시 멈추며 관성이나 포인터 잠금이 없어 화면 가장자리에서 이동이 제한됩니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "右ボタンを押しながら動かすと縦横にスクロールします。標準では内容がポインタに追従します。離すと停止し、慣性やポインタ固定はなく、画面端で移動が制限されます。"
+            "value": "右ボタンを押しながら%lldポイント以上動かすと縦横にスクロールし、それより前に離すと右クリックとして扱われます。標準では内容がポインタに追従します。離すと停止し、慣性やポインタ固定はなく、画面端で移動が制限されます。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Удерживайте правую кнопку и двигайте мышью для прокрутки по обеим осям. По умолчанию содержимое следует за указателем. Отпустите для остановки; без инерции и блокировки указателя, перемещение ограничено краями экрана."
+            "value": "Удерживайте правую кнопку и сдвиньте мышь не менее чем на %lld пунктов, чтобы прокручивать по обеим осям; если отпустить раньше, это считается правым щелчком. По умолчанию содержимое следует за указателем. Отпустите для остановки; без инерции и блокировки указателя, перемещение ограничено краями экрана."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Maintenez le bouton droit et déplacez la souris pour défiler sur les deux axes. Le contenu suit le pointeur par défaut. Relâchez pour arrêter, sans inertie ni verrouillage du pointeur ; les bords limitent le déplacement."
+            "value": "Maintenez le bouton droit et déplacez la souris d’au moins %lld points pour défiler sur les deux axes ; relâcher avant compte comme un clic droit. Le contenu suit le pointeur par défaut. Relâchez pour arrêter, sans inertie ni verrouillage du pointeur ; les bords limitent le déplacement."
           }
         }
       }
     },
-    "editor.dragScrollTestHint": {
+    "editor.dragScrollActionHelp": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Test by holding right and moving outside the editor after saving."
+            "value": "Drag to scroll is the action itself, so there is nothing else to choose. Save, then hold right and move outside the editor to test it."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存后请在编辑器外按住右键移动测试"
+            "value": "拖动滚动本身就是动作，无需另选；保存后在编辑器外按住右键移动即可测试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "儲存後請在編輯器外按住右鍵移動測試"
+            "value": "拖曳捲動本身就是動作，無需另選；儲存後在編輯器外按住右鍵移動即可測試。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "저장 후 편집기 밖에서 오른쪽 버튼을 누르고 움직여 테스트하세요."
+            "value": "드래그 스크롤 자체가 동작이므로 따로 선택할 필요가 없습니다. 저장한 뒤 편집기 밖에서 오른쪽 버튼을 누른 채 움직여 테스트하세요."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "保存後、エディタの外で右ボタンを押しながら動かしてテストしてください。"
+            "value": "「ドラッグでスクロール」自体がアクションなので、別のアクションを選ぶ必要はありません。保存後、エディタの外で右ボタンを押しながら動かしてテストしてください。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "После сохранения проверьте, удерживая правую кнопку и двигая мышью вне редактора."
+            "value": "Прокрутка перетаскиванием сама является действием, выбирать другое не нужно. Сохраните, затем удерживайте правую кнопку и двигайте мышью вне редактора, чтобы проверить."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Après enregistrement, testez hors de l’éditeur en maintenant le bouton droit et en déplaçant la souris."
+            "value": "« Déplacer pour défiler » est l’action elle-même, il n’y a rien d’autre à choisir. Enregistrez, puis maintenez le bouton droit et déplacez la souris hors de l’éditeur pour tester."
           }
         }
       }
@@ -604,43 +788,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scrolling starts in the content under the pointer when scrolling begins; no window is activated."
+            "value": "Scrolls the content under the pointer at the moment scrolling starts, without activating any window."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "从开始滚动时指针下的内容滚动，不激活窗口"
+            "value": "滚动开始时指针下方的内容随之滚动，不会激活任何窗口。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "從開始捲動時指標下的內容捲動，不啟用視窗"
+            "value": "捲動開始時指標下方的內容隨之捲動，不會啟用任何視窗。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "스크롤이 시작되는 순간 포인터 아래의 콘텐츠를 스크롤하며 윈도우를 활성화하지 않습니다."
+            "value": "스크롤이 시작될 때 포인터 아래에 있는 콘텐츠를 스크롤하며 윈도우를 활성화하지 않습니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "スクロール開始時にポインタの下にある内容をスクロールし、ウインドウをアクティブにしません。"
+            "value": "スクロール開始時にポインタの下にある内容をスクロールし、ウインドウはアクティブにしません。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Прокручивается содержимое под указателем в момент начала прокрутки; окно не активируется."
+            "value": "Прокручивается содержимое под указателем в момент начала прокрутки, окна не активируются."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le contenu sous le pointeur au début du défilement défile sans activer de fenêtre."
+            "value": "Fait défiler le contenu situé sous le pointeur au début du défilement, sans activer de fenêtre."
           }
         }
       }
@@ -650,43 +834,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The target choice only controls app-scope matching; system navigation uses the current system context without activating the captured window."
+            "value": "The target choice only affects app-scope matching. Mission Control and Space switching act on the current desktop without activating the captured window."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "目标选择仅用于应用作用域匹配，系统导航不会激活冻结窗口，作用于当前系统上下文"
+            "value": "目标选择仅用于判断应用作用域；调度中心和空间切换作用于当前桌面，不会激活锁定的窗口。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "目標選擇僅用於應用程式範圍比對，系統導覽不會啟用凍結視窗，作用於目前系統情境"
+            "value": "目標選擇僅用於判斷應用程式範圍；指揮中心和空間切換作用於目前桌面，不會啟用鎖定的視窗。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "대상 선택은 앱 범위 일치에만 사용됩니다. 시스템 탐색은 캡처한 윈도우를 활성화하지 않고 현재 시스템 상태에 적용됩니다."
+            "value": "대상 선택은 앱 범위 판단에만 사용됩니다. Mission Control과 Space 전환은 캡처한 윈도우를 활성화하지 않고 현재 데스크탑에 적용됩니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "対象の選択はアプリ範囲の判定にのみ使われ、システム操作は取得したウインドウをアクティブにせず現在のシステム状態に適用されます。"
+            "value": "対象の選択はアプリ範囲の判定にのみ使われます。Mission Controlと操作スペースの切り替えは、取得したウインドウをアクティブにせず現在のデスクトップに適用されます。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Выбор цели влияет только на область приложений; системная навигация использует текущий контекст без активации захваченного окна."
+            "value": "Выбор цели влияет только на сопоставление области приложений. Mission Control и переключение пространств действуют на текущем рабочем столе без активации захваченного окна."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le choix de cible sert uniquement à la portée par application ; la navigation système utilise le contexte actuel sans activer la fenêtre capturée."
+            "value": "Le choix de cible sert uniquement à la portée par application. Mission Control et le changement d’espace agissent sur le bureau actuel sans activer la fenêtre capturée."
           }
         }
       }
@@ -696,43 +880,273 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This scope already has an enabled right-button drawing or drag-scroll gesture; disable it or choose another scope."
+            "value": "Conflicts with %@: a scope can enable only one drag to scroll, with no right-button drawing alongside it. Disable the conflicting gesture or choose another scope."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "此作用域已有启用的右键绘制或拖动滚动手势，请停用冲突手势或选择其他作用域"
+            "value": "与%@冲突，同一作用域内只能启用一条拖动滚动，且不能同时启用右键绘制，请停用冲突手势或选择其他作用域。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "此範圍已有啟用的右鍵繪製或拖曳捲動手勢，請停用衝突手勢或選擇其他範圍"
+            "value": "與%@衝突，同一範圍內只能啟用一條拖曳捲動，且不能同時啟用右鍵繪製，請停用衝突手勢或選擇其他範圍。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 범위에 오른쪽 버튼 그리기 또는 드래그 스크롤이 이미 켜져 있습니다. 충돌하는 제스처를 끄거나 다른 범위를 선택하세요."
+            "value": "%@과(와) 충돌합니다. 한 범위에서는 드래그 스크롤을 하나만 켤 수 있으며 오른쪽 버튼 그리기와 함께 켤 수 없습니다. 충돌하는 제스처를 끄거나 다른 범위를 선택하세요."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この範囲には有効な右ボタン描画またはドラッグスクロールがあります。競合するジェスチャーを無効にするか、別の範囲を選んでください。"
+            "value": "%@と競合しています。1つの範囲で有効にできる「ドラッグでスクロール」は1つだけで、右ボタン描画とは併用できません。競合するジェスチャーを無効にするか、別の範囲を選んでください。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "В этой области уже включён рисунок правой кнопкой или прокрутка перетаскиванием. Отключите конфликтующий жест или выберите другую область."
+            "value": "Конфликт с %@: в одной области можно включить только одну прокрутку перетаскиванием и без рисунков правой кнопкой. Отключите конфликтующий жест или выберите другую область."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cette portée contient déjà un dessin au bouton droit ou un défilement par déplacement actif. Désactivez le geste en conflit ou changez de portée."
+            "value": "En conflit avec %@ : une portée ne peut activer qu’un seul défilement par déplacement, sans dessin au bouton droit. Désactivez le geste en conflit ou changez de portée."
+          }
+        }
+      }
+    },
+    "gestures.movementConflictTitle": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag to Scroll Conflict"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖动滚动冲突"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拖曳捲動衝突"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "드래그 스크롤 충돌"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ドラッグでスクロール」の競合"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфликт прокрутки перетаскиванием"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflit de défilement par déplacement"
+          }
+        }
+      }
+    },
+    "gestures.movementConflictBadge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conflicts with drag to scroll or right-button drawing in the same scope, so moving with the right button runs nothing."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与同一作用域的拖动滚动或右键绘制冲突，右键移动时不会执行任何动作。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "與同一範圍的拖曳捲動或右鍵繪製衝突，右鍵移動時不會執行任何動作。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "같은 범위의 드래그 스크롤 또는 오른쪽 버튼 그리기와 충돌하여 오른쪽 버튼으로 움직여도 아무 동작도 실행되지 않습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ範囲の「ドラッグでスクロール」または右ボタン描画と競合するため、右ボタンで動かしても何も実行されません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфликтует с прокруткой перетаскиванием или рисунком правой кнопкой в той же области, поэтому движение с правой кнопкой ничего не выполняет."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En conflit avec un défilement par déplacement ou un dessin au bouton droit de même portée : un déplacement avec le bouton droit n’exécute rien."
+          }
+        }
+      }
+    },
+    "gestures.importMovementConflictDisabled": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imported turned off because of a conflict with drag to scroll or right-button drawing in the same scope: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@与同一作用域的拖动滚动或右键绘制冲突，已导入但未启用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@與同一範圍的拖曳捲動或右鍵繪製衝突，已匯入但未啟用。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "같은 범위의 드래그 스크롤 또는 오른쪽 버튼 그리기와 충돌하여 꺼진 상태로 가져왔습니다: %@."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ範囲の「ドラッグでスクロール」または右ボタン描画と競合するため、無効の状態で読み込みました：%@。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Импортировано выключенным из-за конфликта с прокруткой перетаскиванием или рисунком правой кнопкой в той же области: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importé désactivé, car en conflit avec un défilement par déplacement ou un dessin au bouton droit de même portée : %@."
+          }
+        }
+      }
+    },
+    "common.quotedName": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@»"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« %@ »"
+          }
+        }
+      }
+    },
+    "common.moreCount": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld more"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另外 %lld 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "另外 %lld 個"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "외 %lld개"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほか %lld 件"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ещё %lld"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld autres"
           }
         }
       }
@@ -748,13 +1162,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法创建拖动滚动事件"
+            "value": "无法创建拖动滚动事件。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "無法建立拖曳捲動事件"
+            "value": "無法建立拖曳捲動事件。"
           }
         },
         "ko": {
@@ -21360,7 +21774,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "四指上滑 · 排程中心"
+            "value": "四指上滑 · 指揮中心"
           }
         },
         "ko": {
@@ -21394,25 +21808,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Four-Finger Down · App Exposé"
+            "value": "Four-Finger Down · Application Windows"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "四指下滑 · App Exposé"
+            "value": "四指下滑 · 应用程序窗口"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "四指下滑 · App Exposé"
+            "value": "四指下滑 · 應用程式視窗"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "네 손가락 아래로 · App Exposé"
+            "value": "네 손가락 아래로 · 응용 프로그램 윈도우"
           }
         },
         "ja": {
@@ -21424,13 +21838,13 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Четыре пальца вниз · Окна приложений"
+            "value": "Четыре пальца вниз · Окна приложения"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quatre doigts vers le bas · Exposé des apps"
+            "value": "Quatre doigts vers le bas · Fenêtres de l’application"
           }
         }
       }
@@ -38248,6 +38662,52 @@
         "ja": {"stringUnit": {"state": "translated", "value": "同じ範囲に複数のマウスの組み合わせがあるため、実行しませんでした"}},
         "ru": {"stringUnit": {"state": "translated", "value": "Здесь действует несколько комбинаций мыши, ни одна не выполнена"}},
         "fr": {"stringUnit": {"state": "translated", "value": "Plusieurs combinaisons souris s’appliquent ici, aucune n’a été exécutée"}}
+      }
+    },
+    "toast.movementConflict": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag to scroll conflicts with right-button drawing or another drag to scroll here, so nothing ran"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一范围内拖动滚动与右键绘制或其他拖动滚动冲突，未执行动作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一範圍內拖曳捲動與右鍵繪製或其他拖曳捲動衝突，未執行動作"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "같은 범위에서 드래그 스크롤이 오른쪽 버튼 그리기나 다른 드래그 스크롤과 충돌해 실행하지 않았습니다"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ範囲で「ドラッグでスクロール」が右ボタン描画や別の「ドラッグでスクロール」と競合するため、実行しませんでした"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Здесь прокрутка перетаскиванием конфликтует с рисунком правой кнопкой или другой такой прокруткой, ничего не выполнено"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "« Déplacer pour défiler » est en conflit ici avec un dessin au bouton droit ou un autre défilement, rien n’a été exécuté"
+          }
+        }
       }
     },
     "editor.mouseButtonModifierSupport": {

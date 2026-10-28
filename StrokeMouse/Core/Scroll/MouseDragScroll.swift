@@ -36,7 +36,9 @@ struct MouseDragScrollSession {
     private(set) var isActive = false
     private var previous: CGPoint
     private var remainder = CGPoint.zero
-    static let deadzone: CGFloat = 4
+    /// Separates a slightly shaky right click (replayed) from a drag. Fixed
+    /// rather than `minStrokeDistance` so scrolling still starts promptly.
+    static let deadzone: CGFloat = 10
 
     init(origin: CGPoint, configuration: MouseDragScrollConfiguration) {
         self.origin = origin

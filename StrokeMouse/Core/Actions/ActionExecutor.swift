@@ -8,6 +8,7 @@ enum ActionExecutionError: LocalizedError {
     case invalidURL(String)
     case openFailed
     case targetRequiredForTest
+    case systemShortcutDisabled(SystemCommand)
 
     var errorDescription: String? {
         switch self {
@@ -19,6 +20,12 @@ enum ActionExecutionError: LocalizedError {
             return L10n.string("action.openFailed")
         case .targetRequiredForTest:
             return L10n.string("editor.testActionNeedsTarget")
+        case .systemShortcutDisabled(let command):
+            return String(
+                format: L10n.string("system.error.shortcutDisabled"),
+                locale: L10n.locale,
+                L10n.string(command.displayKey)
+            )
         }
     }
 }
@@ -69,14 +76,17 @@ final class ActionExecutor {
     private let targetPlatform: any GestureTargetActionPlatform
     private let applicationSwitcher: any ApplicationSwitching
     private let globalChordPoster: (ShortcutChord) throws -> Void
+    private let systemShortcutStatus: (SystemCommand) -> SystemShortcutStatus
 
     init(
         targetPlatform: (any GestureTargetActionPlatform)? = nil,
         applicationSwitcher: (any ApplicationSwitching)? = nil,
-        globalChordPoster: ((ShortcutChord) throws -> Void)? = nil
+        globalChordPoster: ((ShortcutChord) throws -> Void)? = nil,
+        systemShortcutStatus: ((SystemCommand) -> SystemShortcutStatus)? = nil
     ) {
         self.targetPlatform = targetPlatform ?? WindowActions()
         self.applicationSwitcher = applicationSwitcher ?? MacApplicationSwitcher()
+        self.systemShortcutStatus = systemShortcutStatus ?? { $0.currentSystemShortcut() }
         self.globalChordPoster = globalChordPoster ?? { chord in
             try ShortcutAction.post(
                 keyCode: chord.legacyKeyCode,
@@ -156,6 +166,10 @@ final class ActionExecutor {
         case .applicationSwitch(let command):
             try applicationSwitcher.perform(command)
         case .system(let system):
+            // Posting the default chord while macOS has it switched off does nothing.
+            if system.shortcutOverride == nil, systemShortcutStatus(system.command) == .disabled {
+                throw ActionExecutionError.systemShortcutDisabled(system.command)
+            }
             let chord = system.effectiveChord
             if system.command.requiresCapturedTarget {
                 try await targetPlatform.performShortcut(

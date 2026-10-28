@@ -1422,7 +1422,7 @@ final class GestureRuntime {
             currentPath = []
             stopSampling()
             recordOutcome(.conflict(ids), source: session.source)
-            if session.mode.showsToast { GestureToastController.shared.showCombinationConflict() }
+            if session.mode.showsToast { GestureToastController.shared.showMovementConflict() }
             return
         }
         if var drag = session.dragScroll {

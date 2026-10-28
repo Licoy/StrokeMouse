@@ -207,7 +207,8 @@ final class ActionExecutorTests: XCTestCase {
     func testGlobalSystemCommandsIgnoreUnavailableAndCapturedTargets() async throws {
         let platform = RecordingGestureTargetActionPlatform()
         var chords: [ShortcutChord] = []
-        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { chords.append($0) })
+        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { chords.append($0) },
+                                      systemShortcutStatus: { _ in .unknown })
         for command in [SystemCommand.missionControl, .spaceLeft, .spaceRight] {
             try await executor.execute(.system(SystemAction(command: command)),
                                        target: .unavailable(.windowUnavailable))
@@ -223,7 +224,8 @@ final class ActionExecutorTests: XCTestCase {
     func testApplicationWindowsUsesExactFrozenTargetAndOverride() async throws {
         let platform = RecordingGestureTargetActionPlatform()
         var postedGlobally = false
-        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { _ in postedGlobally = true })
+        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { _ in postedGlobally = true },
+                                      systemShortcutStatus: { _ in .disabled })
         let target = makeTargetContext()
         let chord = ShortcutChord(modifiers: [.function], keyCode: nil)
         let action = GestureAction.system(SystemAction(command: .applicationWindows, shortcutOverride: chord))
@@ -242,16 +244,71 @@ final class ActionExecutorTests: XCTestCase {
     func testGlobalSystemOverrideIsTestableAndFailuresPropagate() async throws {
         let chord = ShortcutChord(modifiers: [.function, .control], keyCode: 123)
         var received: ShortcutChord?
-        let executor = ActionExecutor(globalChordPoster: { received = $0 })
+        let executor = ActionExecutor(globalChordPoster: { received = $0 },
+                                      systemShortcutStatus: { _ in .disabled })
         try await executor.executeForTesting(.system(SystemAction(command: .spaceLeft, shortcutOverride: chord)))
         XCTAssertEqual(received, chord)
-        let failing = ActionExecutor(globalChordPoster: { _ in throw ShortcutActionError.eventSourceUnavailable })
+        let failing = ActionExecutor(globalChordPoster: { _ in throw ShortcutActionError.eventSourceUnavailable },
+                                     systemShortcutStatus: { _ in .unknown })
         do {
             try await failing.executeForTesting(.system(SystemAction(command: .missionControl)))
             XCTFail("Expected event posting failure")
         } catch ShortcutActionError.eventSourceUnavailable {
         }
         XCTAssertNotNil(failing.lastError)
+    }
+
+    func testDisabledSystemShortcutFailsVisiblyUnlessOverridden() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        var chords: [ShortcutChord] = []
+        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { chords.append($0) },
+                                      systemShortcutStatus: { $0 == .applicationWindows ? .enabled($0.defaultChord) : .disabled })
+        for command in SystemCommand.allCases where command != .applicationWindows {
+            do {
+                try await executor.execute(.system(SystemAction(command: command)),
+                                           target: .resolved(makeTargetContext()))
+                XCTFail("Expected \(command) to report its disabled system shortcut")
+            } catch ActionExecutionError.systemShortcutDisabled(let failed) {
+                XCTAssertEqual(failed, command)
+            }
+            XCTAssertNotNil(executor.lastError)
+        }
+        XCTAssertTrue(chords.isEmpty)
+        let custom = ShortcutChord(modifiers: [.option], keyCode: 126)
+        try await executor.execute(.system(SystemAction(command: .missionControl, shortcutOverride: custom)),
+                                   target: .unavailable(.windowUnavailable))
+        try await executor.execute(.system(SystemAction(command: .applicationWindows)),
+                                   target: .resolved(makeTargetContext()))
+        XCTAssertEqual(chords, [custom])
+        XCTAssertEqual(platform.shortcuts.count, 1)
+    }
+
+    func testSymbolicHotKeyParsingAndComparison() {
+        func entry(enabled: Bool = true, key: Int, mask: Int) -> [String: Any] {
+            ["enabled": NSNumber(value: enabled),
+             "value": ["parameters": [NSNumber(value: 65535), NSNumber(value: key), NSNumber(value: mask)],
+                       "type": "standard"]]
+        }
+        let up = UInt16(126)
+        // macOS stores Control + Up with the arrow's intrinsic Fn bit.
+        XCTAssertEqual(SystemCommand.shortcutStatus(from: entry(key: 126, mask: 0x840000)),
+                       .enabled(ShortcutChord(modifiers: [.control], keyCode: up)))
+        XCTAssertEqual(SystemCommand.shortcutStatus(from: entry(key: 0, mask: 0x900000)),
+                       .enabled(ShortcutChord(modifiers: [.function, .command], keyCode: 0)))
+        XCTAssertEqual(SystemCommand.shortcutStatus(from: entry(enabled: false, key: 126, mask: 0x840000)), .disabled)
+        XCTAssertEqual(SystemCommand.shortcutStatus(from: entry(key: 65535, mask: 0)), .disabled)
+        XCTAssertEqual(SystemCommand.shortcutStatus(from: nil), .unknown)
+        XCTAssertEqual(SystemCommand.shortcutStatus(from: ["enabled": NSNumber(value: true)]), .unknown)
+        XCTAssertEqual(SystemCommand.missionControl.symbolicHotKeyID, 32)
+        XCTAssertEqual(SystemCommand.applicationWindows.symbolicHotKeyID, 33)
+        XCTAssertEqual(SystemCommand.spaceLeft.symbolicHotKeyID, 79)
+        XCTAssertEqual(SystemCommand.spaceRight.symbolicHotKeyID, 81)
+
+        let recorded = ShortcutChord(modifiers: [.function, .shift, .control], keyCode: up)
+        XCTAssertTrue(SystemCommand.chordsMatch(recorded, ShortcutChord(modifiers: [.control, .shift], keyCode: up)))
+        XCTAssertFalse(SystemCommand.chordsMatch(recorded, ShortcutChord(modifiers: [.control], keyCode: up)))
+        XCTAssertFalse(SystemCommand.chordsMatch(ShortcutChord(modifiers: [.function, .command], keyCode: 0),
+                                                 ShortcutChord(modifiers: [.command], keyCode: 0)))
     }
 
     private func makeTargetContext(withWindow: Bool = true) -> GestureTargetContext {

@@ -138,7 +138,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ## 权限与安全注意
 
 - `MouseEventTap` 依赖 `AXIsProcessTrusted()`；未授权时不得假装在监听。
-- `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎；唯一例外是冻结目标存在该按键的鼠标按键映射，此时短按执行映射且不回放。未监控按钮和没有配对 down 的事件始终放行。左键默认放行：仅当已启用的鼠标绘制 profile 存在 `secondaryAction`，或存在「按住右键 + 左键」鼠标组合时，left down/up 才进入同一 tap 掩码（在无会话时重装 tap 切换）；且只有本次会话的候选含第二动作或该组合时，触发键按住期间的 left down 与其配对 up 才被成对吞掉，组合优先于第二动作。触发键之前已按下的左键保留其 up；新的 left down 清除遗留的待吞 up。leftMouseDragged 同样不得进入掩码。
+- `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎；例外一是冻结目标存在该按键的鼠标按键映射，此时短按执行映射且不回放；例外二是右键移动归拖动滚动所有时，位移达到固定 10pt 的 `MouseDragScrollSession.deadzone` 即开始滚动且不回放，未达到时仍回放。未监控按钮和没有配对 down 的事件始终放行。左键默认放行：仅当已启用的鼠标绘制 profile 存在 `secondaryAction`，或存在「按住右键 + 左键」鼠标组合时，left down/up 才进入同一 tap 掩码（在无会话时重装 tap 切换）；且只有本次会话的候选含第二动作或该组合时，触发键按住期间的 left down 与其配对 up 才被成对吞掉，组合优先于第二动作。触发键之前已按下的左键保留其 up；新的 left down 清除遗留的待吞 up。leftMouseDragged 同样不得进入掩码。
 - `MouseEventTap` 仅在存在已启用的滚轮鼠标组合时把 `scrollWheel` 加入掩码（无会话时重装 tap 切换）。只有无 `eventSourceUserData` 标记、scroll / momentum phase 均为 0 的设备滚轮参与判断：按住右键时只吞会话候选含该方向组合的刻度；边缘滚轮不占用 session gate，只用 `GestureSessionGate.transientAdmission` 冻结配置，按未过滤作用域的配置先吞下，再在独立队列解析目标。被吞的刻度要么执行组合，要么回放，不得丢失；回放必须按原增量新建事件并带 `combinationReplayMarker`，不得重投原事件副本（其 `location` 已过期）。右键按下在 AX 目标查询前先做纯位置过滤，只有边缘组合可用的按下在其他位置直接放行。
 - **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
 - `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
@@ -167,8 +167,8 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 8. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零；单个边缘滚轮刻度不是会话，不得占用 gate
 9. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
 
-10. 拖动滚动保持 `mouseCombination.dragScroll` 输入，沿用右键会话与指针采样，不增加 filtering tap 移动掩码；固定从指针下内容开始，不激活冻结窗口，松手 / 取消 / 暂停立即停止，无惯性或光标锁定，合成滚轮带标记且不进入滚动增强。移动模式先按最具体作用域选择，同级拖动滚动与右键绘制或多条拖动滚动冲突时零执行；编辑器使用草稿作用域检查确定冲突，不自动停用用户绘制
-11. 系统动作使用独立 `system` 语义与可选快捷键覆盖，应用程序窗口沿冻结目标，其余系统导航保持当前系统上下文，普通快捷键仍激活冻结目标；主动作或第二动作包含最大化窗口的配置 / 导出使用 v5，否则包含系统动作或拖动滚动时使用 v4，只有 Fn 快捷键时 v3，其他配置 v2
+10. 拖动滚动保持 `mouseCombination.dragScroll` 输入，沿用右键会话与指针采样，不增加 filtering tap 移动掩码；固定从指针下内容开始，不激活冻结窗口，松手 / 取消 / 暂停立即停止，无惯性或光标锁定，合成滚轮带标记且不进入滚动增强。移动模式先按最具体作用域选择，同级拖动滚动与右键绘制或多条拖动滚动冲突时零执行，并使用独立的移动冲突提示；确定冲突（相同全局、应用列表相交、同一应用组）由 `MouseMovementConflict` 在所有 UI 入口拦截：编辑器按草稿作用域检查，列表启用 / 批量启用、移动、删除应用组并转为全局时拒绝并列出冲突手势，复制出的冲突副本与导入的冲突手势以停用状态加入，已存在的冲突在列表中显示警告；不自动停用或删除已有绘制
+11. 系统动作使用独立 `system` 语义与可选快捷键覆盖，应用程序窗口沿冻结目标，其余系统导航保持当前系统上下文，普通快捷键仍激活冻结目标；编辑器读取 `com.apple.symbolichotkeys` 提示系统快捷键已关闭或与此处不一致，未设置覆盖且系统条目已关闭时执行报错，不静默失败；主动作或第二动作包含最大化窗口的配置 / 导出使用 v5，否则包含系统动作或拖动滚动时使用 v4，只有 Fn 快捷键时 v3，其他配置 v2
 
 调参常量见 `Constants.swift`。
 

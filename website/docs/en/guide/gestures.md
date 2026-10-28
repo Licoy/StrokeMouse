@@ -59,6 +59,7 @@ Choose **Add → Mouse Combinations** to create one. No stroke recording is need
 |--------|------|------|
 | Hold right button | Scroll up / down | Once per wheel tick, so it can repeat |
 | Hold right button | Left click | The first left click of each right-button hold |
+| Hold right button | Drag to scroll | Scrolls horizontally / vertically once the pointer moves at least 10 points; stops on release |
 | Screen edge (top / bottom / left / right) | Right click | The right button is pressed and released at the chosen edge without starting a stroke |
 | Screen edge (top / bottom / left / right) | Scroll up / down | No right button needed; at most once every 100 ms |
 
@@ -69,12 +70,16 @@ Choose **Add → Mouse Combinations** to create one. No stroke recording is need
 - An edge is the 3 points inside each display’s bounds, including the seam between adjacent displays; a corner that matches two configurations in the same tier is a conflict
 - Scopes and conflicts work like button mappings: only the most specific tier counts, and several entries there are a conflict, so nothing runs and a notice appears; an app policy can turn off global “Mouse Combinations” on its own
 
+**Drag to scroll**: choose **Drag to scroll** in the **Hold right button** mode, then adjust **Sensitivity** (0.25–4×, in 0.05 steps) and **Reverse direction** if needed; by default content follows the pointer. Scrolling starts only after the pointer moves at least a fixed 10 points from where the right button was pressed, regardless of the minimum stroke distance; releasing earlier replays a normal right click, so the context menu still works, and once scrolling starts, release neither replays a click nor recognizes a stroke. It scrolls the content under the pointer when scrolling begins without activating any window, while app scope still uses the target frozen at right-button down. Release stops immediately, with no inertia, pointer lock, or recentering, so screen edges limit travel. Drag to scroll has no ordinary or secondary action; save it and test by holding right and moving outside the editor.
+
+Within the most specific matching scope tier (app > app group > global), a drag-scroll gesture cannot coexist with right-button drawing or another drag-scroll gesture; at runtime such a conflict runs nothing and shows a dedicated notice. Definite conflicts (global vs. global, intersecting app lists, or the same app group) are blocked everywhere: saving in the editor, enabling with the checkbox or in a batch, **Move To**, and deleting an app group while keeping its gestures as global are refused with a message naming the conflicting gestures; **Duplicate** creates the copy disabled if it would conflict; importing brings conflicting gestures in disabled and lists them; and enabled gestures that already conflict (for example after restoring a backup) show a warning icon in the gesture list. Existing gestures are never deleted or disabled automatically; dynamic overlaps between different app groups are still resolved at runtime.
+
 ## Short-click replay
 
 After the engine captures trigger-down:
 
-- Distance **below** `minStrokeDistance`: marked synthetic down/up **replays** a normal click (menus work); if the target app maps that button, the mapping runs instead
-- Once a real stroke starts: the down/drag/up group is **gesture-only**, not delivered to the front app
+- Distance **below** `minStrokeDistance`: marked synthetic down/up **replays** a normal click (menus work); if the target app maps that button, the mapping runs instead; where right-button **Drag to scroll** applies, the threshold is a fixed 10 points instead
+- Once a real stroke or drag scrolling starts: the down/drag/up group is **gesture-only**, not delivered to the front app
 
 ## Free-path matching
 
