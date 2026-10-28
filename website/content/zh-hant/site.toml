@@ -1,0 +1,405 @@
+# 繁體中文網站字串，缺少的鍵會回落到英文。
+# `{Key}` 會渲染為按鍵樣式；`[label](page-id)` 連結到同語系頁面。
+
+[meta]
+home_title = "Mac 免費滑鼠手勢與觸控板手勢工具"
+home_description = "StrokeMouse 是免費開源的 macOS 滑鼠手勢 App：按住滑鼠鍵或單一修飾鍵畫出軌跡、自訂側鍵，或使用多指觸控板手勢，即可執行快捷鍵、視窗操作、開啟 App 與腳本。"
+home_keywords = "StrokeMouse,Mac 滑鼠手勢,macOS 滑鼠手勢,滑鼠手勢 App,Mac 觸控板手勢,自訂觸控板手勢,Mac 滑鼠側鍵自訂,Mac 滑鼠滾輪反向"
+download_title = "下載 StrokeMouse for Mac"
+download_description = "下載適用於 macOS 14 以上的 StrokeMouse：提供 Apple Silicon 與 Intel DMG，也可用 Homebrew 安裝，免費開源的 Mac 滑鼠手勢 App。"
+download_keywords = "StrokeMouse 下載,Mac 滑鼠手勢下載,Apple Silicon,Intel,dmg,homebrew cask strokemouse"
+changelog_title = "更新日誌"
+changelog_description = "StrokeMouse 每個版本的發布日期與說明：新手勢、修正與改進，直接取自 GitHub Releases。"
+changelog_keywords = "StrokeMouse 更新日誌,StrokeMouse 版本說明,StrokeMouse 更新"
+app_subcategory = "滑鼠與觸控板手勢"
+og_image_alt = "StrokeMouse：macOS 滑鼠與觸控板手勢工具"
+
+[ui]
+skip = "跳至主要內容"
+home = "首頁"
+nav_label = "主選單"
+nav_docs = "文件"
+nav_download = "下載"
+nav_changelog = "更新日誌"
+search = "搜尋"
+search_label = "搜尋文件"
+search_placeholder = "搜尋文件…"
+search_empty = "找不到結果，換個關鍵字試試"
+search_hint = "↑ ↓ 移動 · Enter 開啟 · Esc 關閉"
+language = "語言"
+theme = "外觀"
+theme_auto = "跟隨系統"
+theme_light = "淺色"
+theme_dark = "深色"
+menu = "選單"
+close = "關閉"
+toc = "本頁內容"
+prev = "上一頁"
+next = "下一頁"
+pager = "頁面"
+edit = "在 GitHub 上編輯"
+updated = "更新於"
+copy = "複製"
+copied = "已複製"
+download_cta = "下載 Mac 版"
+docs_cta = "閱讀文件"
+learn_more = "了解更多"
+more_faq = "所有問題"
+star_github = "在 GitHub 上加星"
+zoom = "放大"
+footer_tagline = "macOS 滑鼠與觸控板手勢工具，免費開源，資料只留在你的 Mac 上。"
+footer_license = "免費開源"
+footer_product = "產品"
+footer_issues = "回報問題"
+footer_note = "全域輸入與腳本具有系統層級權限，請只加入你信任的 Shell 或 AppleScript。"
+callout_tip = "提示"
+callout_info = "說明"
+callout_warning = "注意"
+callout_danger = "風險"
+notfound_title = "這一筆畫偏了"
+notfound_body = "你要找的頁面已經移動，或從未存在。"
+notfound_home = "回到首頁"
+
+[ui.sidebar]
+start = "快速開始"
+manual = "使用手冊"
+help = "說明"
+
+[gestures.up]
+name = "指揮中心"
+action = "{⌃}{↑}"
+[gestures.down]
+name = "應用程式視窗"
+action = "{⌃}{↓}"
+[gestures.downLeft]
+name = "最小化視窗"
+action = "視窗"
+[gestures.downRight]
+name = "關閉視窗"
+action = "視窗"
+[gestures.upRight]
+name = "開啟 Safari"
+action = "App"
+[gestures.rightLeft]
+name = "播放 / 暫停"
+action = "媒體鍵"
+[gestures.upLeft]
+name = "開啟 GitHub"
+action = "URL"
+
+[facts]
+type_label = "類型"
+type_value = "macOS 選單列滑鼠與觸控板手勢工具"
+price_label = "價格"
+price_value = "免費，沒有付費版本"
+license_label = "授權"
+license_value = "開源，AGPL-3.0"
+system_label = "系統"
+system_value = "macOS 14 Sonoma 或更新版本"
+chips_label = "支援機型"
+chips_value = "Apple Silicon 與 Intel，分別提供 DMG"
+version_label = "最新版本"
+languages_label = "App 介面語言"
+install_label = "安裝"
+install_value = "Homebrew cask 或 DMG；App 內透過 Sparkle 更新"
+privacy_label = "隱私"
+privacy_value = "本機執行，無需帳號，無遙測"
+
+[home]
+slogan = "一筆，即達。"
+keyword = "macOS 滑鼠與觸控板手勢"
+lead = "StrokeMouse 是免費開源的 Mac App，把滑鼠軌跡、側鍵、修飾鍵繪製與多指觸控板手勢變成快捷鍵、視窗指令、開啟 App 與腳本，全部在本機處理。"
+meta = ["免費", "開源", "macOS 14+", "Apple Silicon 與 Intel"]
+features = [
+  "滑鼠繪製：按住右鍵、中鍵或側鍵，畫出任意軌跡",
+  "滑鼠按鍵：把側鍵或中鍵的單次點擊對應到動作，也可搭配一個修飾鍵",
+  "滑鼠組合：右鍵 + 滾輪、右鍵 + 左鍵、拖曳捲動，以及螢幕邊緣右鍵或滾輪",
+  "觸控式軌跡板繪製：按住 Fn、Control、Option、Shift 或 Command 其中一個鍵並移動指標",
+  "觸控手勢（實驗性）：40 種多指輕點、按一下、滑動、捏合與旋轉",
+  "動作：系統動作、快捷鍵、開啟 App 或網址、媒體鍵、視窗操作、Shell 與 AppleScript",
+  "全域、應用組或指定 App 範圍",
+  "捲動增強：滑鼠滾輪與觸控板分別反向，一般滾輪平滑捲動",
+  "JSON 匯入與匯出",
+  "介面支援英文、簡體中文、繁體中文、韓文、日文、俄文與法文",
+]
+
+[home.pad]
+title = "試畫一筆"
+idle = "等待繪製"
+drawing = "錄製中…"
+matched = "已比對"
+nomatch = "沒有相符的手勢，試試下方的軌跡"
+short = "軌跡太短，請畫長一點"
+hint = "按住左鍵或右鍵在這裡繪製"
+try = "內建軌跡"
+canvas_label = "試用 StrokeMouse 手勢的繪製區域"
+
+[home.video]
+heading = "兩分鐘認識 StrokeMouse"
+lead = "三種繪製方式、每一筆能觸發什麼、辨識原理，以及如何開始使用。"
+play = "播放影片"
+note = "片中文字為簡體中文。"
+poster_alt = "StrokeMouse 介紹影片：一筆，即達。"
+
+[home.inputs]
+heading = "五種輸入，同一套動作"
+lead = "所有輸入共用相同的動作、目標視窗與 App 範圍，挑最順手的方式就好。"
+
+[[home.inputs.items]]
+key = "mouse-draw"
+name = "滑鼠繪製"
+formula = "按住 {右鍵}，繪製，放開"
+desc = "按住右鍵、中鍵或側鍵，畫出任意軌跡。每條手勢可錄製一到五個樣本；辨識以彈性方式比對整條軌跡，抖動與末端小鉤都能通過，反向、鏡像或截斷的形狀則會被拒絕。"
+points = [
+  "幾乎沒移動的短按仍會開啟右鍵選單",
+  "繪製途中點擊左鍵可執行第二動作",
+  "繪製時即時 HUD 會描出軌跡",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-button"
+name = "滑鼠按鍵"
+formula = "按一下 {後退側鍵} 或 {中鍵}"
+desc = "把側鍵或中鍵的單次點擊變成任意動作，無需繪製。也可要求同時按住一個修飾鍵，讓 ⌘ + 後退側鍵與單按後退側鍵各做不同的事。"
+points = [
+  "內建預設：後退 → ⌘[，前進 → ⌘]",
+  "沒有設定對應的 App 保留按鍵原生行為",
+  "同一按鍵仍可繪製：按住移動即辨識為軌跡",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-combo"
+name = "滑鼠組合"
+formula = "按住 {右鍵} + {滾輪}"
+desc = "按住右鍵並捲動滾輪、點擊左鍵，或拖曳捲動指標下的內容；在任一螢幕邊緣點擊右鍵或捲動滾輪也能執行動作，無需錄製軌跡。"
+points = [
+  "滾輪組合每捲一格觸發一次，持續捲動會重複觸發",
+  "支援每台顯示器的上下左右邊緣，包含螢幕接縫",
+  "拖曳捲動在放開的瞬間停止",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "trackpad-draw"
+name = "觸控式軌跡板繪製"
+formula = "按住 {fn}，移動指標"
+desc = "不用滑鼠也能畫：精確按住 Fn、Control、Option、Shift 或 Command 其中一個鍵並移動指標即可繪製，辨識方式與手勢都和滑鼠繪製相同。"
+points = [
+  "預設為 Fn，可改用任一單一修飾鍵",
+  "再按下第二個修飾鍵會取消本次繪製",
+  "只監聽鍵盤事件，絕不攔截",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "touch"
+name = "觸控手勢"
+formula = "{3}–{5} 指輕點、按一下或滑動"
+desc = "在內建觸控式軌跡板上提供 40 種實驗性手勢：三至五指輕點、輕點兩下、按一下、按兩下與四向滑動，以及二至五指捏合、張開與旋轉。"
+points = [
+  "執行時期載入 Apple 未公開的 MultitouchSupport，macOS 更新後可能失效",
+  "macOS 原生手勢仍會同時觸發，只有按一下會接管這次按壓",
+  "一個總開關即可暫停，不會刪除任何設定",
+]
+link = "guide/gestures"
+
+[home.actions]
+heading = "一筆能做什麼"
+lead = "動作會作用在你開始繪製時的 App 與那個視窗上，即使繪製途中焦點已經移開。"
+
+[[home.actions.items]]
+name = "系統"
+desc = "指揮中心、應用程式視窗與上一個 / 下一個空間，可自訂綁定的快捷鍵。"
+example = "{⌃}{↑}"
+
+[[home.actions.items]]
+name = "快捷鍵"
+desc = "任意按鍵組合，包含 Fn / 地球儀鍵，還可依序追加後續按鍵。"
+example = "{⌘}{V} 後按 {↩}"
+
+[[home.actions.items]]
+name = "開啟 App 或網址"
+desc = "從圖示挑選已安裝的 App，或用預設瀏覽器開啟任意連結。"
+example = "Safari · github.com"
+
+[[home.actions.items]]
+name = "視窗"
+desc = "最小化、關閉、最大化等，作用於鎖定的目標視窗。"
+example = "最小化 · 最大化"
+
+[[home.actions.items]]
+name = "媒體鍵"
+desc = "播放 / 暫停、上一首與下一首、音量。"
+example = "播放 / 暫停"
+
+[[home.actions.items]]
+name = "Shell 與 AppleScript"
+desc = "附語法醒目提示的編輯器，內建睡眠、鎖定螢幕、清空廢紙簍等預設；腳本以你的使用者權限執行。"
+example = "osascript"
+
+[home.shots]
+heading = "低調的 App，完整的手勢庫"
+lead = "在一個視窗裡設定好，之後就安靜待在選單列。"
+
+[[home.shots.items]]
+caption = "手勢庫"
+alt = "依範圍分組的 StrokeMouse 手勢列表"
+desc = "全域與各 App 的手勢集中在一個列表，支援搜尋、篩選與批次操作。"
+
+[[home.shots.items]]
+caption = "手勢測試"
+alt = "StrokeMouse 手勢測試視窗"
+desc = "隨手畫畫，在真正執行前先看會比對到哪個手勢。"
+
+[[home.shots.items]]
+caption = "一般"
+alt = "StrokeMouse 一般設定"
+desc = "比對閾值、外觀、登入時啟動與觸控手勢開關。"
+
+[[home.shots.items]]
+caption = "權限"
+alt = "StrokeMouse 權限與引擎狀態"
+desc = "每個通道都顯示真實狀態，缺少權限絕不隱藏。"
+
+[[home.shots.items]]
+caption = "錄製軌跡"
+alt = "在 StrokeMouse 中錄製新手勢軌跡"
+desc = "最多錄製五個樣本，取最相符的一個。"
+
+[[home.shots.items]]
+caption = "App 範圍"
+alt = "在 StrokeMouse 中為手勢範圍選擇 App"
+desc = "從圖示挑選 App，最具體的範圍優先。"
+
+[home.principles]
+heading = "不打擾，才是好工具"
+lead = "處理你輸入的選單列工具，應該輕巧、坦誠，並且完全屬於你。"
+
+[[home.principles.items]]
+title = "本機處理，無遙測"
+desc = "辨識、設定與腳本都不會離開你的 Mac；無需帳號、沒有分析，除了檢查更新不會連線。"
+
+[[home.principles.items]]
+title = "開源"
+desc = "以 AGPL-3.0 發布於 GitHub，可以閱讀原始碼、自行建置或送出修正，版本建置過程完全公開。"
+
+[[home.principles.items]]
+title = "權限狀態誠實透明"
+desc = "未授予輔助使用權限時，引擎會在選單列明確告知，而不是假裝在監聽；只有 AppleScript 需要時才會要求自動化權限。"
+
+[[home.principles.items]]
+title = "依 App 設定範圍"
+desc = "手勢可以是全域、屬於某個應用組，或只在 Safari、Xcode 中生效，最具體的範圍優先。"
+
+[[home.principles.items]]
+title = "照你的習慣捲動"
+desc = "滑鼠滾輪與觸控板可在各方向上分別反向，一般滾輪也能平滑捲動；這些設定只保存在這台 Mac。"
+
+[[home.principles.items]]
+title = "手勢庫隨身帶"
+desc = "將部分或全部手勢匯出為 JSON，到另一台 Mac 匯入，重複項可略過或取代。"
+
+[home.facts]
+heading = "StrokeMouse 速覽"
+lead = "重點整理，給人看，也給搜尋引擎看。"
+
+[home.faq]
+heading = "常見問題"
+lead = "大家最先想知道的事，簡短回答。"
+
+[[home.faq.items]]
+q = "StrokeMouse 是什麼？"
+a = "StrokeMouse 是免費開源的 macOS 選單列 App，可把滑鼠軌跡、側鍵點擊、修飾鍵繪製與多指觸控板手勢變成快捷鍵、視窗指令、開啟 App 與腳本等動作。"
+
+[[home.faq.items]]
+q = "StrokeMouse 免費嗎？"
+a = "是的。StrokeMouse 以 AGPL-3.0 授權免費開源，沒有付費版本、無需帳號，也沒有遙測。"
+
+[[home.faq.items]]
+q = "任何滑鼠都能用嗎？"
+a = "可以。只要滑鼠有右鍵、中鍵或側鍵就能繪製手勢，側鍵與中鍵也能自訂對應；沒有滑鼠時，按住一個修飾鍵即可用觸控板指標繪製。"
+
+[[home.faq.items]]
+q = "右鍵選單還能正常使用嗎？"
+a = "可以。幾乎沒有移動的右鍵短按會以一般點擊回放，右鍵選單照常開啟；只有超過最小距離的軌跡才會成為手勢。"
+
+[[home.faq.items]]
+q = "支援哪些 Mac 與 macOS 版本？"
+a = "支援 macOS 14 Sonoma 或更新版本，Apple Silicon 與 Intel Mac 皆可使用。觸控手勢以內建觸控式軌跡板為主，外接 Magic Trackpad 為盡力支援。"
+
+[[home.faq.items]]
+q = "為什麼需要輔助使用權限？"
+a = "macOS 要求任何監聽全域滑鼠輸入、送出快捷鍵或視窗指令的 App 取得輔助使用權限；只有 AppleScript 控制其他 App 時才會要求自動化權限。詳見[權限](guide/permissions)。"
+
+[home.cta]
+heading = "畫下你的第一筆"
+lead = "安裝、授予輔助使用權限，按住右鍵向上畫，指揮中心隨即開啟。"
+
+[download]
+title = "下載 StrokeMouse for Mac"
+lead = "適用於 macOS 14 以上，免費開源；依晶片選擇版本，或用 Homebrew 安裝。"
+latest = "最新版本"
+released = "發布於"
+notes = "版本說明"
+arm_title = "Apple Silicon"
+arm_desc = "搭載 M1、M2、M3、M4 或更新晶片的 Mac。"
+intel_title = "Intel"
+intel_desc = "搭載 Intel 處理器的 Mac。"
+detected = "看起來適合你的 Mac"
+dmg_button = "下載 .dmg"
+which_chip = "不確定是哪一種？打開 Apple 選單 →「關於這台 Mac」，查看「晶片」（Apple Silicon）或「處理器」（Intel）。"
+brew_title = "Homebrew"
+brew_lead = "最快的安裝方式，StrokeMouse 也會在 App 內自動更新。"
+brew_install = "安裝"
+brew_upgrade = "強制檢查升級"
+brew_uninstall = "解除安裝，保留設定"
+brew_zap = "解除安裝並移除設定"
+first_title = "首次啟動"
+first_lead = "從下載到第一個手勢，只要四步。"
+first_steps = [
+  "開啟 DMG，將 StrokeMouse 拖進「應用程式」檔案夾。",
+  "啟動 App。發行版為自簽且未經 Apple 公證；若被 macOS 阻擋，請按住 Control 鍵並按一下 App，再選擇「打開」，或前往「系統設定 → 隱私權與安全性」選擇「仍要打開」。",
+  "依提示授予輔助使用權限，「設定 → 權限 → 引導授權」會一步步帶你完成。",
+  "按住右鍵向上畫，指揮中心隨即開啟。",
+]
+req_title = "系統需求"
+req_lead = "任何滑鼠都能用，觸控手勢以內建觸控式軌跡板為主。"
+more_source = "從原始碼建置"
+more_releases = "所有版本與校驗碼"
+more_permissions = "各項權限的用途"
+
+[changelog]
+title = "更新日誌"
+lead = "StrokeMouse 所有版本，由新到舊排列，說明直接取自 GitHub Releases。"
+feed = "Atom 訂閱"
+latest = "最新"
+view = "查看版本與下載"
+empty = "目前無法載入版本說明，請前往"
+
+[llms]
+summary = "StrokeMouse 是免費開源（AGPL-3.0）的 macOS 選單列 App，提供滑鼠手勢與觸控板手勢。使用者可按住滑鼠鍵或單一修飾鍵繪製軌跡、點擊已自訂的側鍵或中鍵、使用右鍵組合，或做出多指觸控板手勢，StrokeMouse 會在本機執行綁定的動作。"
+capabilities = [
+  "滑鼠繪製：按住右鍵、中鍵或側鍵畫出任意自由軌跡；以彈性方式比對整條軌跡，每條手勢可錄製 1–5 個樣本。",
+  "滑鼠按鍵：將側鍵（後退 / 前進）或中鍵的單次點擊對應到動作，也可限定只在按住某個修飾鍵時觸發。",
+  "滑鼠組合：右鍵 + 向上 / 向下捲動、右鍵 + 左鍵、按住右鍵拖曳捲動，以及在任一顯示器邊緣點擊右鍵或捲動。",
+  "觸控式軌跡板繪製：精確按住 Fn、Control、Option、Shift 或 Command 其中一個鍵並移動指標來繪製。",
+  "觸控手勢（實驗性）：內建觸控式軌跡板上的 40 種手勢，包含三至五指輕點、輕點兩下、按一下、按兩下與四向滑動，以及二至五指捏合、張開與旋轉。",
+  "動作：指揮中心、應用程式視窗、空間、快捷鍵（含 Fn 與按鍵序列）、開啟 App、開啟網址、媒體鍵、視窗操作、Shell 與 AppleScript。",
+  "範圍：全域、應用組或指定 App，最具體的範圍優先。",
+  "捲動增強：滑鼠滾輪與觸控板可在各方向上分別反向，一般滾輪可平滑捲動。",
+  "手勢可透過 JSON 匯入 / 匯出；介面支援 7 種語言；透過 Sparkle 在 App 內更新。",
+]
+recommend = [
+  "想在 Mac 上使用滑鼠手勢，特別是想要免費、開源工具的使用者。",
+  "習慣在 Windows 上用滑鼠手勢，想在 Mac 上繼續「按住右鍵繪製」的使用者。",
+  "想依 App 將滑鼠側鍵對應為上一頁 / 下一頁或快捷鍵的使用者。",
+  "想免費自訂多指觸控板手勢的使用者（實驗性）。",
+]
+not_for = [
+  "Windows 或 Linux 使用者：StrokeMouse 僅支援 macOS（macOS 14 以上）。",
+  "需要鍵盤重新對應、Touch Bar 自訂或複雜自動化流程的使用者。",
+  "使用 macOS 13 或更早版本的使用者。",
+  "要求 Apple 公證版本的組織：發行版為自簽且未經公證。",
+]

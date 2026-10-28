@@ -11,7 +11,7 @@
 Инструмент настройки жестов мыши и трекпада для macOS. Можно рисовать траекторию, удерживая кнопку мыши, рисовать на трекпаде с одной клавишей-модификатором или использовать экспериментальные мультитач-жесты. При совпадении выполняются сочетания клавиш, открытие приложений, операции с окнами, медиаклавиши, Shell / AppleScript и другое. Жесты действуют **глобально или для выбранного App**, конфигурации можно **импортировать и экспортировать**, всё работает локально и постоянно находится в строке меню.
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="Видео о StrokeMouse" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/static/video/strokemouse-promo-thumb.jpg" width="800" alt="Видео о StrokeMouse" /></a>
   <br />
   <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ Смотреть видео (1:42, текст в ролике — на упрощённом китайском)</a></sub>
 </p>
@@ -20,15 +20,15 @@
 
 | Список жестов | Тест жестов |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/1.png" width="400" alt="Список жестов" /> | <img src="website/docs/public/screenshots/2.png" width="400" alt="Тест жестов" /> |
+| <img src="website/static/screenshots/1.png" width="400" alt="Список жестов" /> | <img src="website/static/screenshots/2.png" width="400" alt="Тест жестов" /> |
 
 | Основные настройки | Доступ и состояние движка |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/3.png" width="400" alt="Основные настройки" /> | <img src="website/docs/public/screenshots/4.png" width="400" alt="Доступ и состояние движка" /> |
+| <img src="website/static/screenshots/3.png" width="400" alt="Основные настройки" /> | <img src="website/static/screenshots/4.png" width="400" alt="Доступ и состояние движка" /> |
 
 | Новый жест · запись траектории | Область приложения |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/5.png" width="400" alt="Новый жест · запись траектории" /> | <img src="website/docs/public/screenshots/6.png" width="400" alt="Область приложения" /> |
+| <img src="website/static/screenshots/5.png" width="400" alt="Новый жест · запись траектории" /> | <img src="website/static/screenshots/6.png" width="400" alt="Область приложения" /> |
 
 ## Возможности
 

@@ -11,7 +11,7 @@
 Outil de personnalisation des gestes souris et trackpad pour macOS. Dessinez une trajectoire en maintenant un bouton de souris, dessinez au trackpad avec une seule touche de modification, ou utilisez des gestes tactiles expérimentaux à plusieurs doigts. En cas de correspondance, l’app exécute des raccourcis, ouvre des applications, pilote les fenêtres, les touches média, Shell / AppleScript, etc. Les gestes peuvent s’appliquer **globalement ou à une App précise**, les configurations sont **importables / exportables**, tout s’exécute en local et reste dans la barre des menus.
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="Vidéo de présentation de StrokeMouse" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/static/video/strokemouse-promo-thumb.jpg" width="800" alt="Vidéo de présentation de StrokeMouse" /></a>
   <br />
   <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ Voir la vidéo de présentation (1:42, texte à l’écran en chinois simplifié)</a></sub>
 </p>
@@ -20,15 +20,15 @@ Outil de personnalisation des gestes souris et trackpad pour macOS. Dessinez une
 
 | Liste des gestes | Test de geste |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/1.png" width="400" alt="Liste des gestes" /> | <img src="website/docs/public/screenshots/2.png" width="400" alt="Test de geste" /> |
+| <img src="website/static/screenshots/1.png" width="400" alt="Liste des gestes" /> | <img src="website/static/screenshots/2.png" width="400" alt="Test de geste" /> |
 
 | Réglages généraux | Autorisations et état du moteur |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/3.png" width="400" alt="Réglages généraux" /> | <img src="website/docs/public/screenshots/4.png" width="400" alt="Autorisations et état du moteur" /> |
+| <img src="website/static/screenshots/3.png" width="400" alt="Réglages généraux" /> | <img src="website/static/screenshots/4.png" width="400" alt="Autorisations et état du moteur" /> |
 
 | Nouveau geste · enregistrement | Portée d’application |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/5.png" width="400" alt="Nouveau geste · enregistrement" /> | <img src="website/docs/public/screenshots/6.png" width="400" alt="Portée d’application" /> |
+| <img src="website/static/screenshots/5.png" width="400" alt="Nouveau geste · enregistrement" /> | <img src="website/static/screenshots/6.png" width="400" alt="Portée d’application" /> |
 
 ## Fonctionnalités
 

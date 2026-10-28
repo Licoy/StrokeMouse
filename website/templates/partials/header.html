@@ -1,0 +1,63 @@
+<header class="site-header" data-header>
+  <div class="container header-row">
+    <a class="brand" href="{{ loc.path() }}" aria-label="StrokeMouse — {{ t.ui.home }}">
+      {{ icon.logo(26) }}<span class="brand-name">StrokeMouse</span>
+    </a>
+    <nav class="main-nav" aria-label="{{ t.ui.nav_label }}">
+      <a href="{{ loc.path('guide/getting-started') }}"{% if page.section == 'docs' %} aria-current="page"{% endif %}>{{ t.ui.nav_docs }}</a>
+      <a href="{{ loc.path('download') }}"{% if page.section == 'download' %} aria-current="page"{% endif %}>{{ t.ui.nav_download }}</a>
+      <a href="{{ loc.path('changelog') }}"{% if page.section == 'changelog' %} aria-current="page"{% endif %}>{{ t.ui.nav_changelog }}</a>
+    </nav>
+    <div class="header-tools">
+      <button class="search-trigger" type="button" data-search-open aria-label="{{ t.ui.search_label }}">
+        {{ icon.search() }}<span class="search-trigger-text">{{ t.ui.search }}</span><kbd class="search-kbd" data-mod-key>⌘K</kbd>
+      </button>
+      <div class="menu-wrap" data-popover>
+        <button class="tool-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="{{ t.ui.language }}" data-popover-toggle>
+          {{ icon.globe() }}<span class="tool-label">{{ loc.label }}</span>{{ icon.chevron() }}
+        </button>
+        <ul class="popover" role="menu" hidden>
+          {%- for alt in page.locale_links %}
+          <li role="none"><a role="menuitem" href="{{ alt.path }}" hreflang="{{ alt.locale.hreflang }}" lang="{{ alt.locale.html_lang }}" data-locale-link="{{ alt.locale.store }}"{% if alt.locale.code == loc.code %} aria-current="true"{% endif %}>{{ alt.locale.label }}</a></li>
+          {%- endfor %}
+        </ul>
+      </div>
+      <div class="menu-wrap" data-popover>
+        <button class="tool-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="{{ t.ui.theme }}" data-popover-toggle data-theme-button>
+          <span class="theme-icon theme-icon-light">{{ icon.sun() }}</span><span class="theme-icon theme-icon-dark">{{ icon.moon() }}</span>
+        </button>
+        <ul class="popover popover-theme" role="menu" hidden>
+          <li role="none"><button role="menuitemradio" type="button" data-theme-choice="auto">{{ icon.monitor() }}{{ t.ui.theme_auto }}</button></li>
+          <li role="none"><button role="menuitemradio" type="button" data-theme-choice="light">{{ icon.sun() }}{{ t.ui.theme_light }}</button></li>
+          <li role="none"><button role="menuitemradio" type="button" data-theme-choice="dark">{{ icon.moon() }}{{ t.ui.theme_dark }}</button></li>
+        </ul>
+      </div>
+      <a class="tool-btn tool-github" href="{{ github_url }}" target="_blank" rel="noopener" aria-label="GitHub">{{ icon.github() }}</a>
+      <a class="btn btn-primary btn-sm header-cta" href="{{ loc.path('download') }}">{{ icon.download() }}<span>{{ t.ui.nav_download }}</span></a>
+      <button class="tool-btn nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="{{ t.ui.menu }}" data-nav-toggle>
+        <span class="nav-toggle-open">{{ icon.menu() }}</span><span class="nav-toggle-close">{{ icon.close() }}</span>
+      </button>
+    </div>
+  </div>
+  <div class="mobile-nav" id="mobile-nav" hidden data-mobile-nav>
+    <nav class="container" aria-label="{{ t.ui.nav_label }}">
+      <a href="{{ loc.path('guide/getting-started') }}">{{ t.ui.nav_docs }}</a>
+      <a href="{{ loc.path('download') }}">{{ t.ui.nav_download }}</a>
+      <a href="{{ loc.path('changelog') }}">{{ t.ui.nav_changelog }}</a>
+      <a href="{{ github_url }}" target="_blank" rel="noopener">GitHub {{ icon.external() }}</a>
+      <div class="mobile-nav-row">
+        <span class="mobile-nav-label">{{ t.ui.theme }}</span>
+        <div class="segmented" role="radiogroup" aria-label="{{ t.ui.theme }}">
+          <button type="button" role="radio" data-theme-choice="auto">{{ t.ui.theme_auto }}</button>
+          <button type="button" role="radio" data-theme-choice="light">{{ t.ui.theme_light }}</button>
+          <button type="button" role="radio" data-theme-choice="dark">{{ t.ui.theme_dark }}</button>
+        </div>
+      </div>
+      <div class="mobile-nav-row mobile-nav-langs">
+        {%- for alt in page.locale_links %}
+        <a href="{{ alt.path }}" hreflang="{{ alt.locale.hreflang }}" lang="{{ alt.locale.html_lang }}" data-locale-link="{{ alt.locale.store }}"{% if alt.locale.code == loc.code %} aria-current="true"{% endif %}>{{ alt.locale.label }}</a>
+        {%- endfor %}
+      </div>
+    </nav>
+  </div>
+</header>

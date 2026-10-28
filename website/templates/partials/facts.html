@@ -1,0 +1,8 @@
+<dl class="facts">
+  {%- for row in facts %}
+  <div class="facts-row">
+    <dt>{{ row.label }}</dt>
+    <dd>{{ row.value }}</dd>
+  </div>
+  {%- endfor %}
+</dl>

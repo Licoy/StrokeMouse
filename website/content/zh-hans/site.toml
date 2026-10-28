@@ -1,0 +1,405 @@
+# 简体中文站点文案，缺失的键回落到英文。
+# `{Key}` 渲染为按键样式；`[label](page-id)` 链接到同语言页面。
+
+[meta]
+home_title = "免费开源的 Mac 鼠标手势与触控板手势工具"
+home_description = "StrokeMouse 是一款免费开源的 macOS 鼠标手势应用：按住鼠标键或单个修饰键绘制轨迹、重新映射侧键，或使用多指触控板手势，即可执行快捷键、窗口操作、打开应用和运行脚本。"
+home_keywords = "StrokeMouse,Mac 鼠标手势,macOS 鼠标手势软件,Mac 触控板手势,自定义触控板手势,鼠标侧键映射,Mac 鼠标滚轮反向"
+download_title = "下载 StrokeMouse Mac 版"
+download_description = "下载适用于 macOS 14 及更高版本的 StrokeMouse：提供 Apple Silicon 与 Intel 版 DMG，也可通过 Homebrew 安装，免费开源的 Mac 鼠标手势应用。"
+download_keywords = "StrokeMouse 下载,Mac 鼠标手势下载,macOS 鼠标手势软件下载,Apple Silicon,Intel,dmg,homebrew cask strokemouse"
+changelog_title = "更新日志"
+changelog_description = "StrokeMouse 每个版本的发布日期与更新说明：新手势、问题修复与改进，直接同步自 GitHub Releases。"
+changelog_keywords = "StrokeMouse 更新日志,StrokeMouse 版本说明,StrokeMouse 更新"
+app_subcategory = "鼠标与触控板手势"
+og_image_alt = "StrokeMouse — macOS 鼠标与触控板手势工具"
+
+[ui]
+skip = "跳到正文"
+home = "首页"
+nav_label = "主导航"
+nav_docs = "文档"
+nav_download = "下载"
+nav_changelog = "更新日志"
+search = "搜索"
+search_label = "搜索文档"
+search_placeholder = "搜索文档…"
+search_empty = "没有找到结果，换个关键词试试"
+search_hint = "↑ ↓ 选择 · Enter 打开 · Esc 关闭"
+language = "语言"
+theme = "外观"
+theme_auto = "跟随系统"
+theme_light = "浅色"
+theme_dark = "深色"
+menu = "菜单"
+close = "关闭"
+toc = "本页目录"
+prev = "上一页"
+next = "下一页"
+pager = "翻页"
+edit = "在 GitHub 上编辑"
+updated = "更新于"
+copy = "复制"
+copied = "已复制"
+download_cta = "下载 Mac 版"
+docs_cta = "阅读文档"
+learn_more = "了解更多"
+more_faq = "全部问题"
+star_github = "在 GitHub 上 Star"
+zoom = "放大"
+footer_tagline = "macOS 鼠标与触控板手势工具，免费开源，数据只留在你的 Mac 上。"
+footer_license = "免费开源"
+footer_product = "产品"
+footer_issues = "反馈问题"
+footer_note = "全局输入监听与脚本拥有系统级权限，请只添加你信任的 Shell 或 AppleScript。"
+callout_tip = "提示"
+callout_info = "说明"
+callout_warning = "注意"
+callout_danger = "风险"
+notfound_title = "这一笔画偏了"
+notfound_body = "你要找的页面已移动或从未存在。"
+notfound_home = "返回首页"
+
+[ui.sidebar]
+start = "入门"
+manual = "使用手册"
+help = "帮助"
+
+[gestures.up]
+name = "调度中心"
+action = "{⌃}{↑}"
+[gestures.down]
+name = "应用程序窗口"
+action = "{⌃}{↓}"
+[gestures.downLeft]
+name = "最小化窗口"
+action = "窗口操作"
+[gestures.downRight]
+name = "关闭窗口"
+action = "窗口操作"
+[gestures.upRight]
+name = "打开 Safari"
+action = "打开 App"
+[gestures.rightLeft]
+name = "播放 / 暂停"
+action = "媒体键"
+[gestures.upLeft]
+name = "打开 GitHub"
+action = "打开 URL"
+
+[facts]
+type_label = "类型"
+type_value = "macOS 菜单栏鼠标与触控板手势工具"
+price_label = "价格"
+price_value = "免费，没有付费版"
+license_label = "许可证"
+license_value = "开源，AGPL-3.0"
+system_label = "系统"
+system_value = "macOS 14 Sonoma 或更高版本"
+chips_label = "适用机型"
+chips_value = "Apple Silicon 与 Intel，分别提供 DMG"
+version_label = "最新版本"
+languages_label = "应用语言"
+install_label = "安装方式"
+install_value = "Homebrew cask 或 DMG，通过 Sparkle 应用内更新"
+privacy_label = "隐私"
+privacy_value = "本地运行，无需账号，不收集遥测数据"
+
+[home]
+slogan = "一笔，即达。"
+keyword = "macOS 鼠标与触控板手势"
+lead = "StrokeMouse 是一款免费开源的 Mac 应用，把鼠标轨迹、侧键点击、修饰键绘制和多指触控板手势变成快捷键、窗口操作、打开应用和脚本，全部在本地处理。"
+meta = ["免费", "开源", "macOS 14+", "Apple Silicon 与 Intel"]
+features = [
+  "鼠标绘制：按住右键、中键或侧键，画出任意轨迹",
+  "鼠标按键：把侧键或中键单击映射为动作，可要求同时按住一个修饰键",
+  "鼠标组合：右键 + 滚轮、右键 + 左键、拖动滚动，以及屏幕边缘右键或滚轮",
+  "触控板绘制：按住 Fn、Control、Option、Shift、Command 中的一个键并移动指针",
+  "触控手势（实验性）：40 类多指轻点、点按、滑动、捏合与旋转",
+  "动作：系统动作、快捷键、打开 App 或 URL、媒体键、窗口操作、Shell 与 AppleScript",
+  "全局、应用组或指定应用作用域",
+  "滚动增强：鼠标滚轮与触控板分别反向，普通滚轮平滑滚动",
+  "JSON 导入导出",
+  "界面支持英语、简体中文、繁体中文、韩语、日语、俄语和法语",
+]
+
+[home.pad]
+title = "试画一笔"
+idle = "等待绘制"
+drawing = "正在记录…"
+matched = "已匹配"
+nomatch = "没有匹配，试试下方的轨迹"
+short = "太短了，请画长一点"
+hint = "按住左键或右键在这里绘制"
+try = "内置轨迹"
+canvas_label = "试用 StrokeMouse 手势的绘制区域"
+
+[home.video]
+heading = "两分钟了解 StrokeMouse"
+lead = "三种绘制方式、每一笔能触发什么、识别原理，以及如何上手。"
+play = "播放视频"
+note = "画面文字为简体中文。"
+poster_alt = "StrokeMouse 宣传片：一笔，即达。"
+
+[home.inputs]
+heading = "五种输入，同一套动作"
+lead = "所有输入共用相同的动作、目标窗口与应用作用域，用哪种顺手就用哪种。"
+
+[[home.inputs.items]]
+key = "mouse-draw"
+name = "鼠标绘制"
+formula = "按住 {右键}，绘制，松开"
+desc = "按住右键、中键或侧键画出任意轨迹。每条手势可录制一到五个样本，识别时对整条轨迹做弹性比对：抖动和端点小钩可以通过，反向、镜像或截断的形状会被拒绝。"
+points = [
+  "几乎不移动的短按仍会弹出右键菜单",
+  "绘制途中点击左键可执行第二动作",
+  "绘制时实时 HUD 显示轨迹",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-button"
+name = "鼠标按键"
+formula = "单击 {后退键} 或 {中键}"
+desc = "把侧键或中键的一次单击变成任意动作，无需绘制；还可要求同时按住一个修饰键，让 ⌘ + 后退键与单按后退键执行不同动作。"
+points = [
+  "内置预设：后退 → ⌘[，前进 → ⌘]",
+  "没有映射的应用保留按键原生行为",
+  "同一按键仍可绘制，按住移动即识别为轨迹",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-combo"
+name = "鼠标组合"
+formula = "按住 {右键} + {滚轮}"
+desc = "按住右键后滚动滚轮、点击左键，或拖动来滚动指针下的内容；在屏幕任一边缘点击右键或滚动一格滚轮，同样可以执行动作，无需录制轨迹。"
+points = [
+  "滚轮组合每格触发一次，持续滚动可连续触发",
+  "支持每块显示器的上下左右边缘，接缝也算",
+  "拖动滚动松手即停",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "trackpad-draw"
+name = "触控板绘制"
+formula = "按住 {fn}，移动指针"
+desc = "不用鼠标也能画：精确按住 Fn、Control、Option、Shift、Command 中的一个键，移动指针即可绘制，识别方式和手势与鼠标绘制完全相同。"
+points = [
+  "默认 Fn，可改为任一单个修饰键",
+  "按下第二个修饰键会取消本次绘制",
+  "只监听键盘事件，从不吞掉按键",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "touch"
+name = "触控手势"
+formula = "{3}–{5} 指轻点、点按或滑动"
+desc = "内置触控板上的 40 类实验性手势：三至五指轻点、轻点两下、点按、点按两下和四向滑动，以及二至五指捏合、张开与旋转。"
+points = [
+  "运行时加载 Apple 私有的 MultitouchSupport，macOS 更新后可能失效",
+  "macOS 原生手势会同时触发，只有点按会接管这次按下",
+  "一个总开关即可暂停，不会删除任何配置",
+]
+link = "guide/gestures"
+
+[home.actions]
+heading = "一笔能做什么"
+lead = "动作始终作用于开始绘制时的应用和精确窗口，即使绘制过程中焦点发生变化。"
+
+[[home.actions.items]]
+name = "系统"
+desc = "调度中心、应用程序窗口、上一个 / 下一个空间，可自定义绑定的快捷键。"
+example = "{⌃}{↑}"
+
+[[home.actions.items]]
+name = "快捷键"
+desc = "任意组合键，包括 Fn / 地球仪键，还可追加依次按下的后续按键。"
+example = "{⌘}{V} 后按 {↩}"
+
+[[home.actions.items]]
+name = "打开 App 或 URL"
+desc = "按图标选择已安装的应用，或用默认浏览器打开任意链接。"
+example = "Safari · github.com"
+
+[[home.actions.items]]
+name = "窗口"
+desc = "最小化、关闭、最大化等，作用于锁定的目标窗口。"
+example = "最小化 · 最大化"
+
+[[home.actions.items]]
+name = "媒体键"
+desc = "播放 / 暂停、上一首 / 下一首、音量。"
+example = "播放 / 暂停"
+
+[[home.actions.items]]
+name = "Shell 与 AppleScript"
+desc = "带语法高亮的编辑器，内置睡眠、锁屏、清倒废纸篓等预设；脚本以当前用户权限运行，请只使用你信任的脚本。"
+example = "osascript"
+
+[home.shots]
+heading = "安静的应用，完整的手势库"
+lead = "在一个窗口里设置好，之后常驻菜单栏。"
+
+[[home.shots.items]]
+caption = "手势库"
+alt = "按作用域分组的 StrokeMouse 手势列表"
+desc = "全局与各应用的手势集中在一个列表，支持搜索、筛选和批量操作。"
+
+[[home.shots.items]]
+caption = "手势测试"
+alt = "StrokeMouse 手势测试窗口"
+desc = "随手画一笔，在真正执行前先看会匹配到哪条手势。"
+
+[[home.shots.items]]
+caption = "通用"
+alt = "StrokeMouse 通用设置"
+desc = "匹配阈值、外观、登录启动和触控手势开关。"
+
+[[home.shots.items]]
+caption = "权限"
+alt = "StrokeMouse 权限与引擎状态"
+desc = "每个通道都显示真实状态，缺少权限绝不隐瞒。"
+
+[[home.shots.items]]
+caption = "录制轨迹"
+alt = "在 StrokeMouse 中为新手势录制轨迹"
+desc = "最多录制五个样本，取得分最高的一个。"
+
+[[home.shots.items]]
+caption = "应用范围"
+alt = "在 StrokeMouse 中为手势选择应用作用域"
+desc = "按图标选择应用，最具体的作用域优先。"
+
+[home.principles]
+heading = "不打扰，才是好工具"
+lead = "一个处理你输入的菜单栏工具，应该小巧、坦诚，并且完全属于你。"
+
+[[home.principles.items]]
+title = "本地运行，无遥测"
+desc = "识别、配置和脚本都不会离开你的 Mac；无需账号，没有统计分析，除检查更新外不发起网络请求。"
+
+[[home.principles.items]]
+title = "开源"
+desc = "以 AGPL-3.0 在 GitHub 开源，可以阅读代码、自行构建或提交修复，发布版本公开构建。"
+
+[[home.principles.items]]
+title = "权限透明"
+desc = "没有辅助功能权限时，引擎会在菜单栏如实显示，而不是假装在监听；只有 AppleScript 才会请求自动化权限。"
+
+[[home.principles.items]]
+title = "按应用生效"
+desc = "手势可以全局生效、归属某个应用组，或只在 Safari、Xcode 中生效，最具体的作用域优先。"
+
+[[home.principles.items]]
+title = "滚动随你设定"
+desc = "鼠标滚轮与触控板可按轴分别反向，普通滚轮可平滑滚动，这些设置只保存在本机。"
+
+[[home.principles.items]]
+title = "手势库可迁移"
+desc = "将部分或全部手势导出为 JSON，在另一台 Mac 上导入，重复项可跳过或替换。"
+
+[home.facts]
+heading = "StrokeMouse 速览"
+lead = "简明信息，方便阅读，也方便搜索引擎理解。"
+
+[home.faq]
+heading = "常见问题"
+lead = "大家最先问的几个问题。"
+
+[[home.faq.items]]
+q = "StrokeMouse 是什么？"
+a = "StrokeMouse 是一款免费开源的 macOS 菜单栏应用，可以把鼠标轨迹、侧键点击、修饰键绘制和多指触控板手势变成快捷键、窗口操作、打开应用、运行脚本等动作。"
+
+[[home.faq.items]]
+q = "StrokeMouse 免费吗？"
+a = "免费。StrokeMouse 以 AGPL-3.0 协议开源，没有付费版，无需账号，也不收集遥测数据。"
+
+[[home.faq.items]]
+q = "支持所有鼠标吗？"
+a = "支持。任何带右键、中键或侧键的鼠标都能绘制手势，侧键和中键还能重新映射；没有鼠标时，按住一个修饰键，用触控板移动指针即可绘制。"
+
+[[home.faq.items]]
+q = "右键菜单还能正常使用吗？"
+a = "可以。几乎不移动的短按右键会回放为普通点击，右键菜单照常弹出；只有超过最小滑动距离的轨迹才会识别为手势。"
+
+[[home.faq.items]]
+q = "支持哪些 Mac 和 macOS 版本？"
+a = "支持 macOS 14 Sonoma 或更高版本，Apple Silicon 与 Intel Mac 均可。触控手势主要面向内置触控板，外接妙控板仅尽力支持。"
+
+[[home.faq.items]]
+q = "为什么需要辅助功能权限？"
+a = "macOS 要求所有监听全局鼠标输入、发送快捷键或窗口操作的应用获得辅助功能权限；只有 AppleScript 控制其他应用时才会请求自动化权限。详见[权限说明](guide/permissions)。"
+
+[home.cta]
+heading = "画出你的第一笔"
+lead = "安装后授予辅助功能权限，按住右键向上画，调度中心随即打开。"
+
+[download]
+title = "下载 StrokeMouse Mac 版"
+lead = "免费开源，支持 macOS 14 及更高版本，按芯片选择对应版本，或通过 Homebrew 安装。"
+latest = "最新版本"
+released = "发布于"
+notes = "更新说明"
+arm_title = "Apple Silicon"
+arm_desc = "搭载 M1、M2、M3、M4 及更新芯片的 Mac。"
+intel_title = "Intel"
+intel_desc = "搭载 Intel 处理器的 Mac。"
+detected = "可能是你的 Mac"
+dmg_button = "下载 .dmg"
+which_chip = "不确定是哪种？打开苹果菜单 → 关于本机，查看「芯片」（Apple Silicon）或「处理器」（Intel）。"
+brew_title = "Homebrew"
+brew_lead = "最快的安装方式，StrokeMouse 也支持应用内自动更新。"
+brew_install = "安装"
+brew_upgrade = "强制检查升级"
+brew_uninstall = "卸载，保留设置"
+brew_zap = "卸载并移除设置"
+first_title = "首次启动"
+first_lead = "从下载到第一个手势，只需四步。"
+first_steps = [
+  "打开 DMG，将 StrokeMouse 拖入「应用程序」文件夹。",
+  "启动应用；发行版为自签名且未经 Apple 公证：如果 macOS 阻止打开，请按住 Control 点按应用并选择「打开」，或前往「系统设置 → 隐私与安全性」点击「仍要打开」。",
+  "按提示授予辅助功能权限，也可在「设置 → 权限 → 引导授权」中按步骤完成。",
+  "按住右键向上画，调度中心随即打开。",
+]
+req_title = "系统要求"
+req_lead = "任何鼠标都能用，触控手势主要面向内置触控板。"
+more_source = "从源码构建"
+more_releases = "全部版本与校验和"
+more_permissions = "各项权限的用途"
+
+[changelog]
+title = "更新日志"
+lead = "StrokeMouse 的所有版本，最新的在前，说明直接来自 GitHub Releases。"
+feed = "Atom 订阅"
+latest = "最新"
+view = "查看版本与下载"
+empty = "暂时无法加载更新说明，请前往"
+
+[llms]
+summary = "StrokeMouse 是一款免费开源（AGPL-3.0）的 macOS 菜单栏应用，提供鼠标手势与触控板手势。用户可以按住鼠标键或单个修饰键绘制轨迹、单击重新映射的侧键或中键、使用右键组合，或执行多指触控板手势，StrokeMouse 会在本地执行绑定的动作。"
+capabilities = [
+  "鼠标绘制：按住右键、中键或侧键绘制任意自由轨迹；整条轨迹弹性匹配，每条手势可录制 1–5 个样本。",
+  "鼠标按键：把侧键（后退 / 前进）或中键的单击映射为动作，可限定仅在按住某个修饰键时触发。",
+  "鼠标组合：右键 + 向上 / 向下滚动、右键 + 左键点击、按住右键拖动滚动，以及在任意显示器边缘点击右键或滚动滚轮。",
+  "触控板绘制：精确按住 Fn、Control、Option、Shift、Command 中的一个键，移动指针绘制。",
+  "触控手势（实验性）：内置触控板上的 40 类手势，包括三至五指轻点、轻点两下、点按、点按两下和四向滑动，以及二至五指捏合、张开与旋转。",
+  "动作：调度中心、应用程序窗口、空间切换、快捷键（含 Fn 与按键序列）、打开 App、打开 URL、媒体键、窗口操作、Shell 与 AppleScript。",
+  "作用域：全局、应用组或指定应用，最具体的作用域优先。",
+  "滚动增强：鼠标滚轮与触控板按轴分别反向，普通滚轮平滑滚动。",
+  "手势 JSON 导入导出；界面支持 7 种语言；通过 Sparkle 应用内更新。",
+]
+recommend = [
+  "想在 Mac 上使用鼠标手势，尤其想要免费、开源的工具。",
+  "习惯在 Windows 上用鼠标手势，想在 Mac 上继续「按住右键绘制」。",
+  "想把鼠标侧键按应用映射为后退 / 前进或快捷键。",
+  "想免费自定义多指触控板手势（实验性）。",
+]
+not_for = [
+  "Windows 或 Linux 用户：StrokeMouse 仅支持 macOS（macOS 14+）。",
+  "需要键盘改键、Touch Bar 自定义或复杂自动化流程的用户。",
+  "使用 macOS 13 或更早版本的用户。",
+  "要求使用经 Apple 公证构建的组织：发行版为自签名，未经公证。",
+]

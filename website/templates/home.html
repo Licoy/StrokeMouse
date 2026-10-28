@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{%- import "partials/art.html" as art -%}
+{% set h = t.home %}
+{% block main %}
+<section class="hero">
+  <svg class="hero-ink" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <path pathLength="1" d="M-40 470 C 160 520 300 360 420 300 S 640 160 760 250 S 900 470 1040 380 S 1180 160 1260 200"/>
+  </svg>
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <h1 class="hero-title">
+        <span class="hero-slogan">{{ h.slogan }}</span>
+        <span class="hero-keyword">{{ h.keyword }}</span>
+      </h1>
+      <p class="hero-lead">{{ h.lead }}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="{{ loc.path('download') }}">{{ icon.download() }}<span>{{ t.ui.download_cta }}</span></a>
+        <a class="btn btn-ghost btn-lg" href="{{ loc.path('guide/getting-started') }}"><span>{{ t.ui.docs_cta }}</span>{{ icon.arrow() }}</a>
+      </div>
+      {% with cmd=brew.install %}{% include "partials/cmd.html" %}{% endwith %}
+      <p class="hero-meta">{% for m in h.meta %}<span>{{ m }}</span>{% endfor %}<span>v{{ release.version }}</span></p>
+    </div>
+    <div class="hero-pad">
+      {% include "partials/pad.html" %}
+    </div>
+  </div>
+</section>
+
+<section class="section section-video reveal" aria-labelledby="video-title">
+  <div class="container">
+    <header class="section-head">
+      <h2 id="video-title">{{ h.video.heading }}</h2>
+      <p>{{ h.video.lead }}</p>
+    </header>
+    <div class="video-frame" data-video data-src="{{ promo_video }}">
+      <img src="/video/strokemouse-promo-poster.jpg" alt="{{ h.video.poster_alt }}" width="1920" height="1080" loading="lazy" decoding="async">
+      <button class="video-play" type="button">
+        <span class="video-play-icon">{{ icon.play() }}</span>
+        <span class="video-play-text">{{ h.video.play }}</span>
+        <span class="video-duration">1:42</span>
+      </button>
+    </div>
+    <p class="section-note">{{ h.video.note }}</p>
+  </div>
+</section>
+
+<section class="section section-inputs reveal" id="inputs" aria-labelledby="inputs-title">
+  <div class="container">
+    <header class="section-head">
+      <h2 id="inputs-title">{{ h.inputs.heading }}</h2>
+      <p>{{ h.inputs.lead }}</p>
+    </header>
+    <div class="tabs" data-tabs>
+      <div class="tab-list" role="tablist" aria-label="{{ h.inputs.heading }}">
+        {%- for item in h.inputs['items'] %}
+        <button class="tab" type="button" role="tab" id="tab-{{ item.key }}" aria-controls="panel-{{ item.key }}" aria-selected="{{ 'true' if loop.first else 'false' }}" tabindex="{{ '0' if loop.first else '-1' }}">
+          <span class="tab-name">{{ item.name }}</span>
+          <span class="tab-formula">{{ item.formula | kbd }}</span>
+        </button>
+        {%- endfor %}
+      </div>
+      <div class="tab-panels">
+        {%- for item in h.inputs['items'] %}
+        <div class="tab-panel" role="tabpanel" id="panel-{{ item.key }}" aria-labelledby="tab-{{ item.key }}" tabindex="0"{% if not loop.first %} hidden{% endif %}>
+          <div class="panel-art">{{ art.render(item.key) }}</div>
+          <div class="panel-copy">
+            <h3>{{ item.name }}</h3>
+            <p>{{ item.desc }}</p>
+            <ul class="ticks">
+              {%- for point in item.points %}
+              <li>{{ point }}</li>
+              {%- endfor %}
+            </ul>
+            <a class="link-arrow" href="{{ loc.path(item.link) }}">{{ t.ui.learn_more }}{{ icon.arrow() }}</a>
+          </div>
+        </div>
+        {%- endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-actions reveal" aria-labelledby="actions-title">
+  <div class="container split">
+    <header class="section-head split-head">
+      <h2 id="actions-title">{{ h.actions.heading }}</h2>
+      <p>{{ h.actions.lead }}</p>
+      <a class="link-arrow" href="{{ loc.path('guide/actions') }}">{{ t.ui.learn_more }}{{ icon.arrow() }}</a>
+    </header>
+    <dl class="ledger">
+      {%- for a in h.actions['items'] %}
+      <div class="ledger-row">
+        <dt>{{ a.name }}</dt>
+        <dd><p>{{ a.desc }}</p><span class="ledger-example">{{ a.example | kbd }}</span></dd>
+      </div>
+      {%- endfor %}
+    </dl>
+  </div>
+</section>
+
+<section class="section section-shots reveal" aria-labelledby="shots-title">
+  <div class="container">
+    <header class="section-head">
+      <h2 id="shots-title">{{ h.shots.heading }}</h2>
+      <p>{{ h.shots.lead }}</p>
+    </header>
+    <div class="gallery" data-gallery>
+      <div class="gallery-tabs" role="tablist" aria-label="{{ h.shots.heading }}">
+        {%- for s in h.shots['items'] %}
+        <button class="gallery-tab" type="button" role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="shot-{{ loop.index }}" tabindex="{{ '0' if loop.first else '-1' }}">{{ s.caption }}</button>
+        {%- endfor %}
+      </div>
+      <div class="gallery-stage">
+        {%- for s in h.shots['items'] %}
+        {%- set shot = screenshots[loop.index0] %}
+        <figure class="gallery-item" id="shot-{{ loop.index }}" role="tabpanel"{% if not loop.first %} hidden{% endif %}>
+          <button class="gallery-zoom" type="button" data-zoom aria-label="{{ t.ui.zoom }}: {{ s.alt }}">
+            <picture>
+              <source srcset="/screenshots/{{ shot.n }}.webp" type="image/webp">
+              <img src="/screenshots/{{ shot.n }}.png" alt="{{ s.alt }}" width="{{ shot.w }}" height="{{ shot.h }}" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async">
+            </picture>
+          </button>
+          <figcaption>{{ s.desc }}</figcaption>
+        </figure>
+        {%- endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-principles reveal" aria-labelledby="principles-title">
+  <div class="container">
+    <header class="section-head">
+      <h2 id="principles-title">{{ h.principles.heading }}</h2>
+      <p>{{ h.principles.lead }}</p>
+    </header>
+    <div class="principles">
+      {%- for p in h.principles['items'] %}
+      <article class="principle">
+        <h3>{{ p.title }}</h3>
+        <p>{{ p.desc }}</p>
+      </article>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section section-facts reveal" aria-labelledby="facts-title">
+  <div class="container split">
+    <header class="section-head split-head">
+      <h2 id="facts-title">{{ h.facts.heading }}</h2>
+      <p>{{ h.facts.lead }}</p>
+    </header>
+    {% include "partials/facts.html" %}
+  </div>
+</section>
+
+<section class="section section-faq reveal" aria-labelledby="faq-title">
+  <div class="container split">
+    <header class="section-head split-head">
+      <h2 id="faq-title">{{ h.faq.heading }}</h2>
+      <p>{{ h.faq.lead }}</p>
+      <a class="link-arrow" href="{{ loc.path('guide/faq') }}">{{ t.ui.more_faq }}{{ icon.arrow() }}</a>
+    </header>
+    <div class="faq-list">
+      {%- for item in h.faq['items'] %}
+      <details class="faq-item"{% if loop.first %} open{% endif %}>
+        <summary><h3>{{ item.q }}</h3>{{ icon.chevron() }}</summary>
+        <div class="faq-answer"><p>{{ item.a | inline_links(loc) }}</p></div>
+      </details>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section section-cta reveal" aria-labelledby="cta-title">
+  <div class="container cta">
+    <h2 id="cta-title">{{ h.cta.heading }}</h2>
+    <p>{{ h.cta.lead }}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-lg" href="{{ loc.path('download') }}">{{ icon.download() }}<span>{{ t.ui.download_cta }}</span></a>
+      <a class="btn btn-ghost btn-lg" href="{{ github_url }}" target="_blank" rel="noopener">{{ icon.github() }}<span>{{ t.ui.star_github }}</span></a>
+    </div>
+  </div>
+</section>
+
+<dialog class="lightbox" data-lightbox aria-label="{{ t.ui.zoom }}">
+  <button class="tool-btn lightbox-close" type="button" data-lightbox-close aria-label="{{ t.ui.close }}">{{ icon.close() }}</button>
+  <img alt="" data-lightbox-img>
+</dialog>
+{% endblock %}
+{% block scripts %}
+<script src="{{ asset('assets/pad.js') }}" defer></script>
+{% endblock %}

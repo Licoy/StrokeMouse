@@ -11,7 +11,7 @@
 Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mouse button, draw with one modifier key (Trackpad Draw), or use experimental multi-finger Touch Gestures, then run shortcuts, open apps, window commands, media keys, Shell / AppleScript, and more. Gestures can be **global or app-scoped**, configs are **importable/exportable**, and everything runs locally from the menu bar.
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse intro video" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/static/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse intro video" /></a>
   <br />
   <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ Watch the 1:42 intro video (on-screen text in Simplified Chinese)</a></sub>
 </p>
@@ -20,15 +20,15 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 
 | Gesture list | Gesture test |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/1.png" width="400" alt="Gesture list" /> | <img src="website/docs/public/screenshots/2.png" width="400" alt="Gesture test" /> |
+| <img src="website/static/screenshots/1.png" width="400" alt="Gesture list" /> | <img src="website/static/screenshots/2.png" width="400" alt="Gesture test" /> |
 
 | General settings | Permissions |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/3.png" width="400" alt="General settings" /> | <img src="website/docs/public/screenshots/4.png" width="400" alt="Permissions" /> |
+| <img src="website/static/screenshots/3.png" width="400" alt="General settings" /> | <img src="website/static/screenshots/4.png" width="400" alt="Permissions" /> |
 
 | Record stroke | App scope |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/5.png" width="400" alt="Record stroke" /> | <img src="website/docs/public/screenshots/6.png" width="400" alt="App scope" /> |
+| <img src="website/static/screenshots/5.png" width="400" alt="Record stroke" /> | <img src="website/static/screenshots/6.png" width="400" alt="App scope" /> |
 
 ## Features
 

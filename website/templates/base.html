@@ -1,0 +1,63 @@
+{%- import "partials/icons.html" as icon -%}
+<!doctype html>
+<html lang="{{ loc.html_lang }}" data-theme="light" data-locale="{{ loc.code }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ page.title }}</title>
+<meta name="description" content="{{ page.description }}">
+{%- if page.keywords %}
+<meta name="keywords" content="{{ page.keywords }}">
+{%- endif %}
+<meta name="robots" content="{{ page.robots or 'index, follow, max-image-preview:large, max-snippet:-1' }}">
+<link rel="canonical" href="{{ page.canonical }}">
+{%- for alt in page.alternates %}
+<link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
+{%- endfor %}
+{%- if page.markdown_url %}
+<link rel="alternate" type="text/markdown" href="{{ page.markdown_url }}">
+{%- endif %}
+<link rel="alternate" type="application/atom+xml" title="StrokeMouse releases" href="{{ site_url }}/changelog.xml">
+<meta property="og:site_name" content="StrokeMouse">
+<meta property="og:type" content="{{ page.og_type }}">
+<meta property="og:title" content="{{ page.title }}">
+<meta property="og:description" content="{{ page.description }}">
+<meta property="og:url" content="{{ page.canonical }}">
+<meta property="og:locale" content="{{ loc.og_locale }}">
+{%- for other in locales if other.code != loc.code %}
+<meta property="og:locale:alternate" content="{{ other.og_locale }}">
+{%- endfor %}
+<meta property="og:image" content="{{ site_url }}/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="675">
+<meta property="og:image:alt" content="{{ t.meta.og_image_alt }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ page.title }}">
+<meta name="twitter:description" content="{{ page.description }}">
+<meta name="twitter:image" content="{{ site_url }}/img/og.jpg">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1121" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="format-detection" content="telephone=no">
+<meta name="author" content="Licoy">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="/img/favicon-64.png">
+<link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+<link rel="preload" href="/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{ asset('fonts/fonts.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/site.css') }}">
+<script>{{ head_script | safe }}</script>
+<script type="application/ld+json">{{ page.jsonld | safe }}</script>
+</head>
+<body class="page-{{ page.kind }}">
+<a class="skip-link" href="#main">{{ t.ui.skip }}</a>
+{% include "partials/header.html" %}
+<main id="main" tabindex="-1">
+{% block main %}{% endblock %}
+</main>
+{% include "partials/footer.html" %}
+{% include "partials/search.html" %}
+<script src="{{ asset('assets/site.js') }}" defer></script>
+{%- block scripts %}{% endblock %}
+</body>
+</html>

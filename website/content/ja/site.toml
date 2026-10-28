@@ -1,0 +1,405 @@
+# 日本語のサイト文字列。未定義のキーは英語にフォールバックします。
+# `{Key}` はキーキャップとして表示され、`[label](page-id)` は同じロケール内のページにリンクします。
+
+[meta]
+home_title = "Mac 用の無料マウスジェスチャー・トラックパッドジェスチャーアプリ"
+home_description = "StrokeMouse は無料・オープンソースの macOS 用マウスジェスチャーアプリです。マウスボタンや修飾キー 1 つで軌跡を描く、サイドボタンを割り当てる、複数指のトラックパッドジェスチャーを使うだけで、ショートカット、ウインドウ操作、アプリ起動、スクリプトを実行できます。"
+home_keywords = "StrokeMouse,マウスジェスチャー Mac,マウスジェスチャ macOS,Mac マウスで描くジェスチャー,トラックパッド ジェスチャー カスタマイズ Mac,マウス サイドボタン 割り当て Mac,マウス スクロール 反転 Mac"
+download_title = "StrokeMouse for Mac をダウンロード"
+download_description = "macOS 14 以降に対応した StrokeMouse をダウンロード。Apple Silicon 版と Intel 版の DMG、または Homebrew でインストールできます。無料・オープンソースのマウスジェスチャーアプリです。"
+download_keywords = "StrokeMouse ダウンロード,マウスジェスチャー Mac ダウンロード,Apple Silicon,Intel,dmg,homebrew cask strokemouse"
+changelog_title = "更新履歴"
+changelog_description = "StrokeMouse の全リリースの日付と内容。新しいジェスチャ、修正、改善を GitHub Releases からそのまま掲載しています。"
+changelog_keywords = "StrokeMouse 更新履歴,StrokeMouse リリースノート,StrokeMouse アップデート"
+app_subcategory = "マウス・トラックパッドジェスチャ"
+og_image_alt = "StrokeMouse — macOS 用マウス・トラックパッドジェスチャ"
+
+[ui]
+skip = "本文へスキップ"
+home = "ホーム"
+nav_label = "メイン"
+nav_docs = "ドキュメント"
+nav_download = "ダウンロード"
+nav_changelog = "更新履歴"
+search = "検索"
+search_label = "ドキュメントを検索"
+search_placeholder = "ドキュメントを検索…"
+search_empty = "見つかりませんでした。別の言葉で試してください。"
+search_hint = "↑ ↓ で移動 · Enter で開く · Esc で閉じる"
+language = "言語"
+theme = "外観"
+theme_auto = "システム"
+theme_light = "ライト"
+theme_dark = "ダーク"
+menu = "メニュー"
+close = "閉じる"
+toc = "このページの内容"
+prev = "前へ"
+next = "次へ"
+pager = "ページ"
+edit = "GitHub で編集"
+updated = "更新日"
+copy = "コピー"
+copied = "コピーしました"
+download_cta = "Mac 版をダウンロード"
+docs_cta = "ドキュメントを読む"
+learn_more = "詳しく見る"
+more_faq = "すべての質問"
+star_github = "GitHub でスターを付ける"
+zoom = "拡大"
+footer_tagline = "macOS 用のマウス・トラックパッドジェスチャ。無料・オープンソースで、すべて Mac の中で動きます。"
+footer_license = "無料・オープンソース"
+footer_product = "製品"
+footer_issues = "問題を報告"
+footer_note = "グローバル入力とスクリプトはシステムレベルの権限を持ちます。Shell や AppleScript は信頼できるものだけを追加してください。"
+callout_tip = "ヒント"
+callout_info = "情報"
+callout_warning = "注意"
+callout_danger = "リスク"
+notfound_title = "このストロークはどこにも届きませんでした"
+notfound_body = "お探しのページは移動したか、存在しません。"
+notfound_home = "ホームに戻る"
+
+[ui.sidebar]
+start = "はじめに"
+manual = "マニュアル"
+help = "ヘルプ"
+
+[gestures.up]
+name = "Mission Control"
+action = "{⌃}{↑}"
+[gestures.down]
+name = "アプリケーションウインドウ"
+action = "{⌃}{↓}"
+[gestures.downLeft]
+name = "ウインドウをしまう"
+action = "ウインドウ"
+[gestures.downRight]
+name = "ウインドウを閉じる"
+action = "ウインドウ"
+[gestures.upRight]
+name = "Safari を開く"
+action = "アプリ"
+[gestures.rightLeft]
+name = "再生 / 一時停止"
+action = "メディアキー"
+[gestures.upLeft]
+name = "GitHub を開く"
+action = "URL"
+
+[facts]
+type_label = "概要"
+type_value = "macOS 用のマウス・トラックパッドジェスチャのメニューバーアプリ"
+price_label = "価格"
+price_value = "無料、有料プランなし"
+license_label = "ライセンス"
+license_value = "オープンソース、AGPL-3.0"
+system_label = "対応システム"
+system_value = "macOS 14 Sonoma 以降"
+chips_label = "対応 Mac"
+chips_value = "Apple Silicon と Intel、それぞれ別の DMG"
+version_label = "最新バージョン"
+languages_label = "アプリの言語"
+install_label = "インストール"
+install_value = "Homebrew cask または DMG、Sparkle によるアプリ内アップデート"
+privacy_label = "プライバシー"
+privacy_value = "ローカルで動作、アカウント不要、テレメトリなし"
+
+[home]
+slogan = "ひと筆で、すぐに。"
+keyword = "macOS 用マウス・トラックパッドジェスチャ"
+lead = "StrokeMouse は無料・オープンソースの Mac アプリです。マウスで描いた軌跡、サイドボタン、修飾キーを押しながらの描画、複数指のトラックパッドジェスチャを、ショートカット、ウインドウ操作、アプリ起動、スクリプトに変えます。処理はすべてローカルで行います。"
+meta = ["無料", "オープンソース", "macOS 14+", "Apple Silicon & Intel"]
+features = [
+  "マウス描画：右ボタン、中ボタン、サイドボタンを押したまま自由な軌跡を描く",
+  "マウスボタン：サイドボタンや中ボタンのクリックにアクションを割り当て、修飾キー 1 つとの同時押しも指定可能",
+  "マウスの組み合わせ：右ボタン + スクロール、右 + 左クリック、ドラッグでスクロール、画面の端での右クリックやスクロール",
+  "トラックパッド描画：Fn、Control、Option、Shift、Command のいずれか 1 つを押したままポインタを動かす",
+  "タッチジェスチャ（実験的）：複数指のタップ、クリック、スワイプ、ピンチ、回転など 40 種類",
+  "アクション：システムコマンド、キーボードショートカット、アプリや URL を開く、メディアキー、ウインドウ操作、Shell、AppleScript",
+  "グローバル、アプリグループ、アプリごとの範囲",
+  "スクロール強化：マウスホイールとトラックパッドを別々に反転、ノッチ式ホイールをスムーズに",
+  "JSON の読み込みと書き出し",
+  "英語、簡体字中国語、繁体字中国語、韓国語、日本語、ロシア語、フランス語の UI",
+]
+
+[home.pad]
+title = "軌跡を試す"
+idle = "軌跡を待っています"
+drawing = "記録中…"
+matched = "一致"
+nomatch = "一致しません。下の軌跡を試してください"
+short = "短すぎます。もっと長く描いてください"
+hint = "左または右ボタンを押したまま、ここに描いてください"
+try = "組み込みの軌跡"
+canvas_label = "StrokeMouse のジェスチャを試す描画エリア"
+
+[home.video]
+heading = "2 分でわかる StrokeMouse"
+lead = "3 つの描き方、軌跡で実行できること、認識のしくみ、始め方を紹介します。"
+play = "動画を再生"
+note = "動画内の文字は簡体字中国語です。"
+poster_alt = "StrokeMouse 紹介動画：ひと筆で、すぐに。"
+
+[home.inputs]
+heading = "5 つの入力、共通のアクション"
+lead = "どの入力も同じアクション、対象ウインドウ、アプリ範囲を共有します。手に合うものを使ってください。"
+
+[[home.inputs.items]]
+key = "mouse-draw"
+name = "マウス描画"
+formula = "{右ボタン} を押して描き、離す"
+desc = "右ボタン、中ボタン、サイドボタンを押したまま自由な軌跡を描きます。ジェスチャごとに 1〜5 個のサンプルを記録でき、軌跡全体を弾性的に比較するため、手ぶれや端の小さなはねは許容し、逆方向・左右反転・途中で止めた形は拒否します。"
+points = [
+  "動かさずに短くクリックすれば、コンテキストメニューはそのまま開きます",
+  "描画中に左ボタンをクリックすると第2アクションを実行",
+  "描いている間はリアルタイム HUD が軌跡を表示",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-button"
+name = "マウスボタン"
+formula = "{戻る} または {中ボタン} をクリック"
+desc = "サイドボタンや中ボタンのクリック 1 回を、描画なしで任意のアクションに変えます。修飾キー 1 つの同時押しを条件にでき、「⌘ + 戻る」と「戻る」単独に別々の動作を割り当てられます。"
+points = [
+  "プリセット：戻る → ⌘[、進む → ⌘]",
+  "割り当てのないアプリではボタン本来の動作を維持",
+  "同じボタンで描画も可能：長押しして動かすと軌跡として認識",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-combo"
+name = "マウスの組み合わせ"
+formula = "{右} を押しながら {スクロール}"
+desc = "右ボタンを押しながらスクロール、左クリック、またはドラッグでポインタ下の内容をスクロールします。画面の端での右クリックやホイール 1 目盛りでもアクションを実行できます。記録は不要です。"
+points = [
+  "ホイールの組み合わせは 1 目盛りごとに 1 回、スクロール中は繰り返し実行",
+  "各ディスプレイの上下左右の端、継ぎ目も含む",
+  "ドラッグでスクロールは離した瞬間に停止",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "trackpad-draw"
+name = "トラックパッド描画"
+formula = "{fn} を押したままポインタを動かす"
+desc = "マウスは不要です。Fn、Control、Option、Shift、Command のうちちょうど 1 つを押したままポインタを動かして描きます。マウス描画と同じ認識、同じジェスチャを使います。"
+points = [
+  "デフォルトは Fn、任意の修飾キー 1 つを選択可能",
+  "2 つ目の修飾キーを押すとその認識はキャンセル",
+  "キーボードイベントは監視するだけで、横取りしません",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "touch"
+name = "タッチジェスチャ"
+formula = "{3}〜{5} 本指でタップ、クリック、スワイプ"
+desc = "内蔵トラックパッド向けの実験的な 40 種類のジェスチャです。3〜5 本指のタップ、ダブルタップ、クリック、ダブルクリック、四方向スワイプに加え、2〜5 本指のピンチ、スプレッド、回転に対応します。"
+points = [
+  "Apple の非公開 MultitouchSupport を実行時に読み込むため、macOS の更新後に動かなくなることがあります",
+  "macOS のジェスチャも同時に動作し、押し込みを引き受けるのはクリックだけ",
+  "マスタースイッチ 1 つで、何も削除せずに一時停止",
+]
+link = "guide/gestures"
+
+[home.actions]
+heading = "軌跡でできること"
+lead = "描画中にフォーカスが移っても、アクションは開始時のアプリと正確なウインドウに対して実行されます。"
+
+[[home.actions.items]]
+name = "システム"
+desc = "Mission Control、アプリケーションウインドウ、前の／次の操作スペース。割り当てるショートカットはカスタマイズできます。"
+example = "{⌃}{↑}"
+
+[[home.actions.items]]
+name = "ショートカット"
+desc = "Fn / 地球儀キーを含む任意のキーの組み合わせ。続けて押すキーも順番に追加できます。"
+example = "{⌘}{V} の後に {↩}"
+
+[[home.actions.items]]
+name = "アプリや URL を開く"
+desc = "インストール済みのアプリをアイコンで選ぶか、任意のリンクをデフォルトのブラウザで開きます。"
+example = "Safari · github.com"
+
+[[home.actions.items]]
+name = "ウインドウ"
+desc = "しまう、閉じる、最大化などを、固定した対象ウインドウに対して実行します。"
+example = "しまう · 最大化"
+
+[[home.actions.items]]
+name = "メディアキー"
+desc = "再生 / 一時停止、次の曲・前の曲、音量。"
+example = "再生 / 一時停止"
+
+[[home.actions.items]]
+name = "Shell と AppleScript"
+desc = "シンタックスハイライト付きのエディタに、スリープ、画面ロック、ゴミ箱を空にするなどのプリセットを用意。スクリプトはユーザーの権限で実行されます。"
+example = "osascript"
+
+[home.shots]
+heading = "控えめなアプリに、充実したライブラリ"
+lead = "設定はひとつのウインドウで済ませ、あとはメニューバーに常駐します。"
+
+[[home.shots.items]]
+caption = "ジェスチャライブラリ"
+alt = "範囲ごとにまとめた StrokeMouse のジェスチャ一覧"
+desc = "グローバルとアプリごとのジェスチャをひとつの一覧で。検索、フィルタ、一括操作に対応。"
+
+[[home.shots.items]]
+caption = "ジェスチャテスト"
+alt = "StrokeMouse のジェスチャテストウインドウ"
+desc = "自由に描いて、実行する前にどのジェスチャに一致するかを確認できます。"
+
+[[home.shots.items]]
+caption = "一般"
+alt = "StrokeMouse の一般設定"
+desc = "一致しきい値、外観、ログイン時に開く、タッチジェスチャのスイッチ。"
+
+[[home.shots.items]]
+caption = "権限"
+alt = "StrokeMouse の権限とエンジン状態"
+desc = "各チャネルの実際の状態を表示し、権限不足を隠しません。"
+
+[[home.shots.items]]
+caption = "軌跡の記録"
+alt = "StrokeMouse で新しいジェスチャの軌跡を記録"
+desc = "最大 5 個のサンプルを記録でき、最も一致したものを採用します。"
+
+[[home.shots.items]]
+caption = "アプリ範囲"
+alt = "StrokeMouse でジェスチャの適用範囲にアプリを選ぶ"
+desc = "アプリはアイコンで選択。最も具体的な範囲が優先されます。"
+
+[home.principles]
+heading = "作業の邪魔をしないために"
+lead = "入力を扱うメニューバーツールは、小さく、誠実で、あなたのものであるべきです。"
+
+[[home.principles.items]]
+title = "ローカル動作、テレメトリなし"
+desc = "認識、設定、スクリプトは Mac の外に出ません。アカウントも分析もなく、アップデート以外の通信は行いません。"
+
+[[home.principles.items]]
+title = "オープンソース"
+desc = "GitHub で AGPL-3.0 として公開。コードを読む、自分でビルドする、修正を送ることができます。リリースも公開の場でビルドしています。"
+
+[[home.principles.items]]
+title = "権限に正直"
+desc = "アクセシビリティがなければ、監視しているふりをせずメニューバーでそう伝えます。自動化の権限は AppleScript を使うときだけ求めます。"
+
+[[home.principles.items]]
+title = "アプリごとの範囲"
+desc = "ジェスチャはグローバル、アプリグループ、または Safari や Xcode だけで動くようにできます。最も具体的な範囲が優先されます。"
+
+[[home.principles.items]]
+title = "好みのスクロール"
+desc = "ホイールとトラックパッドを軸ごとに別々に反転し、ノッチ式ホイールをスムーズにできます。これらの設定はこの Mac だけに保存されます。"
+
+[[home.principles.items]]
+title = "持ち運べるライブラリ"
+desc = "ジェスチャの一部またはすべてを JSON で書き出し、別の Mac で読み込めます。重複はスキップまたは置き換えられます。"
+
+[home.facts]
+heading = "StrokeMouse の概要"
+lead = "人にも検索エンジンにもわかる、要点だけのまとめです。"
+
+[home.faq]
+heading = "よくある質問"
+lead = "最初によく聞かれることへの短い回答です。"
+
+[[home.faq.items]]
+q = "StrokeMouse とは何ですか？"
+a = "StrokeMouse は無料・オープンソースの macOS 用メニューバーアプリです。マウスで描いた軌跡、サイドボタンのクリック、修飾キーを押しながらの描画、複数指のトラックパッドジェスチャを、ショートカット、ウインドウ操作、アプリ起動、スクリプトなどのアクションに変えます。"
+
+[[home.faq.items]]
+q = "StrokeMouse は無料ですか？"
+a = "はい。StrokeMouse は AGPL-3.0 の無料オープンソースソフトウェアです。有料プランもアカウントもテレメトリもありません。"
+
+[[home.faq.items]]
+q = "どんなマウスでも使えますか？"
+a = "はい。右ボタン、中ボタン、サイドボタンのあるマウスならジェスチャを描け、サイドボタンや中ボタンは割り当てを変更できます。マウスがなくても、修飾キーを 1 つ押したままトラックパッドのポインタで描けます。"
+
+[[home.faq.items]]
+q = "右クリックメニューはこれまでどおり使えますか？"
+a = "はい。ほとんど動かさない短い右クリックは通常のクリックとして再生されるため、コンテキストメニューはいつもどおり開きます。最小距離を超えた軌跡だけがジェスチャになります。"
+
+[[home.faq.items]]
+q = "対応する Mac と macOS のバージョンは？"
+a = "Apple Silicon と Intel の Mac で、macOS 14 Sonoma 以降に対応します。タッチジェスチャは内蔵トラックパッド向けで、外付けの Magic Trackpad はベストエフォート対応です。"
+
+[[home.faq.items]]
+q = "なぜアクセシビリティ権限が必要ですか？"
+a = "グローバルなマウス入力を監視し、ショートカットやウインドウ操作を送るアプリには、macOS がアクセシビリティ権限を求めます。自動化の権限は AppleScript が他のアプリを制御するときだけ求めます。[権限](guide/permissions)をご覧ください。"
+
+[home.cta]
+heading = "最初の軌跡を描いてみましょう"
+lead = "インストールしてアクセシビリティを許可し、右ボタンを押したまま上に描くと Mission Control が開きます。"
+
+[download]
+title = "StrokeMouse for Mac をダウンロード"
+lead = "macOS 14 以降に対応した無料・オープンソースのアプリです。チップに合ったビルドを選ぶか、Homebrew でインストールしてください。"
+latest = "最新"
+released = "リリース日"
+notes = "リリースノート"
+arm_title = "Apple Silicon"
+arm_desc = "M1、M2、M3、M4 以降のチップを搭載した Mac。"
+intel_title = "Intel"
+intel_desc = "Intel プロセッサを搭載した Mac。"
+detected = "お使いの Mac はこちらのようです"
+dmg_button = ".dmg をダウンロード"
+which_chip = "どちらかわからない場合は、Apple メニュー →「この Mac について」を開き、「チップ」（Apple Silicon）か「プロセッサ」（Intel）を確認してください。"
+brew_title = "Homebrew"
+brew_lead = "いちばん手早いインストール方法です。StrokeMouse はアプリ内でも自動アップデートできます。"
+brew_install = "インストール"
+brew_upgrade = "アップグレードを強制的に確認"
+brew_uninstall = "アンインストール（設定は残す）"
+brew_zap = "アンインストールして設定も削除"
+first_title = "初回起動"
+first_lead = "ダウンロードから最初のジェスチャまで 4 ステップです。"
+first_steps = [
+  "DMG を開き、StrokeMouse をアプリケーションフォルダにドラッグします。",
+  "起動します。リリース版は自己署名で、Apple の公証を受けていません。macOS にブロックされたら、アプリを Control クリックして「開く」を選ぶか、「システム設定 → プライバシーとセキュリティ」で「このまま開く」を選んでください。",
+  "求められたらアクセシビリティを許可します。「設定 → 権限」の「案内する」で手順を確認できます。",
+  "右ボタンを押したまま上に描くと、Mission Control が開きます。",
+]
+req_title = "動作環境"
+req_lead = "どんなマウスでも使えます。タッチジェスチャは内蔵トラックパッド向けです。"
+more_source = "ソースからビルド"
+more_releases = "すべてのリリースとチェックサム"
+more_permissions = "各権限の用途"
+
+[changelog]
+title = "更新履歴"
+lead = "StrokeMouse の全リリースを新しい順に掲載しています。内容は GitHub Releases からそのまま取得しています。"
+feed = "Atom フィード"
+latest = "最新"
+view = "リリースとダウンロードを見る"
+empty = "リリースノートを現在読み込めません。次のページで確認できます："
+
+[llms]
+summary = "StrokeMouse は、マウスジェスチャーとトラックパッドジェスチャーのための無料・オープンソース（AGPL-3.0）の macOS メニューバーアプリです。マウスボタンまたは修飾キー 1 つを押しながら軌跡を描く、割り当てたサイドボタンや中ボタンをクリックする、右ボタンの組み合わせを使う、複数指のトラックパッドジェスチャを行うと、StrokeMouse が割り当てたアクションをローカルで実行します。"
+capabilities = [
+  "マウス描画：右ボタン、中ボタン、サイドボタンを押したまま自由な軌跡を描く。ジェスチャごとに 1〜5 個の記録サンプルを使い、軌跡全体を弾性マッチングで比較。",
+  "マウスボタン：サイドボタン（戻る／進む）や中ボタンのクリック 1 回をアクションに割り当て。修飾キー 1 つを押している間だけに限定することも可能。",
+  "マウスの組み合わせ：右ボタン + 上／下スクロール、右 + 左クリック、右ボタンドラッグでスクロール、各ディスプレイの端での右クリックやスクロール。",
+  "トラックパッド描画：Fn、Control、Option、Shift、Command のうちちょうど 1 つを押したままポインタを動かして描く。",
+  "タッチジェスチャ（実験的）：内蔵トラックパッドで 40 種類。3〜5 本指のタップ、ダブルタップ、クリック、ダブルクリック、四方向スワイプ、2〜5 本指のピンチ、スプレッド、回転。",
+  "アクション：Mission Control、アプリケーションウインドウ、操作スペース、キーボードショートカット（Fn や連続キーを含む）、アプリを開く、URL を開く、メディアキー、ウインドウ操作、Shell、AppleScript。",
+  "範囲：グローバル、アプリグループ、特定のアプリ。最も具体的な範囲が優先。",
+  "スクロール強化：マウスホイールとトラックパッドを軸ごとに別々に反転、ノッチ式ホイールのスムーズ化。",
+  "ジェスチャの JSON 読み込み／書き出し、7 言語の UI、Sparkle によるアプリ内アップデート。",
+]
+recommend = [
+  "Mac でマウスジェスチャーを使いたい人、特に無料でオープンソースのアプリを探している人。",
+  "Windows でマウスジェスチャーに慣れていて、Mac でも右ボタンを押したまま描くジェスチャを使いたい人。",
+  "マウスのサイドボタンを、アプリごとに戻る／進むやショートカットに割り当てたい人。",
+  "複数指のトラックパッドジェスチャを無料でカスタマイズしたい人（実験的）。",
+]
+not_for = [
+  "Windows や Linux のユーザー：StrokeMouse は macOS 専用（macOS 14 以降）です。",
+  "キーボードのリマップ、Touch Bar のカスタマイズ、複雑な自動化チェーンが必要なユーザー。",
+  "macOS 13 以前のユーザー。",
+  "Apple の公証済みビルドを必須とする組織：リリースは自己署名で、公証を受けていません。",
+]

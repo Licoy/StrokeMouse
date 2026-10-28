@@ -11,7 +11,7 @@
 macOS 向けのマウス／トラックパッドジェスチャカスタムツールです。マウスボタンを押したまま軌跡を描く、修飾キーを 1 つ押したままトラックパッド描画する、または実験的な複数指タッチジェスチャを使えます。一致するとショートカット、アプリを開く、ウインドウ操作、メディアキー、Shell / AppleScript などを実行します。**グローバルまたは特定 App** に適用でき、ジェスチャ設定は**読み込み／書き出し**可能、ローカル実行でメニューバーに常駐します。
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 紹介動画" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/static/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 紹介動画" /></a>
   <br />
   <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ 1 分 42 秒の紹介動画を見る（動画内の文字は簡体字中国語）</a></sub>
 </p>
@@ -20,15 +20,15 @@ macOS 向けのマウス／トラックパッドジェスチャカスタムツ�
 
 | ジェスチャ設定一覧 | ジェスチャテスト |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/1.png" width="400" alt="ジェスチャ設定一覧" /> | <img src="website/docs/public/screenshots/2.png" width="400" alt="ジェスチャテスト" /> |
+| <img src="website/static/screenshots/1.png" width="400" alt="ジェスチャ設定一覧" /> | <img src="website/static/screenshots/2.png" width="400" alt="ジェスチャテスト" /> |
 
 | 一般設定 | 権限とエンジン状態 |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/3.png" width="400" alt="一般設定" /> | <img src="website/docs/public/screenshots/4.png" width="400" alt="権限とエンジン状態" /> |
+| <img src="website/static/screenshots/3.png" width="400" alt="一般設定" /> | <img src="website/static/screenshots/4.png" width="400" alt="権限とエンジン状態" /> |
 
 | 新規ジェスチャ · 軌跡の記録 | アプリ範囲 |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/5.png" width="400" alt="新規ジェスチャ · 軌跡の記録" /> | <img src="website/docs/public/screenshots/6.png" width="400" alt="アプリ範囲" /> |
+| <img src="website/static/screenshots/5.png" width="400" alt="新規ジェスチャ · 軌跡の記録" /> | <img src="website/static/screenshots/6.png" width="400" alt="アプリ範囲" /> |
 
 ## 機能
 

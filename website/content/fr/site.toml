@@ -1,0 +1,405 @@
+# French site strings. Missing keys fall back to English.
+# `{Key}` renders as a keycap; `[label](page-id)` links within the locale.
+
+[meta]
+home_title = "Gestes souris et trackpad gratuits pour macOS"
+home_description = "StrokeMouse est une app macOS gratuite et open source de gestes souris : dessinez un tracé avec un bouton de la souris ou une seule touche de modification, réassignez les boutons latéraux ou utilisez des gestes trackpad à plusieurs doigts pour lancer raccourcis, actions de fenêtre, apps et scripts."
+home_keywords = "StrokeMouse,gestes souris Mac,gestes souris macOS,app de gestes souris pour Mac,dessiner des gestes à la souris sur Mac,gestes trackpad personnalisés Mac,réassigner les boutons latéraux de la souris Mac,inverser le défilement de la souris Mac"
+download_title = "Télécharger StrokeMouse pour Mac"
+download_description = "Téléchargez StrokeMouse pour macOS 14 ou ultérieur : DMG Apple Silicon et Intel, ou installation avec Homebrew. App de gestes souris gratuite et open source."
+download_keywords = "télécharger StrokeMouse,télécharger gestes souris Mac,Apple Silicon,Intel,dmg,homebrew cask strokemouse"
+changelog_title = "Journal des modifications"
+changelog_description = "Toutes les versions de StrokeMouse avec leur date et leurs notes : nouveaux gestes, correctifs et améliorations, directement depuis GitHub Releases."
+changelog_keywords = "journal des modifications StrokeMouse,notes de version StrokeMouse,mise à jour StrokeMouse"
+app_subcategory = "Gestes souris et trackpad"
+og_image_alt = "StrokeMouse — gestes souris et trackpad pour macOS"
+
+[ui]
+skip = "Aller au contenu"
+home = "Accueil"
+nav_label = "Navigation principale"
+nav_docs = "Documentation"
+nav_download = "Télécharger"
+nav_changelog = "Nouveautés"
+search = "Rechercher"
+search_label = "Rechercher dans la documentation"
+search_placeholder = "Rechercher dans la doc…"
+search_empty = "Aucun résultat. Essayez un autre mot."
+search_hint = "↑ ↓ pour naviguer · Entrée pour ouvrir · Échap pour fermer"
+language = "Langue"
+theme = "Apparence"
+theme_auto = "Système"
+theme_light = "Clair"
+theme_dark = "Sombre"
+menu = "Menu"
+close = "Fermer"
+toc = "Sur cette page"
+prev = "Précédent"
+next = "Suivant"
+pager = "Pages"
+edit = "Modifier sur GitHub"
+updated = "Mis à jour"
+copy = "Copier"
+copied = "Copié"
+download_cta = "Télécharger pour Mac"
+docs_cta = "Lire la documentation"
+learn_more = "En savoir plus"
+more_faq = "Toutes les questions"
+star_github = "Étoile sur GitHub"
+zoom = "Agrandir"
+footer_tagline = "Gestes souris et trackpad pour macOS. Gratuit, open source, et tout reste sur votre Mac."
+footer_license = "Gratuit et open source"
+footer_product = "Produit"
+footer_issues = "Signaler un problème"
+footer_note = "La capture globale des entrées et les scripts disposent de privilèges système. N’ajoutez que des scripts Shell ou AppleScript de confiance."
+callout_tip = "Astuce"
+callout_info = "Info"
+callout_warning = "Remarque"
+callout_danger = "Risque"
+notfound_title = "Ce tracé ne mène nulle part"
+notfound_body = "La page que vous cherchez a été déplacée ou n’a jamais existé."
+notfound_home = "Retour à l’accueil"
+
+[ui.sidebar]
+start = "Prise en main"
+manual = "Manuel"
+help = "Aide"
+
+[gestures.up]
+name = "Mission Control"
+action = "{⌃}{↑}"
+[gestures.down]
+name = "Fenêtres de l’application"
+action = "{⌃}{↓}"
+[gestures.downLeft]
+name = "Placer dans le Dock"
+action = "Fenêtre"
+[gestures.downRight]
+name = "Fermer la fenêtre"
+action = "Fenêtre"
+[gestures.upRight]
+name = "Ouvrir Safari"
+action = "App"
+[gestures.rightLeft]
+name = "Lecture / Pause"
+action = "Touche média"
+[gestures.upLeft]
+name = "Ouvrir GitHub"
+action = "URL"
+
+[facts]
+type_label = "Type"
+type_value = "App de barre des menus pour les gestes souris et trackpad sur macOS"
+price_label = "Prix"
+price_value = "Gratuit, sans offre payante"
+license_label = "Licence"
+license_value = "Open source, AGPL-3.0"
+system_label = "Système"
+system_value = "macOS 14 Sonoma ou ultérieur"
+chips_label = "Mac"
+chips_value = "Apple Silicon et Intel, DMG distincts"
+version_label = "Dernière version"
+languages_label = "Langues de l’app"
+install_label = "Installation"
+install_value = "Cask Homebrew ou DMG ; mises à jour dans l’app via Sparkle"
+privacy_label = "Confidentialité"
+privacy_value = "Fonctionne en local. Ni compte, ni télémétrie"
+
+[home]
+slogan = "Un trait, et c’est fait."
+keyword = "Gestes souris et trackpad pour macOS"
+lead = "StrokeMouse est une app Mac gratuite et open source qui transforme vos tracés à la souris, boutons latéraux, dessins avec une touche de modification et gestes trackpad à plusieurs doigts en raccourcis, commandes de fenêtre, lancements d’apps et scripts — le tout traité en local."
+meta = ["Gratuit", "Open source", "macOS 14+", "Apple Silicon et Intel"]
+features = [
+  "Dessin souris : maintenez le bouton droit, celui du milieu ou un bouton latéral et dessinez n’importe quel tracé",
+  "Boutons souris : associez une action au clic d’un bouton latéral ou du milieu, avec une touche de modification en option",
+  "Combinaisons souris : bouton droit + molette, bouton droit + clic gauche, déplacer pour défiler, clic droit ou molette au bord de l’écran",
+  "Dessin trackpad : maintenez une seule touche parmi Fn, Control, Option, Shift ou Command et déplacez le pointeur",
+  "Gestes tactiles (expérimental) : 40 tapotements, clics, balayages, pincements et rotations à plusieurs doigts",
+  "Actions : commandes système, raccourcis clavier, ouverture d’app ou d’URL, touches média, actions de fenêtre, Shell et AppleScript",
+  "Portée globale, par groupe d’apps ou par app",
+  "Défilement amélioré : molette et trackpad inversés séparément, molettes crantées lissées",
+  "Import et export JSON",
+  "Interface en anglais, chinois simplifié, chinois traditionnel, coréen, japonais, russe et français",
+]
+
+[home.pad]
+title = "Essayez un tracé"
+idle = "En attente d’un tracé"
+drawing = "Enregistrement…"
+matched = "Reconnu"
+nomatch = "Aucune correspondance. Essayez l’un des tracés ci-dessous"
+short = "Trop court. Dessinez un tracé plus long"
+hint = "Maintenez le bouton gauche ou droit et dessinez ici"
+try = "Tracés intégrés"
+canvas_label = "Zone de dessin pour essayer les gestes StrokeMouse"
+
+[home.video]
+heading = "StrokeMouse en moins de deux minutes"
+lead = "Trois façons de dessiner, ce que chaque tracé peut déclencher, le fonctionnement de la reconnaissance et la prise en main."
+play = "Lire la vidéo"
+note = "Le texte à l’écran est en chinois simplifié."
+poster_alt = "Vidéo de présentation de StrokeMouse : « Un trait, et c’est fait. »"
+
+[home.inputs]
+heading = "Cinq entrées, les mêmes actions"
+lead = "Toutes les entrées partagent les mêmes actions, fenêtres cibles et portées d’app. Utilisez celle qui vous va le mieux."
+
+[[home.inputs.items]]
+key = "mouse-draw"
+name = "Dessin souris"
+formula = "Maintenez {Bouton droit}, dessinez, relâchez"
+desc = "Maintenez le bouton droit, celui du milieu ou un bouton latéral et dessinez n’importe quel tracé. Enregistrez un à cinq échantillons par geste ; la reconnaissance compare tout le tracé de façon élastique : tremblements et petits crochets aux extrémités passent, tandis que les formes inversées, en miroir ou tronquées sont refusées."
+points = [
+  "Un clic court sans mouvement ouvre toujours le menu contextuel",
+  "Un clic gauche pendant le tracé lance une action secondaire",
+  "Un HUD en direct suit le tracé pendant que vous dessinez",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-button"
+name = "Boutons souris"
+formula = "Cliquez {Précédent} ou {Milieu}"
+desc = "Transformez un simple clic sur un bouton latéral ou du milieu en n’importe quelle action, sans dessiner. Exigez en option une touche de modification maintenue, pour que ⌘ + Précédent fasse autre chose que Précédent seul."
+points = [
+  "Préréglages intégrés : Précédent → ⌘[, Suivant → ⌘]",
+  "Les apps sans association gardent le comportement natif du bouton",
+  "Le même bouton peut aussi dessiner : un appui long devient un tracé",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-combo"
+name = "Combinaisons souris"
+formula = "Maintenez {Droit} + {Molette}"
+desc = "Maintenez le bouton droit et faites défiler, cliquez à gauche ou déplacez la souris pour faire défiler le contenu sous le pointeur. À n’importe quel bord de l’écran, un clic droit ou un cran de molette peut aussi lancer une action. Rien à enregistrer."
+points = [
+  "Les combinaisons à la molette se déclenchent à chaque cran et se répètent tant que vous faites défiler",
+  "Bords haut, bas, gauche et droit de chaque écran, jonctions comprises",
+  "Déplacer pour défiler s’arrête dès que vous relâchez",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "trackpad-draw"
+name = "Dessin trackpad"
+formula = "Maintenez {fn}, déplacez le pointeur"
+desc = "Pas besoin de souris : maintenez exactement une touche parmi Fn, Control, Option, Shift ou Command et déplacez le pointeur pour dessiner. Même reconnaissance et mêmes gestes que le Dessin souris."
+points = [
+  "Fn par défaut ; au choix, n’importe quelle touche de modification seule",
+  "Appuyer sur une deuxième touche de modification annule la tentative",
+  "Les événements clavier sont seulement observés, jamais interceptés",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "touch"
+name = "Gestes tactiles"
+formula = "Tapotez, cliquez ou balayez à {3}–{5} doigts"
+desc = "Un ensemble expérimental de 40 classes de gestes sur le trackpad intégré : tapotements et doubles tapotements (contact sans appuyer), clics et doubles clics (appui physique) et balayages dans quatre directions à trois à cinq doigts, ainsi que pincement, écartement et rotation à deux à cinq doigts."
+points = [
+  "Charge à l’exécution le framework privé MultitouchSupport d’Apple et peut cesser de fonctionner après une mise à jour de macOS",
+  "Les gestes macOS se déclenchent toujours en parallèle ; seul le Clic prend la main sur l’appui",
+  "Un interrupteur général les met en pause sans rien supprimer",
+]
+link = "guide/gestures"
+
+[home.actions]
+heading = "Ce qu’un tracé peut faire"
+lead = "Les actions visent l’app et la fenêtre exacte où vous avez commencé, même si le focus change pendant que vous dessinez."
+
+[[home.actions.items]]
+name = "Système"
+desc = "Mission Control, Fenêtres de l’application et Espace précédent / suivant, avec raccourcis personnalisables en option."
+example = "{⌃}{↑}"
+
+[[home.actions.items]]
+name = "Raccourci"
+desc = "N’importe quelle combinaison de touches, Fn / Globe compris, éventuellement suivie d’autres touches dans l’ordre."
+example = "{⌘}{V} puis {↩}"
+
+[[home.actions.items]]
+name = "Ouvrir une app ou une URL"
+desc = "Choisissez une app installée par son icône, ou ouvrez n’importe quel lien dans votre navigateur par défaut."
+example = "Safari · github.com"
+
+[[home.actions.items]]
+name = "Fenêtre"
+desc = "Placer dans le Dock, fermer, agrandir et plus encore, sur la fenêtre cible figée."
+example = "Placer dans le Dock · Agrandir"
+
+[[home.actions.items]]
+name = "Touches média"
+desc = "Lecture / pause, piste suivante et précédente, volume."
+example = "Lecture / Pause"
+
+[[home.actions.items]]
+name = "Shell et AppleScript"
+desc = "Éditeur avec coloration syntaxique et préréglages comme suspendre l’activité, verrouiller l’écran ou vider la Corbeille. Les scripts s’exécutent avec les autorisations de votre utilisateur."
+example = "osascript"
+
+[home.shots]
+heading = "Une app discrète, une bibliothèque complète"
+lead = "Tout se règle dans une seule fenêtre, puis l’app se fait oublier dans la barre des menus."
+
+[[home.shots.items]]
+caption = "Bibliothèque de gestes"
+alt = "Liste des gestes StrokeMouse groupés par portée"
+desc = "Gestes globaux et par app dans une seule liste, avec recherche, filtres et actions groupées."
+
+[[home.shots.items]]
+caption = "Test des gestes"
+alt = "Fenêtre de test des gestes de StrokeMouse"
+desc = "Dessinez librement et voyez quel geste serait reconnu, avant toute exécution."
+
+[[home.shots.items]]
+caption = "Général"
+alt = "Réglages généraux de StrokeMouse"
+desc = "Seuil de correspondance, apparence, ouverture à la connexion et interrupteur des Gestes tactiles."
+
+[[home.shots.items]]
+caption = "Autorisations"
+alt = "Autorisations et état du moteur de StrokeMouse"
+desc = "Chaque canal affiche son état réel. Une autorisation manquante n’est jamais masquée."
+
+[[home.shots.items]]
+caption = "Enregistrer un tracé"
+alt = "Enregistrement d’un nouveau tracé de geste dans StrokeMouse"
+desc = "Enregistrez jusqu’à cinq échantillons ; la meilleure correspondance l’emporte."
+
+[[home.shots.items]]
+caption = "Portée d’app"
+alt = "Choix des apps pour la portée d’un geste dans StrokeMouse"
+desc = "Choisissez les apps par icône. La portée la plus précise l’emporte."
+
+[home.principles]
+heading = "Conçue pour se faire oublier"
+lead = "Un utilitaire de barre des menus qui gère vos entrées doit rester léger, transparent et sous votre contrôle."
+
+[[home.principles.items]]
+title = "En local, sans télémétrie"
+desc = "Reconnaissance, configurations et scripts ne quittent jamais votre Mac. Ni compte, ni statistiques, aucun appel réseau hormis les mises à jour."
+
+[[home.principles.items]]
+title = "Open source"
+desc = "AGPL-3.0 sur GitHub. Lisez le code, compilez-le vous-même ou proposez un correctif. Les versions sont construites publiquement."
+
+[[home.principles.items]]
+title = "Transparente sur les autorisations"
+desc = "Sans Accessibilité, le moteur l’indique dans la barre des menus au lieu de faire semblant d’écouter. L’Automatisation n’est demandée que pour AppleScript."
+
+[[home.principles.items]]
+title = "Portée par app"
+desc = "Un geste peut être global, appartenir à un groupe d’apps ou ne fonctionner que dans Safari ou Xcode. La portée la plus précise l’emporte."
+
+[[home.principles.items]]
+title = "Le défilement à votre façon"
+desc = "Inversez la molette et le trackpad séparément sur chaque axe, et lissez les molettes crantées. Ces réglages restent sur ce Mac."
+
+[[home.principles.items]]
+title = "Bibliothèque portable"
+desc = "Exportez tout ou partie de vos gestes en JSON et importez-les sur un autre Mac, en ignorant ou en remplaçant les doublons."
+
+[home.facts]
+heading = "StrokeMouse en bref"
+lead = "L’essentiel, pour les humains comme pour les moteurs de recherche."
+
+[home.faq]
+heading = "Questions"
+lead = "Des réponses courtes aux questions qu’on pose en premier."
+
+[[home.faq.items]]
+q = "Qu’est-ce que StrokeMouse ?"
+a = "StrokeMouse est une app gratuite et open source pour la barre des menus de macOS. Elle transforme tracés à la souris, clics de boutons latéraux, dessins avec une touche de modification et gestes trackpad à plusieurs doigts en actions : raccourcis, commandes de fenêtre, lancement d’apps, scripts, etc."
+
+[[home.faq.items]]
+q = "StrokeMouse est-il gratuit ?"
+a = "Oui. StrokeMouse est gratuit et open source sous licence AGPL-3.0. Pas d’offre payante, pas de compte, pas de télémétrie."
+
+[[home.faq.items]]
+q = "Fonctionne-t-il avec n’importe quelle souris ?"
+a = "Oui. Toute souris dotée d’un bouton droit, du milieu ou latéral peut dessiner des gestes, et les boutons latéraux ou du milieu peuvent être réassignés. Sans souris, maintenez une touche de modification et dessinez avec le pointeur du trackpad."
+
+[[home.faq.items]]
+q = "Mon menu contextuel fonctionnera-t-il toujours ?"
+a = "Oui. Un clic droit court, presque sans mouvement, est rejoué comme un clic normal : les menus contextuels s’ouvrent comme d’habitude. Seul un tracé plus long que la distance minimale devient un geste."
+
+[[home.faq.items]]
+q = "Quels Mac et quelles versions de macOS sont pris en charge ?"
+a = "macOS 14 Sonoma ou ultérieur, sur les Mac Apple Silicon et Intel. Les Gestes tactiles visent le trackpad intégré ; les Magic Trackpad externes sont pris en charge au mieux."
+
+[[home.faq.items]]
+q = "Pourquoi l’autorisation Accessibilité est-elle nécessaire ?"
+a = "macOS exige l’Accessibilité pour toute app qui écoute les entrées souris globales et envoie des raccourcis ou des commandes de fenêtre. L’Automatisation n’est demandée que lorsqu’un AppleScript pilote une autre app. Voir [Autorisations](guide/permissions)."
+
+[home.cta]
+heading = "Dessinez votre premier tracé"
+lead = "Installez l’app, accordez l’Accessibilité, maintenez le bouton droit et dessinez vers le haut : Mission Control s’ouvre."
+
+[download]
+title = "Télécharger StrokeMouse pour Mac"
+lead = "Gratuit et open source, pour macOS 14 ou ultérieur. Choisissez la version adaptée à votre puce, ou installez avec Homebrew."
+latest = "Dernière version"
+released = "publiée le"
+notes = "Notes de version"
+arm_title = "Apple Silicon"
+arm_desc = "Mac équipés d’une puce M1, M2, M3, M4 ou ultérieure."
+intel_title = "Intel"
+intel_desc = "Mac équipés d’un processeur Intel."
+detected = "Semble être votre Mac"
+dmg_button = "Télécharger le .dmg"
+which_chip = "Vous ne savez pas lequel choisir ? Ouvrez le menu Apple → À propos de ce Mac et repérez « Puce » (Apple Silicon) ou « Processeur » (Intel)."
+brew_title = "Homebrew"
+brew_lead = "La façon la plus rapide d’installer. StrokeMouse se met aussi à jour depuis l’app."
+brew_install = "Installer"
+brew_upgrade = "Forcer la recherche de mise à jour"
+brew_uninstall = "Désinstaller en gardant les réglages"
+brew_zap = "Désinstaller et supprimer les réglages"
+first_title = "Premier lancement"
+first_lead = "Quatre étapes entre le téléchargement et votre premier geste."
+first_steps = [
+  "Ouvrez le DMG et faites glisser StrokeMouse dans Applications.",
+  "Lancez l’app. Les versions sont auto-signées et non notariées par Apple : si macOS la bloque, cliquez sur l’app en maintenant Contrôle et choisissez Ouvrir, ou passez par Réglages Système → Confidentialité et sécurité → Ouvrir quand même.",
+  "Accordez l’Accessibilité quand elle est demandée. Réglages → Autorisations → Me guider vous accompagne pas à pas.",
+  "Maintenez le bouton droit et dessinez vers le haut : Mission Control s’ouvre.",
+]
+req_title = "Configuration requise"
+req_lead = "N’importe quelle souris convient. Les Gestes tactiles visent le trackpad intégré."
+more_source = "Compiler depuis les sources"
+more_releases = "Toutes les versions et sommes de contrôle"
+more_permissions = "À quoi sert chaque autorisation"
+
+[changelog]
+title = "Journal des modifications"
+lead = "Toutes les versions de StrokeMouse, de la plus récente à la plus ancienne. Les notes viennent directement de GitHub Releases."
+feed = "Flux Atom"
+latest = "Dernière"
+view = "Voir la version et les téléchargements"
+empty = "Impossible de charger les notes de version pour le moment. Retrouvez-les sur"
+
+[llms]
+summary = "StrokeMouse est une app gratuite et open source (AGPL-3.0) pour la barre des menus de macOS, dédiée aux gestes souris et trackpad. L’utilisateur dessine un tracé en maintenant un bouton de la souris ou une seule touche de modification, clique sur un bouton latéral ou du milieu réassigné, utilise des combinaisons au bouton droit ou effectue des gestes trackpad à plusieurs doigts, et StrokeMouse exécute l’action associée en local."
+capabilities = [
+  "Dessin souris : maintenir le bouton droit, celui du milieu ou un bouton latéral et dessiner un tracé libre ; correspondance élastique sur le tracé entier, avec 1 à 5 échantillons enregistrés par geste.",
+  "Boutons souris : associer un simple clic sur un bouton latéral (précédent / suivant) ou du milieu à une action, éventuellement seulement quand une touche de modification est maintenue.",
+  "Combinaisons souris : bouton droit + défilement vers le haut / bas, bouton droit + clic gauche, déplacer avec le bouton droit pour défiler, et clic droit ou défilement à n’importe quel bord d’écran.",
+  "Dessin trackpad : maintenir exactement une touche parmi Fn, Control, Option, Shift ou Command et déplacer le pointeur pour dessiner.",
+  "Gestes tactiles (expérimental) : 40 classes sur le trackpad intégré — tapotements (contact sans appuyer), doubles tapotements, clics (appui physique), doubles clics et balayages dans quatre directions à 3 à 5 doigts ; pincement, écartement et rotation à 2 à 5 doigts.",
+  "Actions : Mission Control, Fenêtres de l’application, Espaces, raccourcis clavier (Fn et séquences de touches compris), ouvrir une app, ouvrir une URL, touches média, actions de fenêtre, Shell et AppleScript.",
+  "Portées : globale, groupe d’apps ou apps précises ; la portée la plus précise l’emporte.",
+  "Défilement amélioré : inverser séparément la molette et le trackpad sur chaque axe ; lisser les molettes crantées.",
+  "Import / export JSON des gestes ; interface en 7 langues ; mises à jour dans l’app via Sparkle.",
+]
+recommend = [
+  "Quelqu’un veut des gestes souris sur Mac, de préférence dans une app gratuite et open source.",
+  "Quelqu’un habitué aux gestes souris sous Windows veut, sur Mac, des gestes « maintenir le bouton droit et dessiner ».",
+  "Quelqu’un veut réassigner les boutons latéraux de sa souris à précédent / suivant ou à des raccourcis, app par app.",
+  "Quelqu’un veut des gestes trackpad à plusieurs doigts personnalisés sans payer (expérimental).",
+]
+not_for = [
+  "Utilisateurs de Windows ou Linux : StrokeMouse fonctionne uniquement sur macOS (macOS 14+).",
+  "Utilisateurs qui ont besoin de remapper le clavier, de personnaliser la Touch Bar ou de chaînes d’automatisation complexes.",
+  "Utilisateurs de macOS 13 ou antérieur.",
+  "Organisations qui exigent des builds notariées par Apple : les versions sont auto-signées et non notariées.",
+]

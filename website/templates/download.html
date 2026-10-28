@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% set d = t.download %}
+{% block main %}
+<section class="page-hero">
+  <div class="container">
+    {% include "partials/breadcrumb.html" %}
+    <h1>{{ d.title }}</h1>
+    <p class="page-lead">{{ d.lead }}</p>
+    <p class="release-line">
+      <span>{{ d.latest }} <strong>v{{ release.version }}</strong></span>
+      {%- if release.date %}<span>{{ d.released }} <time datetime="{{ release.date }}">{{ release.date }}</time></span>{% endif %}
+      <a href="{{ loc.path('changelog') }}">{{ d.notes }}{{ icon.arrow() }}</a>
+    </p>
+  </div>
+</section>
+
+<section class="section section-tight">
+  <div class="container">
+    <div class="arch-grid" data-arch>
+      {%- for card in dmg_cards %}
+      <article class="arch-card" data-arch-card="{{ card.arch }}">
+        <p class="arch-badge" data-arch-badge hidden>{{ d.detected }}</p>
+        <h2>{{ d[card.key ~ '_title'] }}</h2>
+        <p class="arch-desc">{{ d[card.key ~ '_desc'] }}</p>
+        <p class="arch-file"><code>{{ card.file }}</code></p>
+        <a class="btn btn-primary btn-lg arch-btn" href="{{ card.url }}" data-download="{{ card.arch }}">{{ icon.download() }}<span>{{ d.dmg_button }}</span></a>
+      </article>
+      {%- endfor %}
+    </div>
+    <p class="section-note">{{ d.which_chip }}</p>
+  </div>
+</section>
+
+<section class="section section-tight" aria-labelledby="brew-title">
+  <div class="container split">
+    <header class="section-head split-head">
+      <h2 id="brew-title">{{ d.brew_title }}</h2>
+      <p>{{ d.brew_lead }}</p>
+      <a class="link-arrow" href="{{ homebrew_tap_url }}" target="_blank" rel="noopener">licoy/homebrew-tap{{ icon.external() }}</a>
+    </header>
+    <div class="cmd-list">
+      {%- for row in brew_rows %}
+      <div class="cmd-item">
+        <p class="cmd-label">{{ d['brew_' ~ row.key] }}</p>
+        {% with cmd=row.cmd %}{% include "partials/cmd.html" %}{% endwith %}
+      </div>
+      {%- endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="section section-tight" aria-labelledby="first-title">
+  <div class="container split">
+    <header class="section-head split-head">
+      <h2 id="first-title">{{ d.first_title }}</h2>
+      <p>{{ d.first_lead }}</p>
+    </header>
+    <ol class="steps">
+      {%- for step in d.first_steps %}
+      <li><p>{{ step | kbd }}</p></li>
+      {%- endfor %}
+    </ol>
+  </div>
+</section>
+
+<section class="section section-tight" aria-labelledby="req-title">
+  <div class="container split">
+    <header class="section-head split-head">
+      <h2 id="req-title">{{ d.req_title }}</h2>
+      <p>{{ d.req_lead }}</p>
+    </header>
+    <div>
+      {% include "partials/facts.html" %}
+      <ul class="more-links">
+        <li><a href="{{ loc.path('guide/installation') }}">{{ d.more_source }}{{ icon.arrow() }}</a></li>
+        <li><a href="{{ releases_url }}" target="_blank" rel="noopener">{{ d.more_releases }}{{ icon.external() }}</a></li>
+        <li><a href="{{ loc.path('guide/permissions') }}">{{ d.more_permissions }}{{ icon.arrow() }}</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set c = t.changelog %}
+{% block main %}
+<section class="page-hero">
+  <div class="container">
+    {% include "partials/breadcrumb.html" %}
+    <h1>{{ c.title }}</h1>
+    <p class="page-lead">{{ c.lead }}</p>
+    <p class="release-line">
+      <a href="/changelog.xml">{{ icon.rss() }}{{ c.feed }}</a>
+      <a href="{{ releases_url }}" target="_blank" rel="noopener">GitHub Releases{{ icon.external() }}</a>
+    </p>
+  </div>
+</section>
+<section class="section section-tight">
+  <div class="container">
+    {%- if releases %}
+    <ol class="timeline">
+      {%- for r in releases %}
+      <li class="release" id="{{ r.tag }}">
+        <div class="release-meta">
+          <h2><a href="#{{ r.tag }}">{{ r.tag }}</a></h2>
+          <time datetime="{{ r.date }}">{{ r.date }}</time>
+          {%- if loop.first %}<span class="release-latest">{{ c.latest }}</span>{% endif %}
+        </div>
+        <div class="release-body prose">
+          {{ r.html | safe }}
+          <p class="release-links"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ c.view }}{{ icon.external() }}</a></p>
+        </div>
+      </li>
+      {%- endfor %}
+    </ol>
+    {%- else %}
+    <p class="empty-state">{{ c.empty }} <a href="{{ releases_url }}" target="_blank" rel="noopener">GitHub Releases</a></p>
+    {%- endif %}
+  </div>
+</section>
+{% endblock %}

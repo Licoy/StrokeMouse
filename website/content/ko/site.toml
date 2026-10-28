@@ -1,0 +1,405 @@
+# Korean site strings. Missing keys fall back to English.
+# `{Key}` renders as a keycap; `[label](page-id)` links within the locale.
+
+[meta]
+home_title = "무료 Mac 마우스 제스처·트랙패드 제스처 앱"
+home_description = "StrokeMouse는 무료 오픈소스 macOS 마우스 제스처 앱입니다. 마우스 버튼이나 수정 키 하나를 누른 채 궤적을 그리고, 측면 버튼을 매핑하고, 여러 손가락 트랙패드 제스처로 단축키, 윈도우 동작, 앱 실행, 스크립트를 실행하세요."
+home_keywords = "StrokeMouse,맥 마우스 제스처,Mac 마우스 제스처,macOS 마우스 제스처 앱,마우스로 제스처 그리기,맥 트랙패드 제스처 설정,트랙패드 제스처,마우스 측면 버튼 매핑,맥 마우스 스크롤 반전"
+download_title = "StrokeMouse Mac용 다운로드"
+download_description = "macOS 14 이상용 StrokeMouse를 다운로드하세요. Apple Silicon·Intel DMG 또는 Homebrew로 설치할 수 있는 무료 오픈소스 마우스 제스처 앱입니다."
+download_keywords = "StrokeMouse 다운로드,맥 마우스 제스처 다운로드,Mac 마우스 제스처 무료,Apple Silicon,Intel,dmg,homebrew cask strokemouse"
+changelog_title = "변경 내역"
+changelog_description = "StrokeMouse의 모든 릴리스 날짜와 노트: 새 제스처, 수정 사항, 개선 사항을 GitHub Releases에서 그대로 가져옵니다."
+changelog_keywords = "StrokeMouse 변경 내역,StrokeMouse 릴리스 노트,StrokeMouse 업데이트"
+app_subcategory = "마우스·트랙패드 제스처"
+og_image_alt = "StrokeMouse — macOS용 마우스·트랙패드 제스처"
+
+[ui]
+skip = "본문으로 건너뛰기"
+home = "홈"
+nav_label = "주 메뉴"
+nav_docs = "문서"
+nav_download = "다운로드"
+nav_changelog = "변경 내역"
+search = "검색"
+search_label = "문서 검색"
+search_placeholder = "문서 검색…"
+search_empty = "결과가 없습니다. 다른 단어로 검색해 보세요."
+search_hint = "↑ ↓ 이동 · Enter 열기 · Esc 닫기"
+language = "언어"
+theme = "화면 모드"
+theme_auto = "시스템"
+theme_light = "라이트"
+theme_dark = "다크"
+menu = "메뉴"
+close = "닫기"
+toc = "이 페이지에서"
+prev = "이전"
+next = "다음"
+pager = "페이지"
+edit = "GitHub에서 편집"
+updated = "업데이트"
+copy = "복사"
+copied = "복사됨"
+download_cta = "Mac용 다운로드"
+docs_cta = "문서 보기"
+learn_more = "자세히 보기"
+more_faq = "모든 질문"
+star_github = "GitHub에서 Star"
+zoom = "확대"
+footer_tagline = "macOS용 마우스·트랙패드 제스처. 무료 오픈소스이며, 모든 처리는 내 Mac 안에서 끝납니다."
+footer_license = "무료 오픈소스"
+footer_product = "제품"
+footer_issues = "문제 신고"
+footer_note = "전역 입력과 스크립트는 시스템 수준의 권한을 가집니다. 신뢰할 수 있는 Shell이나 AppleScript만 추가하세요."
+callout_tip = "팁"
+callout_info = "정보"
+callout_warning = "참고"
+callout_danger = "위험"
+notfound_title = "이 획은 아무 데도 닿지 않았습니다"
+notfound_body = "찾는 페이지가 이동했거나 존재하지 않습니다."
+notfound_home = "홈으로 돌아가기"
+
+[ui.sidebar]
+start = "시작하기"
+manual = "사용 설명서"
+help = "도움말"
+
+[gestures.up]
+name = "Mission Control"
+action = "{⌃}{↑}"
+[gestures.down]
+name = "응용 프로그램 윈도우"
+action = "{⌃}{↓}"
+[gestures.downLeft]
+name = "윈도우 최소화"
+action = "윈도우"
+[gestures.downRight]
+name = "윈도우 닫기"
+action = "윈도우"
+[gestures.upRight]
+name = "Safari 열기"
+action = "앱"
+[gestures.rightLeft]
+name = "재생 / 일시 정지"
+action = "미디어 키"
+[gestures.upLeft]
+name = "GitHub 열기"
+action = "URL"
+
+[facts]
+type_label = "종류"
+type_value = "macOS 메뉴 막대용 마우스·트랙패드 제스처 앱"
+price_label = "가격"
+price_value = "무료, 유료 버전 없음"
+license_label = "라이선스"
+license_value = "오픈소스, AGPL-3.0"
+system_label = "시스템"
+system_value = "macOS 14 Sonoma 이상"
+chips_label = "지원 Mac"
+chips_value = "Apple Silicon과 Intel, DMG 별도 제공"
+version_label = "최신 버전"
+languages_label = "앱 언어"
+install_label = "설치"
+install_value = "Homebrew cask 또는 DMG, Sparkle로 앱 내 업데이트"
+privacy_label = "개인정보"
+privacy_value = "로컬에서 실행, 계정·원격 측정 없음"
+
+[home]
+slogan = "한 획이면, 바로."
+keyword = "macOS용 마우스·트랙패드 제스처"
+lead = "StrokeMouse는 마우스 궤적, 측면 버튼, 수정 키 그리기, 여러 손가락 트랙패드 제스처를 단축키, 윈도우 명령, 앱 실행, 스크립트로 바꿔 주는 무료 오픈소스 Mac 앱입니다. 모든 처리는 로컬에서 이루어집니다."
+meta = ["무료", "오픈소스", "macOS 14+", "Apple Silicon & Intel"]
+features = [
+  "마우스 그리기: 오른쪽, 가운데 또는 측면 버튼을 누른 채 원하는 경로를 그리기",
+  "마우스 버튼: 측면이나 가운데 버튼 클릭에 동작을 매핑, 수정 키 하나와 함께 쓰기도 가능",
+  "마우스 조합: 오른쪽 버튼 + 스크롤, 오른쪽 + 왼쪽 클릭, 드래그 스크롤, 화면 가장자리 오른쪽 클릭·스크롤",
+  "트랙패드 그리기: Fn, Control, Option, Shift, Command 중 하나를 누른 채 포인터 이동",
+  "터치 제스처(실험적): 여러 손가락 탭, 클릭, 스와이프, 핀치, 회전 등 40종",
+  "동작: 시스템 명령, 키보드 단축키, 앱·URL 열기, 미디어 키, 윈도우 동작, Shell과 AppleScript",
+  "전역, 앱 그룹, 앱별 범위",
+  "스크롤 향상: 마우스 휠과 트랙패드를 따로 반전, 일반 휠 부드러운 스크롤",
+  "JSON 가져오기와 내보내기",
+  "영어, 중국어 간체, 중국어 번체, 한국어, 일본어, 러시아어, 프랑스어 인터페이스",
+]
+
+[home.pad]
+title = "직접 그려 보세요"
+idle = "궤적을 기다리는 중"
+drawing = "기록 중…"
+matched = "일치"
+nomatch = "일치하는 제스처가 없습니다. 아래 궤적 중 하나를 그려 보세요"
+short = "너무 짧습니다. 더 길게 그려 보세요"
+hint = "왼쪽이나 오른쪽 버튼을 누른 채 여기에 그리세요"
+try = "기본 궤적"
+canvas_label = "StrokeMouse 제스처를 체험하는 그리기 영역"
+
+[home.video]
+heading = "2분 안에 보는 StrokeMouse"
+lead = "세 가지 그리기 방식, 각 궤적으로 실행할 수 있는 것, 인식 원리와 시작 방법을 소개합니다."
+play = "영상 재생"
+note = "영상 속 텍스트는 중국어 간체입니다."
+poster_alt = "StrokeMouse 소개 영상: 한 획이면, 바로."
+
+[home.inputs]
+heading = "다섯 가지 입력, 하나의 동작 세트"
+lead = "모든 입력이 같은 동작, 대상 윈도우, 앱 범위를 공유합니다. 손에 맞는 방식을 고르세요."
+
+[[home.inputs.items]]
+key = "mouse-draw"
+name = "마우스 그리기"
+formula = "{오른쪽 버튼}을 누른 채 그리고 놓기"
+desc = "오른쪽, 가운데 또는 측면 버튼을 누른 채 원하는 경로를 그립니다. 제스처마다 샘플을 1–5개 기록할 수 있고, 궤적 전체를 탄력적으로 비교하므로 손떨림이나 끝부분의 작은 갈고리는 통과하고 반대 방향, 좌우 반전, 중간에 끊긴 모양은 거부합니다."
+points = [
+  "움직이지 않고 짧게 클릭하면 컨텍스트 메뉴가 그대로 열림",
+  "그리는 도중 왼쪽 버튼을 클릭하면 보조 동작 실행",
+  "그리는 동안 실시간 HUD가 궤적을 표시",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-button"
+name = "마우스 버튼"
+formula = "{뒤로} 또는 {가운데} 클릭"
+desc = "그리지 않고 측면이나 가운데 버튼을 한 번 클릭하는 것만으로 원하는 동작을 실행합니다. 수정 키 하나를 함께 누르도록 지정하면 ⌘ + 뒤로와 뒤로 단독에 서로 다른 동작을 줄 수 있습니다."
+points = [
+  "기본 프리셋: 뒤로 → ⌘[, 앞으로 → ⌘]",
+  "매핑이 없는 앱에서는 버튼의 기본 동작 유지",
+  "같은 버튼으로 그리기도 가능: 누른 채 움직이면 궤적으로 처리",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "mouse-combo"
+name = "마우스 조합"
+formula = "{오른쪽}을 누른 채 {스크롤}"
+desc = "오른쪽 버튼을 누른 채 스크롤하거나, 왼쪽 버튼을 클릭하거나, 드래그해 포인터 아래 콘텐츠를 스크롤합니다. 화면 가장자리에서 오른쪽 클릭이나 휠 한 칸으로도 동작을 실행할 수 있습니다. 궤적을 녹화할 필요가 없습니다."
+points = [
+  "휠 조합은 한 칸마다 한 번 실행되고 스크롤하는 동안 반복",
+  "모든 디스플레이의 위, 아래, 왼쪽, 오른쪽 가장자리, 이음새 포함",
+  "드래그 스크롤은 버튼을 놓는 즉시 멈춤",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "trackpad-draw"
+name = "트랙패드 그리기"
+formula = "{fn}을 누른 채 포인터 이동"
+desc = "마우스 없이도 됩니다. Fn, Control, Option, Shift, Command 중 정확히 하나를 누른 채 포인터를 움직여 그리면 마우스 그리기와 같은 인식과 같은 제스처를 사용합니다."
+points = [
+  "기본값은 Fn이며 다른 수정 키 하나로 변경 가능",
+  "두 번째 수정 키를 누르면 이번 시도가 취소됨",
+  "키보드 이벤트는 감시만 하고 가로채지 않음",
+]
+link = "guide/gestures"
+
+[[home.inputs.items]]
+key = "touch"
+name = "터치 제스처"
+formula = "{3}–{5}손가락 탭, 클릭, 스와이프"
+desc = "내장 트랙패드에서 쓰는 실험적 제스처 40종입니다. 3–5손가락 탭, 이중 탭, 클릭, 이중 클릭, 네 방향 스와이프와 2–5손가락 핀치, 펼치기, 회전을 지원합니다."
+points = [
+  "Apple의 비공개 MultitouchSupport를 런타임에 로드하므로 macOS 업데이트 후 동작이 멈출 수 있음",
+  "macOS 제스처도 함께 실행되며, 클릭만 누르는 입력을 가져감",
+  "마스터 스위치 하나로 아무것도 삭제하지 않고 일시 중지",
+]
+link = "guide/gestures"
+
+[home.actions]
+heading = "한 획으로 할 수 있는 일"
+lead = "그리는 동안 포커스가 바뀌어도, 동작은 시작한 앱과 정확히 그 윈도우를 대상으로 실행됩니다."
+
+[[home.actions.items]]
+name = "시스템"
+desc = "Mission Control, 응용 프로그램 윈도우, 이전 / 다음 Space. 연결된 단축키를 직접 지정할 수도 있습니다."
+example = "{⌃}{↑}"
+
+[[home.actions.items]]
+name = "단축키"
+desc = "Fn / Globe를 포함한 모든 키 조합. 이어서 순서대로 누를 키를 더 추가할 수 있습니다."
+example = "{⌘}{V} 다음 {↩}"
+
+[[home.actions.items]]
+name = "앱·URL 열기"
+desc = "설치된 앱을 아이콘으로 고르거나, 기본 브라우저에서 원하는 링크를 엽니다."
+example = "Safari · github.com"
+
+[[home.actions.items]]
+name = "윈도우"
+desc = "최소화, 닫기, 최대화 등을 고정된 대상 윈도우에 적용합니다."
+example = "최소화 · 최대화"
+
+[[home.actions.items]]
+name = "미디어 키"
+desc = "재생 / 일시 정지, 다음·이전 트랙, 볼륨."
+example = "재생 / 일시 정지"
+
+[[home.actions.items]]
+name = "Shell & AppleScript"
+desc = "구문 강조 편집기와 잠자기, 화면 잠금, 휴지통 비우기 등 프리셋을 제공합니다. 스크립트는 현재 사용자 권한으로 실행됩니다."
+example = "osascript"
+
+[home.shots]
+heading = "조용하지만 갖출 건 다 갖춘 앱"
+lead = "한 창에서 모두 설정하고, 그 뒤로는 메뉴 막대에 머뭅니다."
+
+[[home.shots.items]]
+caption = "제스처 라이브러리"
+alt = "범위별로 묶인 StrokeMouse 제스처 목록"
+desc = "전역 제스처와 앱별 제스처를 한 목록에서 검색, 필터, 일괄 작업으로 관리합니다."
+
+[[home.shots.items]]
+caption = "제스처 테스트"
+alt = "StrokeMouse 제스처 테스트 창"
+desc = "실행하기 전에 자유롭게 그려 보고 어떤 제스처와 일치하는지 확인합니다."
+
+[[home.shots.items]]
+caption = "일반"
+alt = "StrokeMouse 일반 설정"
+desc = "일치 임계값, 화면 모드, 로그인 시 시작, 터치 제스처 스위치."
+
+[[home.shots.items]]
+caption = "권한"
+alt = "StrokeMouse 권한 및 엔진 상태"
+desc = "모든 채널이 실제 상태를 보여 주며, 권한 누락을 숨기지 않습니다."
+
+[[home.shots.items]]
+caption = "궤적 녹화"
+alt = "StrokeMouse에서 새 제스처 궤적 녹화"
+desc = "샘플을 최대 5개까지 녹화하고, 가장 잘 맞는 샘플로 판정합니다."
+
+[[home.shots.items]]
+caption = "앱 범위"
+alt = "StrokeMouse에서 제스처 범위에 적용할 앱 선택"
+desc = "아이콘으로 앱을 고릅니다. 가장 구체적인 범위가 우선합니다."
+
+[home.principles]
+heading = "방해하지 않도록 만들었습니다"
+lead = "입력을 다루는 메뉴 막대 유틸리티라면 작고, 정직하고, 온전히 내 것이어야 합니다."
+
+[[home.principles.items]]
+title = "로컬 처리, 원격 측정 없음"
+desc = "인식, 구성, 스크립트는 Mac 밖으로 나가지 않습니다. 계정도 분석도 없고, 업데이트 외에는 네트워크를 쓰지 않습니다."
+
+[[home.principles.items]]
+title = "오픈소스"
+desc = "GitHub에서 AGPL-3.0으로 공개됩니다. 코드를 읽고, 직접 빌드하고, 수정 사항을 보내 주세요. 릴리스도 공개적으로 빌드합니다."
+
+[[home.principles.items]]
+title = "권한에 정직하게"
+desc = "손쉬운 사용 권한이 없으면 감시 중인 척하지 않고 메뉴 막대에 그대로 알립니다. 자동화 권한은 AppleScript에만 요청합니다."
+
+[[home.principles.items]]
+title = "앱별 범위"
+desc = "제스처를 전역, 앱 그룹, 또는 Safari나 Xcode 전용으로 둘 수 있습니다. 가장 구체적인 범위가 우선합니다."
+
+[[home.principles.items]]
+title = "원하는 대로 스크롤"
+desc = "휠과 트랙패드를 축마다 따로 반전하고, 일반 휠을 부드럽게 스크롤합니다. 이 설정은 이 Mac에만 저장됩니다."
+
+[[home.principles.items]]
+title = "어디서나 쓰는 라이브러리"
+desc = "제스처 일부 또는 전체를 JSON으로 내보내 다른 Mac에서 가져오고, 중복 항목은 건너뛰거나 대체합니다."
+
+[home.facts]
+heading = "StrokeMouse 한눈에 보기"
+lead = "사람과 검색 엔진 모두를 위한 요약입니다."
+
+[home.faq]
+heading = "자주 묻는 질문"
+lead = "가장 먼저 궁금해하는 것들에 대한 짧은 답변입니다."
+
+[[home.faq.items]]
+q = "StrokeMouse는 무엇인가요?"
+a = "StrokeMouse는 마우스 궤적, 측면 버튼 클릭, 수정 키 그리기, 여러 손가락 트랙패드 제스처를 단축키, 윈도우 명령, 앱 실행, 스크립트 같은 동작으로 바꿔 주는 무료 오픈소스 macOS 메뉴 막대 앱입니다."
+
+[[home.faq.items]]
+q = "StrokeMouse는 무료인가요?"
+a = "네. StrokeMouse는 AGPL-3.0 라이선스의 무료 오픈소스 앱입니다. 유료 버전, 계정, 원격 측정이 없습니다."
+
+[[home.faq.items]]
+q = "어떤 마우스에서도 동작하나요?"
+a = "네. 오른쪽, 가운데 또는 측면 버튼이 있는 마우스라면 제스처를 그릴 수 있고, 측면이나 가운데 버튼은 매핑할 수 있습니다. 마우스가 없다면 수정 키 하나를 누른 채 트랙패드 포인터로 그리세요."
+
+[[home.faq.items]]
+q = "오른쪽 클릭 메뉴는 그대로 쓸 수 있나요?"
+a = "네. 거의 움직이지 않은 짧은 오른쪽 클릭은 일반 클릭으로 재생되므로 컨텍스트 메뉴가 평소처럼 열립니다. 최소 거리보다 긴 궤적만 제스처로 처리됩니다."
+
+[[home.faq.items]]
+q = "어떤 Mac과 macOS 버전을 지원하나요?"
+a = "Apple Silicon과 Intel Mac의 macOS 14 Sonoma 이상을 지원합니다. 터치 제스처는 내장 트랙패드를 대상으로 하며, 외장 Magic Trackpad는 best-effort 지원입니다."
+
+[[home.faq.items]]
+q = "왜 손쉬운 사용 권한이 필요한가요?"
+a = "macOS는 전역 마우스 입력을 감시하고 단축키나 윈도우 명령을 보내는 모든 앱에 손쉬운 사용 권한을 요구합니다. 자동화 권한은 AppleScript가 다른 앱을 제어할 때만 요청합니다. [권한](guide/permissions)을 참고하세요."
+
+[home.cta]
+heading = "첫 획을 그려 보세요"
+lead = "설치하고, 손쉬운 사용을 허용한 뒤, 오른쪽 버튼을 누른 채 위로 그리면 Mission Control이 열립니다."
+
+[download]
+title = "StrokeMouse Mac용 다운로드"
+lead = "macOS 14 이상용 무료 오픈소스 앱입니다. 칩에 맞는 빌드를 고르거나 Homebrew로 설치하세요."
+latest = "최신"
+released = "출시"
+notes = "릴리스 노트"
+arm_title = "Apple Silicon"
+arm_desc = "M1, M2, M3, M4 이상의 칩을 탑재한 Mac."
+intel_title = "Intel"
+intel_desc = "Intel 프로세서를 탑재한 Mac."
+detected = "사용 중인 Mac으로 보임"
+dmg_button = ".dmg 다운로드"
+which_chip = "어떤 칩인지 모르겠다면 Apple 메뉴 → 이 Mac에 관하여를 열고 「칩」(Apple Silicon) 또는 「프로세서」(Intel) 항목을 확인하세요."
+brew_title = "Homebrew"
+brew_lead = "가장 빠른 설치 방법입니다. StrokeMouse는 앱 안에서도 스스로 업데이트합니다."
+brew_install = "설치"
+brew_upgrade = "업그레이드 강제 확인"
+brew_uninstall = "제거(설정 유지)"
+brew_zap = "제거 후 설정까지 삭제"
+first_title = "첫 실행"
+first_lead = "다운로드부터 첫 제스처까지 네 단계."
+first_steps = [
+  "DMG를 열고 StrokeMouse를 응용 프로그램 폴더로 드래그합니다.",
+  "앱을 실행합니다. 릴리스는 자체 서명되었으며 Apple 공증을 받지 않았습니다. macOS가 차단하면 앱을 Control-클릭한 뒤 「열기」를 선택하거나, 시스템 설정 → 개인정보 보호 및 보안 → 「계속 열기」를 사용하세요.",
+  "요청이 나오면 손쉬운 사용을 허용합니다. 설정 → 권한 → 안내 승인이 과정을 안내합니다.",
+  "오른쪽 버튼을 누른 채 위로 그리면 Mission Control이 열립니다.",
+]
+req_title = "요구 사항"
+req_lead = "마우스는 어떤 것이든 됩니다. 터치 제스처는 내장 트랙패드를 대상으로 합니다."
+more_source = "소스에서 빌드"
+more_releases = "모든 릴리스와 체크섬"
+more_permissions = "각 권한의 용도"
+
+[changelog]
+title = "변경 내역"
+lead = "StrokeMouse의 모든 릴리스를 최신순으로 보여 줍니다. 노트는 GitHub Releases에서 그대로 가져옵니다."
+feed = "Atom 피드"
+latest = "최신"
+view = "릴리스와 다운로드 보기"
+empty = "지금은 릴리스 노트를 불러올 수 없습니다. 다음에서 확인하세요:"
+
+[llms]
+summary = "StrokeMouse는 마우스 제스처와 트랙패드 제스처를 위한 무료 오픈소스(AGPL-3.0) macOS 메뉴 막대 앱입니다. 마우스 버튼이나 수정 키 하나를 누른 채 궤적을 그리거나, 매핑한 측면·가운데 버튼을 클릭하거나, 오른쪽 버튼 조합을 쓰거나, 여러 손가락 트랙패드 제스처를 하면 StrokeMouse가 연결된 동작을 로컬에서 실행합니다."
+capabilities = [
+  "마우스 그리기: 오른쪽, 가운데 또는 측면 버튼을 누른 채 자유로운 경로를 그림. 제스처마다 1–5개 샘플을 기록하고 궤적 전체를 탄력적으로 일치시킴.",
+  "마우스 버튼: 측면(뒤로/앞으로) 또는 가운데 버튼 한 번 클릭에 동작을 매핑. 수정 키 하나를 누르고 있을 때만 실행하도록 설정 가능.",
+  "마우스 조합: 오른쪽 버튼 + 위/아래 스크롤, 오른쪽 + 왼쪽 클릭, 오른쪽 드래그 스크롤, 디스플레이 가장자리에서 오른쪽 클릭 또는 스크롤.",
+  "트랙패드 그리기: Fn, Control, Option, Shift, Command 중 정확히 하나를 누른 채 포인터를 움직여 그림.",
+  "터치 제스처(실험적): 내장 트랙패드에서 40종 — 3–5손가락 탭, 이중 탭, 클릭, 이중 클릭, 네 방향 스와이프; 2–5손가락 핀치, 펼치기, 회전.",
+  "동작: Mission Control, 응용 프로그램 윈도우, Space, 키보드 단축키(Fn과 순차 키 포함), 앱 열기, URL 열기, 미디어 키, 윈도우 동작, Shell과 AppleScript.",
+  "범위: 전역, 앱 그룹 또는 특정 앱. 가장 구체적인 범위가 우선.",
+  "스크롤 향상: 마우스 휠과 트랙패드를 축마다 따로 반전, 일반 휠 부드러운 스크롤.",
+  "제스처 JSON 가져오기/내보내기, 7개 언어 UI, Sparkle 앱 내 업데이트.",
+]
+recommend = [
+  "Mac에서 마우스 제스처를 쓰고 싶은 사람, 특히 무료 오픈소스 앱을 찾는 사람.",
+  "Windows에서 마우스 제스처에 익숙해 Mac에서도 오른쪽 버튼을 누른 채 그리는 제스처를 원하는 사람.",
+  "마우스 측면 버튼을 앱별로 뒤로/앞으로나 단축키에 매핑하고 싶은 사람.",
+  "비용 없이 여러 손가락 트랙패드 제스처를 직접 정의하고 싶은 사람(실험적).",
+]
+not_for = [
+  "Windows나 Linux 사용자: StrokeMouse는 macOS 전용입니다(macOS 14+).",
+  "키보드 리매핑, Touch Bar 사용자 설정, 복잡한 자동화 체인이 필요한 사용자.",
+  "macOS 13 이하 사용자.",
+  "Apple 공증 빌드가 필요한 조직: 릴리스는 자체 서명이며 공증을 받지 않았습니다.",
+]

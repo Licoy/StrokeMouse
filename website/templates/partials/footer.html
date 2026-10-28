@@ -1,0 +1,32 @@
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a class="brand" href="{{ loc.path() }}">{{ icon.logo(24) }}<span class="brand-name">StrokeMouse</span></a>
+      <p class="footer-tagline">{{ t.ui.footer_tagline }}</p>
+      <p class="footer-meta">v{{ release.version }} · macOS {{ min_macos }}+ · {{ t.ui.footer_license }}</p>
+    </div>
+    <nav class="footer-col" aria-label="{{ t.ui.footer_product }}">
+      <h2>{{ t.ui.footer_product }}</h2>
+      <a href="{{ loc.path('download') }}">{{ t.ui.nav_download }}</a>
+      <a href="{{ loc.path('changelog') }}">{{ t.ui.nav_changelog }}</a>
+      <a href="{{ github_url }}" target="_blank" rel="noopener">GitHub</a>
+      <a href="{{ github_url }}/issues" target="_blank" rel="noopener">{{ t.ui.footer_issues }}</a>
+    </nav>
+    <nav class="footer-col" aria-label="{{ t.ui.nav_docs }}">
+      <h2>{{ t.ui.nav_docs }}</h2>
+      {%- for slug in guide_slugs %}
+      <a href="{{ loc.path('guide/' ~ slug) }}">{{ doc_titles[slug] }}</a>
+      {%- endfor %}
+    </nav>
+    <nav class="footer-col" aria-label="{{ t.ui.language }}">
+      <h2>{{ t.ui.language }}</h2>
+      {%- for alt in page.locale_links %}
+      <a href="{{ alt.path }}" hreflang="{{ alt.locale.hreflang }}" lang="{{ alt.locale.html_lang }}" data-locale-link="{{ alt.locale.store }}">{{ alt.locale.label }}</a>
+      {%- endfor %}
+    </nav>
+  </div>
+  <div class="container footer-bottom">
+    <p>© {{ year }} <a href="{{ author_url }}" target="_blank" rel="noopener">Licoy</a> · <a href="{{ github_url }}/blob/main/LICENSE" target="_blank" rel="noopener">AGPL-3.0</a></p>
+    <p>{{ t.ui.footer_note }}</p>
+  </div>
+</footer>

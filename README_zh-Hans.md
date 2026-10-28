@@ -11,7 +11,7 @@
 macOS 鼠标与触控板手势自定义工具。可按住鼠标键绘制轨迹、按住单个修饰键进行触控板绘制，也可使用实验性的多指触控手势；匹配后执行快捷键、打开应用、窗口操作、媒体键、Shell / AppleScript 等。支持**全局或指定 App** 生效，手势配置可**导入导出**，本地运行、菜单栏常驻。
 
 <p align="center">
-  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/docs/public/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 宣传片" /></a>
+  <a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1"><img src="website/static/video/strokemouse-promo-thumb.jpg" width="800" alt="StrokeMouse 宣传片" /></a>
   <br />
   <sub><a href="https://strokemouse.com/video/strokemouse-promo.mp4?v=d269ecf1">▶ 点击观看 1 分 42 秒宣传片</a></sub>
 </p>
@@ -20,15 +20,15 @@ macOS 鼠标与触控板手势自定义工具。可按住鼠标键绘制轨迹�
 
 | 手势配置列表 | 手势测试 |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/1.png" width="400" alt="手势配置列表" /> | <img src="website/docs/public/screenshots/2.png" width="400" alt="手势测试" /> |
+| <img src="website/static/screenshots/1.png" width="400" alt="手势配置列表" /> | <img src="website/static/screenshots/2.png" width="400" alt="手势测试" /> |
 
 | 通用设置 | 权限与引擎状态 |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/3.png" width="400" alt="通用设置" /> | <img src="website/docs/public/screenshots/4.png" width="400" alt="权限与引擎状态" /> |
+| <img src="website/static/screenshots/3.png" width="400" alt="通用设置" /> | <img src="website/static/screenshots/4.png" width="400" alt="权限与引擎状态" /> |
 
 | 新建手势 · 录制轨迹 | 应用范围 |
 |:---:|:---:|
-| <img src="website/docs/public/screenshots/5.png" width="400" alt="新建手势 · 录制轨迹" /> | <img src="website/docs/public/screenshots/6.png" width="400" alt="应用范围" /> |
+| <img src="website/static/screenshots/5.png" width="400" alt="新建手势 · 录制轨迹" /> | <img src="website/static/screenshots/6.png" width="400" alt="应用范围" /> |
 
 ## 功能
 

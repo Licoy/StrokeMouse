@@ -1,0 +1,12 @@
+<dialog class="search-dialog" data-search-dialog aria-label="{{ t.ui.search_label }}" data-index="{{ asset('search/' ~ loc.code ~ '.json') }}">
+  <div class="search-panel">
+    <div class="search-field">
+      {{ icon.search() }}
+      <input type="search" placeholder="{{ t.ui.search_placeholder }}" aria-label="{{ t.ui.search_label }}" autocomplete="off" spellcheck="false" data-search-input>
+      <button class="tool-btn" type="button" data-search-close aria-label="{{ t.ui.close }}">{{ icon.close() }}</button>
+    </div>
+    <ol class="search-results" data-search-results role="listbox"></ol>
+    <p class="search-empty" data-search-empty hidden>{{ t.ui.search_empty }}</p>
+    <p class="search-hint">{{ t.ui.search_hint }}</p>
+  </div>
+</dialog>

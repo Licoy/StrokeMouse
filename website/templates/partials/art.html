@@ -1,0 +1,51 @@
+{#- Schematic illustrations for the five input modes, drawn in the app's own
+    language: blue stroke, red start dot, hairline hardware. -#}
+{%- macro mouse(x, y, right=False, side=False, wheel=False) -%}
+<g transform="translate({{ x }} {{ y }})">
+  {%- if right %}<path class="art-fill" d="M44 0A44 44 0 0 1 88 44V62H44Z"/>{% endif %}
+  {%- if side %}<rect class="art-fill-strong" x="-7" y="78" width="9" height="22" rx="4"/><rect class="art-fill-strong" x="-7" y="106" width="9" height="22" rx="4"/>{% endif %}
+  <rect class="art-line" x="0" y="0" width="88" height="152" rx="44"/>
+  <path class="art-line" d="M0 62H88M44 0V62"/>
+  <rect class="{{ 'art-fill-strong' if wheel else 'art-line' }}" x="39" y="16" width="10" height="24" rx="5"/>
+</g>
+{%- endmacro -%}
+{%- macro render(key) -%}
+<svg class="art art-{{ key }}" viewBox="0 0 360 240" aria-hidden="true" focusable="false">
+{%- if key == "mouse-draw" %}
+  {{ mouse(36, 44, right=True) }}
+  <path class="art-stroke" pathLength="1" d="M190 196V88c0-14 10-24 24-24h112"/>
+  <circle class="art-start" cx="190" cy="196" r="6"/>
+{%- elif key == "mouse-button" %}
+  {{ mouse(70, 44, side=True) }}
+  <path class="art-guide" d="M60 133H40V60H196"/>
+  <rect class="art-key" x="200" y="38" width="96" height="44" rx="8"/>
+  <text class="art-key-text" x="248" y="67" text-anchor="middle">⌘ [</text>
+  <path class="art-guide" d="M60 161H40V190H196"/>
+  <rect class="art-key" x="200" y="168" width="96" height="44" rx="8"/>
+  <text class="art-key-text" x="248" y="197" text-anchor="middle">⌘ ]</text>
+{%- elif key == "mouse-combo" %}
+  {{ mouse(36, 44, right=True, wheel=True) }}
+  <path class="art-bob art-bob-up" d="M140 66l12-12 12 12"/>
+  <path class="art-bob art-bob-down" d="M140 98l12 12 12-12"/>
+  <rect class="art-line" x="196" y="40" width="140" height="96" rx="6"/>
+  <path class="art-edge" d="M336 52V124"/>
+  <path class="art-line" d="M246 154h40M266 136v18"/>
+  <path class="art-stroke art-stroke-slow" pathLength="1" d="M226 112c20-30 52-38 96-26"/>
+  <circle class="art-start" cx="226" cy="112" r="5"/>
+{%- elif key == "trackpad-draw" %}
+  <rect class="art-key art-key-active" x="28" y="150" width="68" height="56" rx="10"/>
+  <text class="art-key-text" x="62" y="185" text-anchor="middle">fn</text>
+  <rect class="art-line" x="124" y="36" width="208" height="170" rx="16"/>
+  <path class="art-stroke" pathLength="1" d="M160 166c18-58 42-88 66-88s34 30 46 52 30 28 38 10"/>
+  <circle class="art-start" cx="160" cy="166" r="6"/>
+{%- elif key == "touch" %}
+  <rect class="art-line" x="48" y="30" width="264" height="180" rx="18"/>
+  <g class="art-swipe">
+    <path class="art-trail" d="M140 168V96M180 160V88M220 168V96"/>
+    <circle class="art-finger" cx="140" cy="168" r="12"/>
+    <circle class="art-finger" cx="180" cy="160" r="12"/>
+    <circle class="art-finger" cx="220" cy="168" r="12"/>
+  </g>
+{%- endif %}
+</svg>
+{%- endmacro -%}

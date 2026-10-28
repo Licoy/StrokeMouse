@@ -1,0 +1,8 @@
+<div class="gesture-grid">
+  {%- for g in gestures %}
+  <figure class="gesture-card">
+    <svg class="glyph-svg glyph-anim" viewBox="0 0 100 100" aria-hidden="true"><path pathLength="1" d="{{ g.d }}"/><circle cx="{{ g.start[0] }}" cy="{{ g.start[1] }}" r="6"/></svg>
+    <figcaption><strong>{{ g.name }}</strong><span>{{ g.action | kbd }}</span></figcaption>
+  </figure>
+  {%- endfor %}
+</div>

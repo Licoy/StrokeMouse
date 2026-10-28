@@ -27,19 +27,24 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: main
+          # Full history so each page's lastmod / "updated" date comes from git.
+          fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Setup Python
+        uses: actions/setup-python@v7
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: website/package-lock.json
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: website/requirements.txt
 
       - name: Install & build
         working-directory: website
+        env:
+          # Release list and dates for the download and changelog pages.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npm ci
-          npm run build
+          pip install -r requirements.txt
+          python build.py
 
       - name: Setup Pages
         uses: actions/configure-pages@v6
@@ -47,7 +52,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: website/docs/.vitepress/dist
+          path: website/dist
 
   deploy:
     environment:

@@ -1,0 +1,28 @@
+{%- set p = t.home.pad -%}
+<figure class="pad" data-pad data-gestures='{{ pad_gestures | tojson }}' data-text='{{ {"idle": p.idle, "drawing": p.drawing, "matched": p.matched, "nomatch": p.nomatch, "short": p.short} | tojson }}'>
+  <div class="pad-head">
+    <span class="pad-title"><span class="pad-dot" aria-hidden="true"></span>{{ p.title }}</span>
+    <span class="pad-status" data-pad-status aria-live="polite">{{ p.idle }}</span>
+  </div>
+  <div class="pad-surface" data-pad-surface>
+    <canvas data-pad-canvas aria-label="{{ p.canvas_label }}" role="img"></canvas>
+    <p class="pad-hint" data-pad-hint>{{ p.hint | kbd }}</p>
+    <div class="pad-result" data-pad-result hidden>
+      <svg class="glyph-svg" viewBox="0 0 100 100" aria-hidden="true"><path data-pad-result-path d=""/></svg>
+      <div>
+        <strong data-pad-result-name></strong>
+        <span data-pad-result-action></span>
+      </div>
+    </div>
+  </div>
+  <figcaption class="pad-glyphs">
+    <span class="pad-glyphs-label">{{ p.try }}</span>
+    <span class="pad-glyph-row">
+      {%- for g in pad_gestures %}
+      <button class="glyph" type="button" data-gesture="{{ g.key }}" title="{{ g.name }} · {{ g.action | unkbd }}" aria-label="{{ g.name }}">
+        <svg class="glyph-svg" viewBox="0 0 100 100" aria-hidden="true"><path d="{{ g.d }}"/><circle cx="{{ g.start[0] }}" cy="{{ g.start[1] }}" r="7"/></svg>
+      </button>
+      {%- endfor %}
+    </span>
+  </figcaption>
+</figure>

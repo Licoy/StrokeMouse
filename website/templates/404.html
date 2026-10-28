@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="page-hero notfound">
+  <div class="container">
+    <svg class="notfound-stroke" viewBox="0 0 240 120" aria-hidden="true"><path class="art-stroke" pathLength="1" d="M20 90c30-60 60-60 80-20s50 40 70-10 40-30 50 0"/><circle class="art-start" cx="20" cy="90" r="6"/></svg>
+    <h1>{{ t.ui.notfound_title }}</h1>
+    <p class="page-lead">{{ t.ui.notfound_body }}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-lg" href="{{ loc.path() }}">{{ t.ui.notfound_home }}</a>
+      <a class="btn btn-ghost btn-lg" href="{{ loc.path('guide/getting-started') }}">{{ t.ui.docs_cta }}{{ icon.arrow() }}</a>
+    </div>
+    <ul class="notfound-langs">
+      {%- for other in locales %}
+      <li><a href="{{ other.path() }}" lang="{{ other.html_lang }}">{{ other.label }}</a></li>
+      {%- endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

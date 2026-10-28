@@ -75,9 +75,8 @@ command -v xcodegen >/dev/null 2>&1 || {
 }
 
 PROJECT_SPEC="project.yml"
-WEBSITE_VERSION="website/docs/.vitepress/theme/constants.ts"
-[[ -f "$PROJECT_SPEC" && -f "$WEBSITE_VERSION" ]] || {
-  echo "Version source is missing: $PROJECT_SPEC or $WEBSITE_VERSION" >&2
+[[ -f "$PROJECT_SPEC" ]] || {
+  echo "Version source is missing: $PROJECT_SPEC" >&2
   exit 1
 }
 
@@ -147,18 +146,12 @@ VERSION="$VERSION" BUILD="$BUILD" perl -0pi -e '
   die "Missing project version settings\n" unless $marketing && $build;
 ' "$PROJECT_SPEC"
 
-VERSION="$VERSION" perl -0pi -e '
-  $count = s{(export const APP_VERSION = \x27)[^\x27]+(\x27)}{$1$ENV{VERSION}$2};
-  die "Missing website APP_VERSION\n" unless $count;
-' "$WEBSITE_VERSION"
-
 ./scripts/generate_project.sh
 
 grep -q "MARKETING_VERSION: \"$VERSION\"" "$PROJECT_SPEC"
 grep -q "CURRENT_PROJECT_VERSION: \"$BUILD\"" "$PROJECT_SPEC"
-grep -q "APP_VERSION = '$VERSION'" "$WEBSITE_VERSION"
 
-git add "$PROJECT_SPEC" StrokeMouse.xcodeproj "$WEBSITE_VERSION"
+git add "$PROJECT_SPEC" StrokeMouse.xcodeproj
 
 CREATED_COMMIT=0
 if ! git diff --cached --quiet; then

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="container docs">
+  <aside class="docs-sidebar" aria-label="{{ t.ui.nav_docs }}" data-docs-sidebar>
+    <button class="docs-sidebar-toggle" type="button" aria-expanded="false" aria-controls="docs-nav" data-docs-toggle>{{ icon.menu() }}<span>{{ t.ui.menu }}</span><span class="docs-current">{{ doc.title }}</span></button>
+    <nav id="docs-nav" class="docs-nav">
+      {%- for group in sidebar %}
+      <p class="docs-group">{{ group.title }}</p>
+      <ul>
+        {%- for item in group["items"] %}
+        <li><a href="{{ item.path }}"{% if item.slug == doc.slug %} aria-current="page"{% endif %}>{{ item.title }}</a></li>
+        {%- endfor %}
+      </ul>
+      {%- endfor %}
+    </nav>
+  </aside>
+  <article class="docs-article">
+    {% include "partials/breadcrumb.html" %}
+    <header class="docs-head">
+      <h1>{{ doc.title }}</h1>
+      {%- if doc.description %}<p class="page-lead">{{ doc.description }}</p>{% endif %}
+    </header>
+    {%- if doc.headings %}
+    <details class="toc-inline">
+      <summary>{{ t.ui.toc }}{{ icon.chevron() }}</summary>
+      <ul>{% for h in doc.headings %}<li class="toc-l{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>{% endfor %}</ul>
+    </details>
+    {%- endif %}
+    <div class="prose">
+      {{ doc.html | safe }}
+    </div>
+    <footer class="docs-foot">
+      <p class="docs-meta">
+        {%- if doc.updated %}<span>{{ t.ui.updated }} <time datetime="{{ doc.updated }}">{{ doc.updated }}</time></span>{% endif %}
+        <a href="{{ edit_url }}" target="_blank" rel="noopener">{{ t.ui.edit }}{{ icon.external() }}</a>
+        <a href="{{ page.markdown_url }}">Markdown</a>
+      </p>
+      <nav class="pager" aria-label="{{ t.ui.pager }}">
+        {%- if prev %}<a class="pager-link pager-prev" href="{{ prev.path }}" rel="prev"><span class="pager-label">{{ icon.arrow_left() }}{{ t.ui.prev }}</span><span class="pager-title">{{ prev.title }}</span></a>{% else %}<span></span>{% endif %}
+        {%- if next %}<a class="pager-link pager-next" href="{{ next.path }}" rel="next"><span class="pager-label">{{ t.ui.next }}{{ icon.arrow() }}</span><span class="pager-title">{{ next.title }}</span></a>{% endif %}
+      </nav>
+    </footer>
+  </article>
+  <aside class="docs-toc" aria-label="{{ t.ui.toc }}">
+    {%- if doc.headings %}
+    <p class="docs-toc-title">{{ t.ui.toc }}</p>
+    <ul data-toc>
+      {%- for h in doc.headings %}
+      <li class="toc-l{{ h.level }}"><a href="#{{ h.id }}">{{ h.text }}</a></li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+  </aside>
+</div>
+{% endblock %}
