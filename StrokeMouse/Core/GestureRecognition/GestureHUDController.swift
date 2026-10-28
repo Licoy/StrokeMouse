@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import QuartzCore
 
 /// Borderless, click-through overlay windows that draw the live gesture stroke.
 @MainActor
@@ -9,6 +10,7 @@ final class GestureHUDController {
     private var windows: [NSWindow] = []
     private var pathViews: [GesturePathView] = []
     private var isVisible = false
+    private var strokeStyle = DrawingStyle.snapshot()
 
     private init() {}
 
@@ -21,35 +23,37 @@ final class GestureHUDController {
         badge: String? = nil
     ) {
         // points are AppKit global coordinates (origin bottom-left of primary screen space).
-        ensureWindows()
         guard !points.isEmpty else {
             hide()
             return
         }
-        let style = DrawingStyle.snapshot(lineColorOverride: lineColorOverride)
-        if !isVisible {
+        let startsStroke = !isVisible
+        if startsStroke {
+            // Screens and style preferences are read once per stroke, not on
+            // every 120 Hz sample.
+            ensureWindows()
+            strokeStyle = DrawingStyle.snapshot()
+        }
+        let style = lineColorOverride.map(strokeStyle.withLineColor) ?? strokeStyle
+        for (window, view) in zip(windows, pathViews) {
+            let origin = window.frame.origin
+            view.update(
+                points: points.map { CGPoint(x: $0.x - origin.x, y: $0.y - origin.y) },
+                style: style,
+                badge: badge
+            )
+        }
+        if startsStroke {
             for window in windows {
                 window.orderFrontRegardless()
             }
             isVisible = true
         }
-        for (index, screen) in NSScreen.screens.enumerated() {
-            guard index < pathViews.count else { continue }
-            let local = points.map { point -> CGPoint in
-                CGPoint(x: point.x - screen.frame.minX, y: point.y - screen.frame.minY)
-            }
-            pathViews[index].points = local
-            pathViews[index].style = style
-            pathViews[index].badge = badge
-            pathViews[index].needsDisplay = true
-        }
     }
 
     func hide() {
         for view in pathViews {
-            view.points = []
-            view.badge = nil
-            view.needsDisplay = true
+            view.clear()
         }
         for window in windows {
             window.orderOut(nil)
@@ -110,89 +114,183 @@ final class GestureHUDController {
     }
 }
 
+/// Draws the stroke with Core Animation shape layers. Updating layer paths
+/// costs a fraction of the main-thread time of redrawing a full-screen view
+/// on every sample.
 final class GesturePathView: NSView {
-    var points: [CGPoint] = []
-    var style: DrawingStyle.Snapshot = DrawingStyle.snapshot()
-    var badge: String?
+    private static let glowExtraWidth: CGFloat = 6
+
+    private(set) var points: [CGPoint] = []
+    private(set) var style: DrawingStyle.Snapshot = DrawingStyle.snapshot()
+    private(set) var badge: String?
+
+    private let glowLayer = CAShapeLayer()
+    private let lineLayer = CAShapeLayer()
+    private let headLayer = CAShapeLayer()
+    private let badgeLayer = CALayer()
+    private let badgeTextLayer = CATextLayer()
+    private let startLayer = CAShapeLayer()
+    private let startCenterLayer = CAShapeLayer()
 
     override var isFlipped: Bool { false }
 
-    override func draw(_ dirtyRect: NSRect) {
-        guard !points.isEmpty else { return }
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        let root = CALayer()
+        layer = root
+        wantsLayer = true
 
-        let lineWidth = max(style.lineWidth, 1)
-        let lineColor = style.lineColor
-
-        if points.count >= 2 {
-            let path = NSBezierPath()
-            path.lineWidth = lineWidth
-            path.lineCapStyle = .round
-            path.lineJoinStyle = .round
-            path.move(to: points[0])
-            for point in points.dropFirst() {
-                path.line(to: point)
-            }
-
-            // Soft glow
-            lineColor.withAlphaComponent(0.25).setStroke()
-            let glow = path.copy() as? NSBezierPath ?? path
-            glow.lineWidth = lineWidth + 6
-            glow.stroke()
-
-            lineColor.withAlphaComponent(0.95).setStroke()
-            path.stroke()
-
-            // Head (current) dot
-            if let last = points.last {
-                let r = max(lineWidth * 0.9, 4)
-                let dot = NSBezierPath(ovalIn: CGRect(x: last.x - r, y: last.y - r, width: r * 2, height: r * 2))
-                NSColor.white.withAlphaComponent(0.95).setFill()
-                dot.fill()
-                lineColor.setStroke()
-                dot.lineWidth = 2
-                dot.stroke()
-                if let badge {
-                    drawBadge(badge, near: last, offset: r + 6, color: lineColor)
-                }
-            }
+        for stroke in [glowLayer, lineLayer] {
+            stroke.fillColor = nil
+            stroke.lineCap = .round
+            stroke.lineJoin = .round
         }
-
-        // Start point — red circle
-        if style.showStartPoint, let start = points.first {
-            let r = style.startPointRadius
-            let outer = NSBezierPath(ovalIn: CGRect(x: start.x - r, y: start.y - r, width: r * 2, height: r * 2))
-            style.startColor.withAlphaComponent(0.95).setFill()
-            outer.fill()
-            NSColor.white.withAlphaComponent(0.9).setStroke()
-            outer.lineWidth = 2
-            outer.stroke()
-
-            let innerR = max(r * 0.35, 2)
-            let inner = NSBezierPath(ovalIn: CGRect(x: start.x - innerR, y: start.y - innerR, width: innerR * 2, height: innerR * 2))
-            NSColor.white.setFill()
-            inner.fill()
+        headLayer.lineWidth = 2
+        startLayer.lineWidth = 2
+        badgeLayer.anchorPoint = .zero
+        badgeLayer.addSublayer(badgeTextLayer)
+        // Same stacking as the stroke order: trail, head, badge, start point.
+        for sublayer in [
+            glowLayer, lineLayer, headLayer, badgeLayer, startLayer, startCenterLayer,
+        ] {
+            root.addSublayer(sublayer)
+        }
+        withoutAnimation {
+            applyStyle()
+            applyBadge()
+            layoutStroke()
         }
     }
 
-    private func drawBadge(
-        _ text: String,
-        near point: CGPoint,
-        offset: CGFloat,
-        color: NSColor
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    func update(
+        points newPoints: [CGPoint],
+        style newStyle: DrawingStyle.Snapshot,
+        badge newBadge: String?
     ) {
-        let label = NSAttributedString(string: text, attributes: [
+        let styleChanged = newStyle != style
+        let badgeChanged = newBadge != badge
+        points = newPoints
+        style = newStyle
+        badge = newBadge
+        withoutAnimation {
+            if styleChanged { applyStyle() }
+            if badgeChanged { applyBadge() }
+            layoutStroke()
+        }
+    }
+
+    func clear() {
+        update(points: [], style: style, badge: nil)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateContentsScale()
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        updateContentsScale()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        withoutAnimation { applyStyle() }
+    }
+
+    private var lineWidth: CGFloat { max(style.lineWidth, 1) }
+
+    private var headRadius: CGFloat { max(lineWidth * 0.9, 4) }
+
+    private func updateContentsScale() {
+        guard let scale = window?.backingScaleFactor else { return }
+        withoutAnimation {
+            for sublayer in [
+                glowLayer, lineLayer, headLayer, badgeLayer, badgeTextLayer,
+                startLayer, startCenterLayer,
+            ] {
+                sublayer.contentsScale = scale
+            }
+        }
+    }
+
+    private func applyStyle() {
+        let startRadius = style.startPointRadius
+        // Layers take CGColors, so resolve dynamic colors for this view.
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let lineColor = style.lineColor
+            glowLayer.strokeColor = lineColor.withAlphaComponent(0.25).cgColor
+            lineLayer.strokeColor = lineColor.withAlphaComponent(0.95).cgColor
+            headLayer.fillColor = NSColor.white.withAlphaComponent(0.95).cgColor
+            headLayer.strokeColor = lineColor.cgColor
+            badgeLayer.backgroundColor = lineColor.withAlphaComponent(0.95).cgColor
+            startLayer.fillColor = style.startColor.withAlphaComponent(0.95).cgColor
+            startLayer.strokeColor = NSColor.white.withAlphaComponent(0.9).cgColor
+            startCenterLayer.fillColor = NSColor.white.cgColor
+        }
+        glowLayer.lineWidth = lineWidth + Self.glowExtraWidth
+        lineLayer.lineWidth = lineWidth
+        headLayer.path = Self.circle(radius: headRadius)
+        startLayer.path = Self.circle(radius: startRadius)
+        startCenterLayer.path = Self.circle(radius: max(startRadius * 0.35, 2))
+    }
+
+    private func applyBadge() {
+        guard let badge else { return }
+        let label = NSAttributedString(string: badge, attributes: [
             .font: NSFont.systemFont(ofSize: 11, weight: .semibold),
             .foregroundColor: NSColor.white,
         ])
         let size = label.size()
-        let frame = CGRect(
-            x: point.x + offset,
-            y: point.y + offset,
-            width: size.width + 12,
-            height: size.height + 4
+        badgeLayer.bounds = CGRect(x: 0, y: 0, width: size.width + 12, height: size.height + 4)
+        badgeLayer.cornerRadius = badgeLayer.bounds.height / 2
+        badgeTextLayer.string = label
+        badgeTextLayer.frame = CGRect(origin: CGPoint(x: 6, y: 2), size: size)
+    }
+
+    private func layoutStroke() {
+        let path = CGMutablePath()
+        if points.count >= 2 {
+            path.addLines(between: points)
+        }
+        glowLayer.path = path
+        lineLayer.path = path
+
+        // Head (current) dot
+        let head = points.count >= 2 ? points.last : nil
+        headLayer.isHidden = head == nil
+        badgeLayer.isHidden = head == nil || badge == nil
+        if let head {
+            headLayer.position = head
+            let offset = headRadius + 6
+            badgeLayer.position = CGPoint(x: head.x + offset, y: head.y + offset)
+        }
+
+        // Start point — red circle
+        let start = style.showStartPoint ? points.first : nil
+        startLayer.isHidden = start == nil
+        startCenterLayer.isHidden = start == nil
+        if let start {
+            startLayer.position = start
+            startCenterLayer.position = start
+        }
+    }
+
+    private func withoutAnimation(_ changes: () -> Void) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        changes()
+        CATransaction.commit()
+    }
+
+    private static func circle(radius: CGFloat) -> CGPath {
+        CGPath(
+            ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2),
+            transform: nil
         )
-        color.withAlphaComponent(0.95).setFill()
-        NSBezierPath(roundedRect: frame, xRadius: frame.height / 2, yRadius: frame.height / 2).fill()
-        label.draw(at: CGPoint(x: frame.minX + 6, y: frame.minY + 2))
     }
 }

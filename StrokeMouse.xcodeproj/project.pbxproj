@@ -99,6 +99,7 @@
 		721E85E7E8A4D3AD7F178E9E /* UpdaterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B56AF8C2C5E7BC4C3E908D /* UpdaterService.swift */; };
 		73AE2FC07F0098992281BDF3 /* GesturePreviewGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 602385BB4F214193DE32572E /* GesturePreviewGeometry.swift */; };
 		76176D22C361545C290954B7 /* ActionPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE0418F825435B9117E49E9 /* ActionPickerView.swift */; };
+		7776CFF753804348B1CFF5CC /* AppInfoLookupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1487984C65B6292A0140E100 /* AppInfoLookupTests.swift */; };
 		777958F78D9BB56F2A98506D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54AFAC82E770FEAB174F83A2 /* OnboardingView.swift */; };
 		77D23F0237C9DAC169F53FFE /* MouseCombinationEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CACC7D35FA2A6D1A222F17 /* MouseCombinationEnvironment.swift */; };
 		78492119382327DBEC880537 /* WindowMaximizeConfigCompatibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707FE9775872B76695BCE3A0 /* WindowMaximizeConfigCompatibilityTests.swift */; };
@@ -221,6 +222,7 @@
 		10D675512596F08CE5CE4B45 /* GestureTargetScreenGeometryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureTargetScreenGeometryTests.swift; sourceTree = "<group>"; };
 		13949AD7FB3A58C54F920653 /* TemplateMatcherRobustnessTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemplateMatcherRobustnessTests.swift; sourceTree = "<group>"; };
 		147B4215AD8AB06B41161F4A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1487984C65B6292A0140E100 /* AppInfoLookupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInfoLookupTests.swift; sourceTree = "<group>"; };
 		14FABE7557D75F04454A18D3 /* RecordedGestureRegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordedGestureRegressionTests.swift; sourceTree = "<group>"; };
 		1775A9C2F88E77D337F0C1A7 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
 		177EB7550818212C169888EC /* BackupRemoteAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupRemoteAdapter.swift; sourceTree = "<group>"; };
@@ -649,6 +651,7 @@
 			children = (
 				DD90E1C62C582165F4E344E3 /* Fixtures */,
 				93816688BF534D30F605C04B /* ActionExecutorTests.swift */,
+				1487984C65B6292A0140E100 /* AppInfoLookupTests.swift */,
 				336195192821619700D648E6 /* AppleScriptPresetTests.swift */,
 				3EF41815D05719CB66AE7068 /* AppRulesTests.swift */,
 				6560067B76623B27EB0D659D /* BackupCodecTests.swift */,
@@ -926,6 +929,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				670A950AACF44A7C73766022 /* ActionExecutorTests.swift in Sources */,
+				7776CFF753804348B1CFF5CC /* AppInfoLookupTests.swift in Sources */,
 				DDC22E38C5A4DF36DD6580D6 /* AppRulesTests.swift in Sources */,
 				AFC1F6D12E7756E0E69FC246 /* AppleScriptPresetTests.swift in Sources */,
 				CDD2ECA1028672B3E798F734 /* BackupCodecTests.swift in Sources */,

@@ -146,12 +146,22 @@ enum DrawingStyle {
         )
     }
 
-    struct Snapshot: Sendable {
+    struct Snapshot: Equatable, Sendable {
         let lineColor: NSColor
         let lineWidth: CGFloat
         let showStartPoint: Bool
         let startPointRadius: CGFloat
         let startColor: NSColor
+
+        func withLineColor(_ color: NSColor) -> Snapshot {
+            Snapshot(
+                lineColor: color,
+                lineWidth: lineWidth,
+                showStartPoint: showStartPoint,
+                startPointRadius: startPointRadius,
+                startColor: startColor
+            )
+        }
     }
 
     // MARK: - Hex helpers

@@ -173,15 +173,42 @@ final class GestureRuntime {
         let mode: SessionMode
     }
 
-    private(set) var state = GestureRuntimeState()
-    private(set) var currentPath: [CGPoint] = []
-    private(set) var currentTouches: [TrackpadTouchContact] = []
-    private(set) var lastDrawDiagnostic: GestureDrawDiagnostic?
-    private(set) var lastTrackpadMetrics: TrackpadGestureMetrics?
-    private(set) var lastTrackpadOutcome: GestureRuntimeOutcome?
-    private(set) var lastMatch: GestureMatchResult?
-    private(set) var lastError: String?
-    private(set) var isDrawing = false
+    // Session and sample state changes up to 120 times per second. Observing it
+    // directly would re-render every status view on each sample, so views
+    // observe `channelStatus` and, while diagnostics run, `diagnosticRevision`.
+    @ObservationIgnored
+    private(set) var state = GestureRuntimeState() {
+        didSet { publishObservedState() }
+    }
+    @ObservationIgnored
+    private(set) var currentPath: [CGPoint] = [] {
+        didSet { noteDiagnosticChange() }
+    }
+    @ObservationIgnored
+    private(set) var currentTouches: [TrackpadTouchContact] = [] {
+        didSet { noteDiagnosticChange() }
+    }
+    @ObservationIgnored
+    private(set) var lastDrawDiagnostic: GestureDrawDiagnostic? {
+        didSet { noteDiagnosticChange() }
+    }
+    @ObservationIgnored
+    private(set) var lastTrackpadMetrics: TrackpadGestureMetrics? {
+        didSet { noteDiagnosticChange() }
+    }
+    @ObservationIgnored
+    private(set) var lastTrackpadOutcome: GestureRuntimeOutcome? {
+        didSet { noteDiagnosticChange() }
+    }
+    @ObservationIgnored private(set) var lastMatch: GestureMatchResult?
+    @ObservationIgnored private(set) var lastError: String?
+    @ObservationIgnored private(set) var isDrawing = false
+    /// Lifecycle and input channel statuses from `state`.
+    private(set) var channelStatus = GestureRuntimeChannelStatus()
+    /// Bumped when diagnostic data changes while a diagnostic session is
+    /// active; diagnostic views read it to observe `state`, `currentPath`,
+    /// `currentTouches` and the last diagnostic results.
+    private(set) var diagnosticRevision: UInt64 = 0
 
     private let mouseEventTap: any MouseGestureEventSource
     private let modifierEventTap: any ModifierGestureEventSource
@@ -594,15 +621,15 @@ final class GestureRuntime {
     var isEnabled: Bool { configuration.isEnabled }
 
     var isListening: Bool {
-        state.inputs.mouse == .listening
-            || state.inputs.modifier == .listening
-            || state.inputs.multitouch == .listening
+        channelStatus.inputs.mouse == .listening
+            || channelStatus.inputs.modifier == .listening
+            || channelStatus.inputs.multitouch == .listening
     }
 
     var matchThreshold: Double { configuration.pathMatchThreshold }
 
     var statusMessageKey: String {
-        switch state.lifecycle {
+        switch channelStatus.lifecycle {
         case .stopped: return configuration.isEnabled ? "engine.idle" : "engine.paused"
         case .awaitingAccessibility: return "engine.needPermission"
         case .listening: return "engine.listening"
@@ -652,6 +679,22 @@ final class GestureRuntime {
             self?.publishAdmissionContext()
             self?.reconcileChannels()
         }
+    }
+
+    private func publishObservedState() {
+        let status = GestureRuntimeChannelStatus(
+            lifecycle: state.lifecycle,
+            inputs: state.inputs
+        )
+        if status != channelStatus {
+            channelStatus = status
+        }
+        noteDiagnosticChange()
+    }
+
+    private func noteDiagnosticChange() {
+        guard !diagnosticTokens.isEmpty else { return }
+        diagnosticRevision &+= 1
     }
 
     func beginDiagnostics() -> GestureDiagnosticSession {
@@ -1949,9 +1992,11 @@ final class GestureRuntime {
 
     private func startSampling() {
         stopSampling()
+        // The timer fires on the main run loop; sampling inline avoids
+        // allocating and scheduling a Task 120 times per second.
         let timer = Timer(timeInterval: 1 / 120, repeats: true) {
             [weak self] _ in
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 guard let self else { return }
                 self.appendDrawSample(self.pointerLocation())
             }

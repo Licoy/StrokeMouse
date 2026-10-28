@@ -16,6 +16,50 @@ enum AppInfoLookup {
         }
     }
 
+    // MARK: - Cache
+
+    /// LaunchServices and icon lookups take tens of milliseconds cold (more on
+    /// Intel Macs), and settings views call them per row and per sort
+    /// comparison on every body pass. Results, including misses, stay cached
+    /// until `invalidateCache()`, which settings call on open so apps
+    /// installed or moved since then resolve again.
+    private final class LookupCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var infos: [String: Info] = [:]
+        private let icons: NSCache<NSString, NSImage> = {
+            let cache = NSCache<NSString, NSImage>()
+            cache.countLimit = 512
+            return cache
+        }()
+
+        func info(for bundleId: String) -> Info? {
+            lock.withLock { infos[bundleId] }
+        }
+
+        func store(_ info: Info, for bundleId: String) {
+            lock.withLock { infos[bundleId] = info }
+        }
+
+        func icon(for path: String) -> NSImage? {
+            icons.object(forKey: path as NSString)
+        }
+
+        func store(_ icon: NSImage, for path: String) {
+            icons.setObject(icon, forKey: path as NSString)
+        }
+
+        func removeAll() {
+            lock.withLock { infos.removeAll() }
+            icons.removeAllObjects()
+        }
+    }
+
+    private static let cache = LookupCache()
+
+    static func invalidateCache() {
+        cache.removeAll()
+    }
+
     // MARK: - Resolve
 
     static func info(forBundleId bundleId: String) -> Info {
@@ -23,11 +67,32 @@ enum AppInfoLookup {
         guard !trimmed.isEmpty else {
             return Info(bundleId: trimmed, name: trimmed, path: "")
         }
-        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: trimmed) {
-            return info(fromAppURL: url, fallbackBundleId: trimmed)
-                ?? Info(bundleId: trimmed, name: trimmed, path: url.path)
+        if let cached = cache.info(for: trimmed) {
+            return cached
         }
-        return Info(bundleId: trimmed, name: trimmed, path: "")
+        let resolved: Info
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: trimmed) {
+            resolved = info(fromAppURL: url, fallbackBundleId: trimmed)
+                ?? Info(bundleId: trimmed, name: trimmed, path: url.path)
+        } else {
+            resolved = Info(bundleId: trimmed, name: trimmed, path: "")
+        }
+        cache.store(resolved, for: trimmed)
+        return resolved
+    }
+
+    /// Sorts bundle IDs by display name, resolving each name once instead of
+    /// twice per comparison.
+    static func sortedByName(
+        _ bundleIds: [String],
+        name: (String) -> String = { info(forBundleId: $0).name }
+    ) -> [String] {
+        bundleIds
+            .map { (id: $0, name: name($0)) }
+            .sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            }
+            .map(\.id)
     }
 
     static func info(fromAppURL url: URL, fallbackBundleId: String? = nil) -> Info? {
@@ -55,12 +120,21 @@ enum AppInfoLookup {
         return Info(bundleId: bundleId, name: name, path: url.path)
     }
 
+    /// Returns the same instance for repeated paths, so SwiftUI sees an
+    /// unchanged image instead of re-rendering every icon on each pass.
     static func icon(for path: String) -> NSImage {
-        if path.isEmpty {
-            return NSImage(systemSymbolName: "app.dashed", accessibilityDescription: nil)
-                ?? NSImage(size: NSSize(width: 32, height: 32))
+        if let cached = cache.icon(for: path) {
+            return cached
         }
-        return NSWorkspace.shared.icon(forFile: path)
+        let icon: NSImage
+        if path.isEmpty {
+            icon = NSImage(systemSymbolName: "app.dashed", accessibilityDescription: nil)
+                ?? NSImage(size: NSSize(width: 32, height: 32))
+        } else {
+            icon = NSWorkspace.shared.icon(forFile: path)
+        }
+        cache.store(icon, for: path)
+        return icon
     }
 
     // MARK: - Scan installed apps

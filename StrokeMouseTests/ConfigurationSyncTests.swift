@@ -201,6 +201,32 @@ final class ConfigurationSyncTests: XCTestCase {
         XCTAssertEqual(unchangedCount, 1)
     }
 
+    func testOnlyPortableSettingsDefaultsChangesScheduleBackup() async throws {
+        let harness = try makeHarness(debounceInterval: 0.05)
+        defer { harness.cleanup() }
+        try await connect(
+            harness.sync,
+            automatic: true,
+            scope: .allConfiguration
+        )
+        assertSuccess(await harness.sync.handle(.backupNow))
+        let baseline = await harness.remote.storeCount()
+
+        harness.defaults.set(
+            "{{0, 0}, {900, 560}}",
+            forKey: "NSWindow Frame ConfigurationSyncTests"
+        )
+        try await Task.sleep(for: .milliseconds(150))
+        XCTAssertFalse(harness.sync.state.hasPendingBackup)
+        let unrelatedCount = await harness.remote.storeCount()
+        XCTAssertEqual(unrelatedCount, baseline)
+
+        harness.defaults.set(false, forKey: PreferenceKey.showMatchToast)
+        try await Task.sleep(for: .milliseconds(200))
+        let portableCount = await harness.remote.storeCount()
+        XCTAssertEqual(portableCount, baseline + 1)
+    }
+
     func testFailedBackupKeepsPendingStateUntilExplicitRetry() async throws {
         let harness = try makeHarness()
         defer { harness.cleanup() }

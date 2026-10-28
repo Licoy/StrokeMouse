@@ -282,6 +282,8 @@ struct ScrollAppearanceInstaller: NSViewRepresentable {
     }
 
     final class InstallerView: NSView {
+        private var restyledSize: NSSize?
+
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             restyleNow()
@@ -290,6 +292,11 @@ struct ScrollAppearanceInstaller: NSViewRepresentable {
         override func layout() {
             super.layout()
             // Immediate — no async delay (delay was the source of “flash then fix”).
+            // The NSScrollView hooks already style new scroll views, so this
+            // whole-window walk only runs when a layout pass resized the root,
+            // not on every content relayout.
+            guard bounds.size != restyledSize else { return }
+            restyledSize = bounds.size
             restyleNow()
         }
 

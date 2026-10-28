@@ -40,6 +40,9 @@ struct GestureTestView: View {
     private let optionLabelWidth: CGFloat = 76
 
     var body: some View {
+        // The runtime publishes its live session and diagnostic results through
+        // this revision instead of per-property observation.
+        let _ = appState.gestureRuntime.diagnosticRevision
         VStack(alignment: .leading, spacing: 16) {
             header
             Divider()

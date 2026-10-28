@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import Observation
 import XCTest
 @testable import StrokeMouse
 
@@ -576,6 +577,58 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(runtime.state.inputs.multitouch, .listening)
         diagnostic.end()
         XCTAssertFalse(source.isRunning)
+    }
+
+    func testChannelStatusMirrorsInputsWithoutPublishingSessionState() throws {
+        let source = RuntimeMultitouchSource()
+        source.startError = .frameworkUnavailable
+        let runtime = makeRuntime(source: source)
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: true,
+            profiles: [directProfile(gesture: .swipe(.three, .right))]
+        ))
+        XCTAssertEqual(runtime.channelStatus.inputs, runtime.state.inputs)
+        XCTAssertEqual(runtime.channelStatus.lifecycle, .degraded)
+
+        let notified = expectation(description: "status observers notified")
+        notified.isInverted = true
+        withObservationTracking {
+            _ = runtime.channelStatus
+            _ = runtime.diagnosticRevision
+        } onChange: {
+            notified.fulfill()
+        }
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: true,
+            profiles: [directProfile(gesture: .swipe(.three, .right))]
+        ))
+
+        XCTAssertEqual(runtime.state.configurationRevision, 2)
+        wait(for: [notified], timeout: 0.1)
+    }
+
+    func testDiagnosticRevisionAdvancesOnlyDuringDiagnostics() throws {
+        let runtime = makeRuntime(source: RuntimeMultitouchSource())
+        try runtime.apply(configuration(
+            revision: 1,
+            enabled: false,
+            profiles: []
+        ))
+        let idle = runtime.diagnosticRevision
+
+        let diagnostic = runtime.beginDiagnostics()
+        XCTAssertGreaterThan(runtime.diagnosticRevision, idle)
+        diagnostic.end()
+
+        let ended = runtime.diagnosticRevision
+        try runtime.apply(configuration(
+            revision: 2,
+            enabled: false,
+            profiles: []
+        ))
+        XCTAssertEqual(runtime.diagnosticRevision, ended)
     }
 
     func testSuppressionLeasesAreNestedAndReleaseIsIdempotent() throws {

@@ -44,16 +44,11 @@ struct GesturesSettingsView: View {
     @State private var isConfirmingDeleteGroup = false
 
     private var sidebarAppIds: [String] {
-        let ids = GestureSidebarCatalog.sidebarAppBundleIds(
+        AppInfoLookup.sortedByName(GestureSidebarCatalog.sidebarAppBundleIds(
             gestures: appState.configStore.gestures,
             pinnedBundleIds: pinnedAppBundleIds,
             policyBundleIds: appState.configStore.appPolicies.map(\.bundleIdentifier)
-        )
-        return ids.sorted {
-            let left = AppInfoLookup.info(forBundleId: $0).name
-            let right = AppInfoLookup.info(forBundleId: $1).name
-            return left.localizedCaseInsensitiveCompare(right) == .orderedAscending
-        }
+        ))
     }
 
     private var sidebarGroups: [AppGroup] {
@@ -94,8 +89,8 @@ struct GesturesSettingsView: View {
         return items.sorted(using: sortOrder)
     }
 
-    private var allDisplayedSelected: Bool {
-        let ids = Set(displayedGestures.map(\.id))
+    private func allSelected(_ displayed: [GestureProfile]) -> Bool {
+        let ids = Set(displayed.map(\.id))
         return !ids.isEmpty && ids.isSubset(of: selection)
     }
 
@@ -109,6 +104,8 @@ struct GesturesSettingsView: View {
 
     var body: some View {
         let _ = appState.languageEpoch
+        // Filter + sort once per pass; the table, toolbar and footer share it.
+        let displayed = displayedGestures
 
         VStack(spacing: 0) {
             if appState.configStore.requiresRecovery {
@@ -119,7 +116,7 @@ struct GesturesSettingsView: View {
                 sidebarBody
                     .frame(width: sidebarWidth)
                 Divider()
-                detailBody
+                detailBody(displayed)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .disabled(appState.configStore.requiresRecovery)
@@ -131,7 +128,7 @@ struct GesturesSettingsView: View {
                 addAppFooter
                     .frame(width: sidebarWidth)
                 Divider()
-                footerBar
+                footerBar(displayed)
                     .frame(maxWidth: .infinity)
             }
             .frame(height: bottomChromeHeight)
@@ -396,7 +393,8 @@ struct GesturesSettingsView: View {
     // MARK: - Sidebar (list only; bottom chrome is shared with detail)
 
     private var sidebarBody: some View {
-        VStack(spacing: 0) {
+        let appIds = sidebarAppIds
+        return VStack(spacing: 0) {
             Text(L10n.string("gestures.sidebarTitle"))
                 .font(.headline)
                 .foregroundStyle(.primary)
@@ -417,7 +415,7 @@ struct GesturesSettingsView: View {
                         sidebarSelection = .global
                     }
 
-                    if !sidebarAppIds.isEmpty {
+                    if !appIds.isEmpty {
                         Text(L10n.string("gestures.sidebarApps"))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
@@ -425,7 +423,7 @@ struct GesturesSettingsView: View {
                             .padding(.bottom, 2)
                             .padding(.horizontal, 10)
 
-                        ForEach(sidebarAppIds, id: \.self) { bundleId in
+                        ForEach(appIds, id: \.self) { bundleId in
                             let info = AppInfoLookup.info(forBundleId: bundleId)
                             let item = GestureSidebarItem.app(bundleId)
                             GestureSidebarRow(
@@ -524,9 +522,9 @@ struct GesturesSettingsView: View {
 
     // MARK: - Detail (table only; bottom chrome is shared with sidebar)
 
-    private var detailBody: some View {
+    private func detailBody(_ displayed: [GestureProfile]) -> some View {
         VStack(spacing: 0) {
-            toolbar
+            toolbar(displayedCount: displayed.count)
             Divider()
 
             if sidebarSelection != .global {
@@ -543,14 +541,14 @@ struct GesturesSettingsView: View {
                         systemImage: "hand.draw",
                         description: Text(L10n.string("gestures.emptySubtitle"))
                     )
-                } else if displayedGestures.isEmpty {
+                } else if displayed.isEmpty {
                     ContentUnavailableView(
                         emptyTitle,
                         systemImage: emptySystemImage,
                         description: Text(emptySubtitle)
                     )
                 } else {
-                    gestureTable
+                    gestureTable(displayed)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -605,7 +603,7 @@ struct GesturesSettingsView: View {
 
     // MARK: - Toolbar
 
-    private var toolbar: some View {
+    private func toolbar(displayedCount: Int) -> some View {
         VStack(spacing: 10) {
             HStack(spacing: 12) {
                 HStack(spacing: 8) {
@@ -746,7 +744,7 @@ struct GesturesSettingsView: View {
                         format: L10n.string("gestures.selectionCount"),
                         locale: L10n.locale,
                         selection.count,
-                        displayedGestures.count
+                        displayedCount
                     )
                 )
                 .font(.caption)
@@ -799,10 +797,10 @@ struct GesturesSettingsView: View {
 
     // MARK: - Table
 
-    private var gestureTable: some View {
+    private func gestureTable(_ displayed: [GestureProfile]) -> some View {
         // Restored backups and older libraries can already contain conflicts.
         let movementConflictIDs = MouseMovementConflict.conflictingIDs(in: appState.configStore.gestures)
-        return Table(displayedGestures, selection: $selection, sortOrder: $sortOrder) {
+        return Table(displayed, selection: $selection, sortOrder: $sortOrder) {
             TableColumn(L10n.string("gestures.col.enabled")) { gesture in
                 Toggle("", isOn: Binding(
                     get: { gesture.isEnabled },
@@ -915,16 +913,16 @@ struct GesturesSettingsView: View {
 
     // MARK: - Footer
 
-    private var footerBar: some View {
+    private func footerBar(_ displayed: [GestureProfile]) -> some View {
         HStack(spacing: 6) {
             Button(
-                allDisplayedSelected
+                allSelected(displayed)
                     ? L10n.string("gestures.deselectAll")
                     : L10n.string("gestures.selectAll")
             ) {
                 toggleSelectAllDisplayed()
             }
-            .disabled(displayedGestures.isEmpty)
+            .disabled(displayed.isEmpty)
 
             Button(L10n.string("gestures.edit")) {
                 editSingle(from: selection)

@@ -133,6 +133,10 @@ struct GestureRuntimeInputStatuses: Equatable, Sendable {
     var multitouch: GestureInputChannelStatus = .notRequested
     /// Left-button tap correlating physical presses with touch sequences.
     var trackpadClick: GestureInputChannelStatus = .notRequested
+
+    var isAnyListening: Bool {
+        [mouse, modifier, multitouch, trackpadClick].contains(.listening)
+    }
 }
 
 struct GestureActiveSessionSummary: Equatable, Sendable {
@@ -187,6 +191,13 @@ struct GestureRuntimeState: Equatable, Sendable {
     var activeSession: GestureActiveSessionSummary?
     var lastOutcome: GestureRuntimeOutcome?
     var configurationRevision: UInt64 = 0
+}
+
+/// The part of `GestureRuntimeState` that status UI shows. It changes only when
+/// channels start, stop or fail, not on every gesture session.
+struct GestureRuntimeChannelStatus: Equatable, Sendable {
+    var lifecycle: GestureRuntimeLifecycle = .stopped
+    var inputs = GestureRuntimeInputStatuses()
 }
 
 enum GestureSuppressionReason: String, Hashable, Sendable {

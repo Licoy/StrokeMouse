@@ -44,6 +44,7 @@ final class ConfigurationSync {
     @ObservationIgnored private var defaultsObserver: NSObjectProtocol?
     @ObservationIgnored private var wakeObserver: NSObjectProtocol?
     @ObservationIgnored private var lastObservedContentHash: Data?
+    @ObservationIgnored private var lastObservedSettings: PortableSettingsV1?
     @ObservationIgnored private var queuedBackup: (BackupKind, Bool)?
     @ObservationIgnored private var pendingRestoredFromSnapshotID: UUID?
     @ObservationIgnored private var isApplyingRestore = false
@@ -122,6 +123,16 @@ final class ConfigurationSync {
         } catch {
             recordFailure(error)
         }
+    }
+
+    /// UserDefaults reports every key, including window frames and local-only
+    /// scroll preferences. Rehashing the whole library for each of those is
+    /// main-thread work with no effect, so only portable settings changes count.
+    private func noteLocalSettingsChanged() {
+        let settings = PortableSettingsV1.capture(from: defaults)
+        guard settings != lastObservedSettings else { return }
+        lastObservedSettings = settings
+        noteLocalConfigurationChanged()
     }
 
     func handle(_ intent: SyncIntent) async -> SyncResult {
@@ -765,7 +776,7 @@ final class ConfigurationSync {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
-                self?.noteLocalConfigurationChanged()
+                self?.noteLocalSettingsChanged()
             }
         }
         wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(

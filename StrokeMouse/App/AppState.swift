@@ -49,6 +49,10 @@ final class AppState {
     /// Block-based observers are removed when this token is released.
     @ObservationIgnored
     private var frontmostApplicationObserver: NSObjectProtocol?
+    /// Held while any gesture or scroll channel listens; see
+    /// `observeInputActivity()`.
+    @ObservationIgnored
+    private var inputActivity: NSObjectProtocol?
 
     var resolvedLocale: Locale { L10n.locale }
 
@@ -104,6 +108,7 @@ final class AppState {
         installSettingsWindowCloseObserver()
         installOpenSettingsNotificationObserver()
         installFrontmostApplicationObserver()
+        observeInputActivity()
 
         // Defer the event tap until the main run loop is spinning. Creating a
         // filtering CGEventTap during @State construction (esp. on macOS 14)
@@ -113,6 +118,30 @@ final class AppState {
             self.applyCurrentGestureConfiguration()
             self.applyScrollConfiguration()
             self.refreshMenuBarIconStatus()
+        }
+    }
+
+    /// With settings closed this agent app has no visible window, so macOS may
+    /// put it into App Nap and coalesce its main-thread timers: trail
+    /// sampling, HUD drawing and actions then lag by seconds. Listening
+    /// channels handle live user input, so opt out while any of them runs.
+    private func observeInputActivity() {
+        let isListening = withObservationTracking {
+            gestureRuntime.channelStatus.inputs.isAnyListening
+                || scrollEngine.status == .listening
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.observeInputActivity()
+            }
+        }
+        if isListening, inputActivity == nil {
+            inputActivity = ProcessInfo.processInfo.beginActivity(
+                options: .userInitiatedAllowingIdleSystemSleep,
+                reason: "Handling gesture and scroll input"
+            )
+        } else if !isListening, let activity = inputActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            inputActivity = nil
         }
     }
 

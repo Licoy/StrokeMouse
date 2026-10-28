@@ -76,19 +76,19 @@ struct PermissionsSettingsView: View {
                 }
                 channelRow(
                     L10n.string("permissions.channel.mouse"),
-                    status: appState.gestureRuntime.state.inputs.mouse
+                    status: appState.gestureRuntime.channelStatus.inputs.mouse
                 )
                 channelRow(
                     L10n.string("permissions.channel.modifier"),
-                    status: appState.gestureRuntime.state.inputs.modifier
+                    status: appState.gestureRuntime.channelStatus.inputs.modifier
                 )
                 channelRow(
                     L10n.string("permissions.channel.multitouch"),
-                    status: appState.gestureRuntime.state.inputs.multitouch
+                    status: appState.gestureRuntime.channelStatus.inputs.multitouch
                 )
                 channelRow(
                     L10n.string("permissions.channel.trackpadClick"),
-                    status: appState.gestureRuntime.state.inputs.trackpadClick
+                    status: appState.gestureRuntime.channelStatus.inputs.trackpadClick
                 )
                 LabeledContent(L10n.string("permissions.channel.scroll")) {
                     Text(L10n.string(appState.scrollEngine.status.messageKey))
