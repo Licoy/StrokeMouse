@@ -10,6 +10,7 @@ extension ShortcutModifier {
         case .option: return .option
         case .control: return .control
         case .shift: return .shift
+        case .function: return .function
         }
     }
 
@@ -19,6 +20,7 @@ extension ShortcutModifier {
         case .option: return .maskAlternate
         case .control: return .maskControl
         case .shift: return .maskShift
+        case .function: return .maskSecondaryFn
         }
     }
 
@@ -28,6 +30,7 @@ extension ShortcutModifier {
         case .option: return UInt16(kVK_Option)
         case .control: return UInt16(kVK_Control)
         case .shift: return UInt16(kVK_Shift)
+        case .function: return UInt16(kVK_Function)
         }
     }
 }
@@ -83,6 +86,8 @@ enum ShortcutActionError: LocalizedError {
 }
 
 enum ShortcutAction {
+    static let injectedEventMarker: Int64 = 0x5354_4D53_484F_5254
+
     private struct ModifierKey {
         let appKitFlag: NSEvent.ModifierFlags
         let quartzFlag: CGEventFlags
@@ -96,6 +101,7 @@ enum ShortcutAction {
     }
 
     private static let modifierKeys = [
+        ModifierKey(.function),
         ModifierKey(.control),
         ModifierKey(.option),
         ModifierKey(.shift),
@@ -116,21 +122,28 @@ enum ShortcutAction {
             modifiers: modifiers,
             orderedChord: orderedChord
         )
-        let events = try plan.map { descriptor in
-            guard let event = CGEvent(
-                keyboardEventSource: source,
-                virtualKey: descriptor.keyCode,
-                keyDown: descriptor.isKeyDown
-            ) else {
-                throw ShortcutActionError.eventCreationFailed(keyCode: descriptor.keyCode)
-            }
-            event.flags = descriptor.flags
-            return event
-        }
+        let events = try plan.map { try makeEvent($0, source: source) }
 
         for event in events {
             event.post(tap: .cghidEventTap)
         }
+    }
+
+    /// Builds without posting so event types and origin markers can be verified safely.
+    static func makeEvent(
+        _ descriptor: ShortcutEventDescriptor,
+        source: CGEventSource?
+    ) throws -> CGEvent {
+        guard let event = CGEvent(
+            keyboardEventSource: source,
+            virtualKey: descriptor.keyCode,
+            keyDown: descriptor.isKeyDown
+        ) else {
+            throw ShortcutActionError.eventCreationFailed(keyCode: descriptor.keyCode)
+        }
+        event.flags = descriptor.flags
+        event.setIntegerValueField(.eventSourceUserData, value: injectedEventMarker)
+        return event
     }
 
     static func makeEventPlan(
@@ -143,6 +156,12 @@ enum ShortcutAction {
         }
 
         let modifiers = NSEvent.ModifierFlags(rawValue: rawModifiers)
+        if keyCode == UInt16(kVK_Function) {
+            // Legacy modifier-only shortcuts store their final modifier as the key.
+            let preceding = [ShortcutModifier.control, .option, .shift, .command]
+                .filter { modifiers.contains($0.appKitFlag) }
+            return makeOrderedEventPlan(ShortcutChord(modifiers: preceding + [.function], keyCode: nil))
+        }
         var activeFlags: CGEventFlags = []
         var plan: [ShortcutEventDescriptor] = []
 

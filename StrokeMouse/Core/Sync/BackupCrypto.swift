@@ -218,7 +218,7 @@ enum BackupCodec {
         _ payload: BackupPayloadV1,
         scope: SyncScope
     ) throws {
-        guard payload.gestures.version == Constants.configVersion else {
+        guard payload.gestures.hasSupportedVersion else {
             throw BackupCodecError.unsupportedGestureConfigVersion(
                 payload.gestures.version
             )

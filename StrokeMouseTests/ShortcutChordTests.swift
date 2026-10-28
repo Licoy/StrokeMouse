@@ -1,3 +1,4 @@
+import AppKit
 import Carbon.HIToolbox
 import XCTest
 @testable import StrokeMouse
@@ -22,6 +23,15 @@ final class ShortcutChordTests: XCTestCase {
             ),
             "⌘⌥"
         )
+    }
+
+    func testFunctionDisplayPreservesChordOrderAndLegacyFlags() {
+        let chord = ShortcutChord(modifiers: [.function, .control, .shift], keyCode: UInt16(kVK_LeftArrow))
+        XCTAssertEqual(KeyCodeNames.shortcutDisplay(chord: chord), "fn⌃⇧←")
+        XCTAssertEqual(KeyCodeNames.shortcutDisplay(keyCode: UInt16(kVK_RightArrow),
+                                                   modifiers: [.function, .control, .shift]), "fn⌃⇧→")
+        XCTAssertEqual(KeyCodeNames.shortcutDisplay(chord: ShortcutChord(modifiers: [.function], keyCode: nil)), "fn")
+        XCTAssertEqual(KeyCodeNames.displayName(keyCode: UInt16(kVK_Function)), "fn")
     }
 
     func testOrderedShortcutActionRoundTripsThroughCodable() throws {

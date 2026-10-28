@@ -27,6 +27,7 @@ enum KeyCodeNames {
 
     static func shortcutDisplay(keyCode: UInt16, modifiers: NSEvent.ModifierFlags, event: NSEvent? = nil) -> String {
         var parts: [String] = []
+        if modifiers.contains(.function) { parts.append("fn") }
         if modifiers.contains(.control) { parts.append("⌃") }
         if modifiers.contains(.option) { parts.append("⌥") }
         if modifiers.contains(.shift) { parts.append("⇧") }
@@ -60,6 +61,7 @@ enum KeyCodeNames {
 
     private static func specialName(_ keyCode: UInt16) -> String? {
         switch Int(keyCode) {
+        case kVK_Function: return "fn"
         case kVK_Return: return "↩"
         case kVK_ANSI_KeypadEnter: return "⌅"
         case kVK_Tab: return "⇥"
@@ -182,6 +184,7 @@ private extension ShortcutModifier {
         case .option: return "⌥"
         case .control: return "⌃"
         case .shift: return "⇧"
+        case .function: return "fn"
         }
     }
 }

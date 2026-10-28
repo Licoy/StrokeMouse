@@ -61,6 +61,7 @@ struct ActionPickerView: View {
     @State private var isRecordingShortcut = false
     @State private var shortcutLivePreview = ""
     @State private var didHydrate = false
+    @State private var releaseShortcutModifiers = false
     @State private var recorderFailed = false
     @State private var unsupportedShortcutModifier = false
     @State private var showOpenAppPicker = false
@@ -272,6 +273,12 @@ struct ActionPickerView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if releaseShortcutModifiers {
+                    Text(L10n.string("action.shortcutReleaseModifiers"))
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
                 if recorderFailed {
                     Text(L10n.string("action.shortcutRecorderNeedPermission"))
                         .font(.caption)
@@ -397,6 +404,7 @@ struct ActionPickerView: View {
 
     private func startRecording(followUp: Bool = false) {
         recorderFailed = false
+        releaseShortcutModifiers = false
         unsupportedShortcutModifier = false
         shortcutLivePreview = ""
         let tap = ShortcutRecorderTap.shared
@@ -424,11 +432,14 @@ struct ActionPickerView: View {
             unsupportedShortcutModifier = true
             stopRecording()
         }
-        let ok = tap.start()
-        if ok {
+        switch tap.start() {
+        case .started:
             isRecordingShortcut = true
             isRecordingFollowUp = followUp
-        } else {
+        case .heldModifiers:
+            stopRecording()
+            releaseShortcutModifiers = true
+        case .unavailable:
             stopRecording()
             recorderFailed = true
         }

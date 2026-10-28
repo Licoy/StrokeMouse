@@ -4,6 +4,39 @@ import XCTest
 @testable import StrokeMouse
 
 final class ShortcutRecordingStateTests: XCTestCase {
+    func testRecordingStartRejectsHeldLogicalAndPhysicalModifiers() {
+        for flag: CGEventFlags in [.maskControl, .maskShift, .maskCommand, .maskAlternate] {
+            XCTAssertTrue(ShortcutRecorderTap.hasHeldModifiers(flags: flag, keyIsDown: { _ in false }))
+        }
+        for key in [kVK_Function, kVK_Control, kVK_RightControl, kVK_Option, kVK_RightOption,
+                    kVK_Shift, kVK_RightShift, kVK_Command, kVK_RightCommand, kVK_CapsLock] {
+            XCTAssertTrue(ShortcutRecorderTap.hasHeldModifiers(flags: [], keyIsDown: { $0 == UInt16(key) }))
+        }
+    }
+
+    func testRecordingStartAllowsReleasedModifiersAndCapsLockToggle() {
+        XCTAssertFalse(ShortcutRecorderTap.hasHeldModifiers(flags: [], keyIsDown: { _ in false }))
+        XCTAssertFalse(ShortcutRecorderTap.hasHeldModifiers(flags: [.maskAlphaShift], keyIsDown: { _ in false }))
+        XCTAssertFalse(ShortcutRecorderTap.hasHeldModifiers(flags: [.maskSecondaryFn, .maskNumericPad],
+                                                            keyIsDown: { _ in false }))
+    }
+
+    func testFunctionRemappingDoesNotConfuseArrowIntrinsicFlag() {
+        for (physical, effectiveFlag, expected) in [
+            (kVK_Function, CGEventFlags.maskControl, ShortcutModifier.control),
+            (kVK_Control, .maskSecondaryFn, .function),
+            (kVK_CapsLock, .maskSecondaryFn, .function),
+        ] {
+            var state = ShortcutRecordingState()
+            _ = state.handle(.flagsChanged(keyCode: UInt16(physical), flags: effectiveFlag))
+            _ = state.handle(.keyDown(keyCode: UInt16(kVK_LeftArrow), isRepeat: false,
+                                      flags: effectiveFlag.union(.maskSecondaryFn)))
+            XCTAssertEqual(state.handle(.keyUp(keyCode: UInt16(kVK_LeftArrow))), .listening)
+            XCTAssertEqual(state.handle(.flagsChanged(keyCode: UInt16(physical), flags: [])),
+                           .captured(ShortcutChord(modifiers: [expected], keyCode: UInt16(kVK_LeftArrow))))
+        }
+    }
+
     func testFlagsChangedInputUsesFlagsCarriedByTheEvent() throws {
         let event = try XCTUnwrap(CGEvent(
             keyboardEventSource: nil,
@@ -438,7 +471,7 @@ final class ShortcutRecordingStateTests: XCTestCase {
         )
     }
 
-    func testFunctionModifierReportsUnsupportedAfterRelease() {
+    func testFunctionModifierOnlyChordIsCaptured() {
         var state = ShortcutRecordingState()
 
         XCTAssertEqual(
@@ -450,8 +483,57 @@ final class ShortcutRecordingStateTests: XCTestCase {
         )
         XCTAssertEqual(
             state.handle(.flagsChanged(keyCode: UInt16(kVK_Function), flags: [])),
-            .unsupportedModifier
+            .captured(ShortcutChord(modifiers: [.function], keyCode: nil))
         )
+    }
+
+    func testFunctionControlShiftArrowsWaitForEveryReleaseOrder() {
+        for arrow in [kVK_LeftArrow, kVK_RightArrow] {
+            for releaseOrder in [[kVK_Function, kVK_Control, kVK_Shift, arrow],
+                                 [arrow, kVK_Shift, kVK_Control, kVK_Function]] {
+                var state = ShortcutRecordingState()
+                var flags: CGEventFlags = []
+                for (key, flag) in [(kVK_Function, CGEventFlags.maskSecondaryFn),
+                                    (kVK_Control, .maskControl), (kVK_Shift, .maskShift)] {
+                    flags.insert(flag)
+                    XCTAssertEqual(state.handle(.flagsChanged(keyCode: UInt16(key), flags: flags)), .listening)
+                }
+                _ = state.handle(.keyDown(keyCode: UInt16(arrow), isRepeat: false, flags: flags))
+                for (index, key) in releaseOrder.enumerated() {
+                    let result: ShortcutRecordingResult
+                    if key == arrow {
+                        result = state.handle(.keyUp(keyCode: UInt16(key)))
+                    } else {
+                        let flag: CGEventFlags = key == kVK_Function ? .maskSecondaryFn
+                            : (key == kVK_Control ? .maskControl : .maskShift)
+                        flags.remove(flag)
+                        result = state.handle(.flagsChanged(keyCode: UInt16(key), flags: flags))
+                    }
+                    XCTAssertEqual(result, index == releaseOrder.count - 1
+                        ? .captured(ShortcutChord(modifiers: [.function, .control, .shift], keyCode: UInt16(arrow)))
+                        : .listening)
+                }
+            }
+        }
+    }
+
+    func testFunctionModifierRemapsUseEffectiveFlags() {
+        for (key, flag, modifier) in [(kVK_CapsLock, CGEventFlags.maskSecondaryFn, ShortcutModifier.function),
+                                     (kVK_Function, .maskControl, .control)] {
+            var state = ShortcutRecordingState()
+            XCTAssertEqual(state.handle(.flagsChanged(keyCode: UInt16(key), flags: flag)), .listening)
+            XCTAssertEqual(state.handle(.flagsChanged(keyCode: UInt16(key), flags: [])),
+                           .captured(ShortcutChord(modifiers: [modifier], keyCode: nil)))
+        }
+    }
+
+    func testFunctionKeyIntrinsicFlagDoesNotRecordFunctionModifier() {
+        for key in [kVK_F1, kVK_F12, kVK_Home, kVK_LeftArrow] {
+            var state = ShortcutRecordingState()
+            _ = state.handle(.keyDown(keyCode: UInt16(key), isRepeat: false, flags: [.maskSecondaryFn]))
+            XCTAssertEqual(state.handle(.keyUp(keyCode: UInt16(key))),
+                           .captured(ShortcutChord(modifiers: [], keyCode: UInt16(key))))
+        }
     }
 
     func testCapsLockReportsUnsupportedOnEitherToggleState() {

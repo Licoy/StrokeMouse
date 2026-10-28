@@ -9,7 +9,9 @@ enum Constants {
     static let configFileName = "gestures.json"
     static let legacyConfigBackupFileName = "gestures.json.v1.bak"
     static let gestureTestLogFileName = "gesture-test-log.jsonl"
+    /// Keep libraries without Fn shortcuts readable by existing v2 releases.
     static let configVersion = 2
+    static let fnShortcutConfigVersion = 3
 
     /// Public repository (About → GitHub).
     static let githubURL = URL(string: "https://github.com/Licoy/StrokeMouse")!

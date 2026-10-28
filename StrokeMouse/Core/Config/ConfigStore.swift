@@ -26,7 +26,7 @@ final class ConfigStore {
     /// Complete library in its persisted wire shape.
     var library: GestureConfigFile {
         GestureConfigFile(
-            version: Constants.configVersion,
+            version: GestureConfigFile.requiredVersion(for: gestures),
             gestures: gestures,
             appPolicies: appPolicies,
             appGroups: appGroups
@@ -327,9 +327,6 @@ final class ConfigStore {
 
     /// Validates a backup without mutating the store or its error state.
     func validateBackupGestureFile(_ file: GestureConfigFile) throws {
-        guard file.version == Constants.configVersion else {
-            throw ConfigStoreFailure.unsupportedVersion(file.version)
-        }
         try validate(file)
     }
 
@@ -377,7 +374,7 @@ final class ConfigStore {
         // Group-scoped gestures carry their group so the package stays valid.
         let referencedGroupIDs = Set(selected.compactMap(\.scope.groupID))
         let file = GestureConfigFile(
-            version: Constants.configVersion,
+            version: GestureConfigFile.requiredVersion(for: selected),
             gestures: selected,
             appGroups: appGroups.filter { referencedGroupIDs.contains($0.id) }
         )
@@ -532,7 +529,7 @@ final class ConfigStore {
 
     private func persist(_ library: GestureConfigFile) throws {
         var file = library
-        file.version = Constants.configVersion
+        file.version = GestureConfigFile.requiredVersion(for: file.gestures)
         try validate(file)
         let dir = configURL.deletingLastPathComponent()
         try fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -548,6 +545,9 @@ final class ConfigStore {
     }
 
     private func validate(_ file: GestureConfigFile) throws {
+        guard file.hasSupportedVersion else {
+            throw ConfigStoreFailure.unsupportedVersion(file.version)
+        }
         try validate(file.gestures)
         var groupIDs = Set<UUID>()
         for group in file.appGroups {
@@ -625,7 +625,7 @@ final class ConfigStore {
         }
 
         switch header.version {
-        case Constants.configVersion:
+        case Constants.configVersion, Constants.fnShortcutConfigVersion:
             do {
                 let file = try decoder.decode(GestureConfigFile.self, from: data)
                 let compatibility = try decoder.decode(
@@ -731,7 +731,10 @@ final class ConfigStore {
     }
 
     private static func file(gestures: [GestureProfile]) -> GestureConfigFile {
-        GestureConfigFile(version: Constants.configVersion, gestures: gestures)
+        GestureConfigFile(
+            version: GestureConfigFile.requiredVersion(for: gestures),
+            gestures: gestures
+        )
     }
 
     private static func defaultLibrary() -> GestureConfigFile {

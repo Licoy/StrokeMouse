@@ -39,7 +39,6 @@ struct ShortcutRecordingState {
     private var pressedModifiers: [UInt16: ShortcutModifier] = [:]
     private var primaryKeyCode: UInt16?
     private var pressedKeyCodes: Set<UInt16> = []
-    private var unsupportedModifierKeys: Set<UInt16> = []
     private var hasStartedRelease = false
     private var hasUnsupportedModifier = false
     private var isCancelling = false
@@ -74,14 +73,6 @@ struct ShortcutRecordingState {
         keyCode: UInt16,
         flags: CGEventFlags
     ) -> ShortcutRecordingResult {
-        if Int(keyCode) == kVK_Function {
-            let isDown = !unsupportedModifierKeys.contains(keyCode)
-            guard !isDown || Self.flagsIndicate(.maskSecondaryFn, in: flags) else {
-                return .listening
-            }
-            return handleUnsupportedModifier(keyCode: keyCode, isDown: isDown)
-        }
-
         // Track each physical key so releasing one side remains distinguishable
         // while the other side still keeps the aggregate event flag set.
         if pressedModifiers[keyCode] != nil {
@@ -117,7 +108,7 @@ struct ShortcutRecordingState {
         }
 
         if Int(keyCode) == kVK_CapsLock {
-            // Caps Lock remapped to Control/Option/Command/Shift.
+            // Caps Lock remapped to a supported logical modifier, including Fn.
             return unexplainedStandardModifier(in: flags)
         }
 
@@ -133,7 +124,7 @@ struct ShortcutRecordingState {
         }
 
         // Stable priority when multiple unexplained bits appear (unusual).
-        let candidates: [ShortcutModifier] = [.control, .option, .shift, .command]
+        let candidates: [ShortcutModifier] = [.control, .option, .shift, .command, .function]
         var found: [ShortcutModifier] = []
         for modifier in candidates {
             let flag = Self.eventFlag(for: modifier)
@@ -142,19 +133,6 @@ struct ShortcutRecordingState {
             found.append(modifier)
         }
         return found.first
-    }
-
-    private mutating func handleUnsupportedModifier(
-        keyCode: UInt16,
-        isDown: Bool
-    ) -> ShortcutRecordingResult {
-        hasUnsupportedModifier = true
-        if isDown {
-            unsupportedModifierKeys.insert(keyCode)
-            return .listening
-        }
-        unsupportedModifierKeys.remove(keyCode)
-        return finishIfReleased()
     }
 
     private mutating func handleSupportedModifier(
@@ -238,6 +216,8 @@ struct ShortcutRecordingState {
     }
 
     private mutating func mergeModifiers(from flags: CGEventFlags) {
+        // Fn must come from flagsChanged: arrows and F keys carry its bit
+        // even when the physical Fn key is not held.
         let order: [ShortcutModifier] = [.control, .option, .shift, .command]
         for modifier in order {
             guard Self.flagsIndicate(Self.eventFlag(for: modifier), in: flags) else { continue }
@@ -259,8 +239,7 @@ struct ShortcutRecordingState {
     }
 
     private mutating func finishIfReleased() -> ShortcutRecordingResult {
-        guard pressedModifiers.isEmpty, pressedKeyCodes.isEmpty,
-              unsupportedModifierKeys.isEmpty
+        guard pressedModifiers.isEmpty, pressedKeyCodes.isEmpty
         else {
             return .listening
         }
@@ -289,6 +268,7 @@ struct ShortcutRecordingState {
         case kVK_Option, kVK_RightOption: return .option
         case kVK_Control, kVK_RightControl: return .control
         case kVK_Shift, kVK_RightShift: return .shift
+        case kVK_Function: return .function
         default: return nil
         }
     }
@@ -312,6 +292,7 @@ struct ShortcutRecordingState {
         case .option: return .maskAlternate
         case .control: return .maskControl
         case .shift: return .maskShift
+        case .function: return .maskSecondaryFn
         }
     }
 
@@ -340,6 +321,12 @@ struct ShortcutRecordingState {
     }
 }
 
+enum ShortcutRecorderStartResult {
+    case started
+    case heldModifiers
+    case unavailable
+}
+
 /// Global keyboard tap that swallows key events while recording a shortcut,
 /// so system hotkeys (e.g. lock screen) do not fire mid-recording.
 final class ShortcutRecorderTap: @unchecked Sendable {
@@ -364,10 +351,16 @@ final class ShortcutRecorderTap: @unchecked Sendable {
     var isActive: Bool { queue.sync { isRunning } }
 
     @discardableResult
-    func start() -> Bool {
+    func start() -> ShortcutRecorderStartResult {
         queue.sync {
-            guard !isRunning else { return true }
-            guard AXIsProcessTrusted() else { return false }
+            guard !isRunning else { return .started }
+            guard AXIsProcessTrusted() else { return .unavailable }
+            guard !Self.hasHeldModifiers(
+                flags: CGEventSource.flagsState(.hidSystemState),
+                keyIsDown: { CGEventSource.keyState(.hidSystemState, key: $0) }
+            ) else {
+                return .heldModifiers
+            }
             recordingState = ShortcutRecordingState()
 
             let mask =
@@ -392,7 +385,7 @@ final class ShortcutRecorderTap: @unchecked Sendable {
                 callback: callback,
                 userInfo: userInfo
             ) else {
-                return false
+                return .unavailable
             }
 
             port = eventTap
@@ -402,8 +395,25 @@ final class ShortcutRecorderTap: @unchecked Sendable {
             }
             CGEvent.tapEnable(tap: eventTap, enable: true)
             isRunning = true
-            return true
+            return .started
         }
+    }
+
+    /// Read only at recording start, before installing a swallowing tap.
+    /// Caps Lock's toggle flag is ignored; its key state represents a held key.
+    static func hasHeldModifiers(
+        flags: CGEventFlags,
+        keyIsDown: (UInt16) -> Bool
+    ) -> Bool {
+        // Even the HID flags snapshot can retain arrows' intrinsic Fn bit.
+        // Check physical modifier keys below instead of treating this bit as proof of Fn.
+        let logicalModifiers: CGEventFlags = [
+            .maskControl, .maskAlternate, .maskShift, .maskCommand,
+        ]
+        if !flags.intersection(logicalModifiers).isEmpty { return true }
+        return [kVK_Function, kVK_Control, kVK_RightControl, kVK_Option, kVK_RightOption,
+                kVK_Shift, kVK_RightShift, kVK_Command, kVK_RightCommand, kVK_CapsLock]
+            .contains { keyIsDown(UInt16($0)) }
     }
 
     func stop() {

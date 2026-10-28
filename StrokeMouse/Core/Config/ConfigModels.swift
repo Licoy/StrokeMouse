@@ -456,6 +456,7 @@ enum ShortcutModifier: String, Codable, Equatable, Hashable, Sendable {
     case option
     case control
     case shift
+    case function
 }
 
 struct ShortcutChord: Codable, Equatable, Sendable {
@@ -709,8 +710,9 @@ extension GestureAction: Codable {
     }
 }
 
-/// Keeps the v2 wire format readable by 0.0.18. The application-switch UI was
-/// added in 0.0.19, but its commands are existing ordered shortcuts on disk.
+/// Keeps non-Fn actions readable by 0.0.18 in v2 files; Fn shortcuts require a
+/// v3 file header because older releases cannot decode the new modifier.
+/// Application-switch commands remain existing ordered shortcuts on disk.
 /// Shortcut sequences store their first chord as a plain shortcut, so older
 /// versions ignore `followingChords` and run only that first chord.
 private enum PersistedGestureAction: Codable {
@@ -1149,6 +1151,31 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     var appGroups: [AppGroup]
 
     static let empty = GestureConfigFile(version: Constants.configVersion, gestures: [])
+
+    /// Fn cannot be decoded safely by v2 releases, including in later chords
+    /// and secondary actions, so only libraries using it require v3.
+    static func requiredVersion(for gestures: [GestureProfile]) -> Int {
+        let containsFunction = gestures.contains { profile in
+            profile.actions.contains { action in
+                switch action {
+                case .shortcut(let keyCode, let flags, _, let chord):
+                    return chord?.modifiers.contains(.function)
+                        ?? (keyCode == UInt16(kVK_Function)
+                            || flags & UInt(CGEventFlags.maskSecondaryFn.rawValue) != 0)
+                case .shortcutSequence(let chords):
+                    return chords.contains { $0.modifiers.contains(.function) }
+                default:
+                    return false
+                }
+            }
+        }
+        return containsFunction ? Constants.fnShortcutConfigVersion : Constants.configVersion
+    }
+
+    var hasSupportedVersion: Bool {
+        [Constants.configVersion, Constants.fnShortcutConfigVersion].contains(version)
+            && version >= Self.requiredVersion(for: gestures)
+    }
 
     init(
         version: Int,

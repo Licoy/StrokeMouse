@@ -314,6 +314,10 @@ final class ModifierEventTap: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
+        guard event.getIntegerValueField(.eventSourceUserData) != ShortcutAction.injectedEventMarker else {
+            return Unmanaged.passUnretained(event)
+        }
+
         let keys = Self.supportedKeys(in: event.flags)
         let delivery: (
             event: ModifierFlagsStateMachine.Event,

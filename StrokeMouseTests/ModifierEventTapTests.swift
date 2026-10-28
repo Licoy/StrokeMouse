@@ -181,6 +181,39 @@ final class ModifierEventTapTests: XCTestCase {
         XCTAssertEqual(observedLocation, pointerLocation)
     }
 
+    func testInjectedFunctionShortcutDoesNotArmIdleGesture() throws {
+        let tap = ModifierEventTap(pointerLocationProvider: { .zero })
+        tap.watchedKeys = [.function]
+        let observed = ModifierEventRecorder()
+        tap.onEvent = { event, _, _ in observed.append(event) }
+        let chord = ShortcutChord(modifiers: [.function], keyCode: nil)
+        let plan = ShortcutAction.makeEventPlan(keyCode: chord.legacyKeyCode,
+                                                modifiers: chord.legacyModifiers, orderedChord: chord)
+        for descriptor in plan {
+            let injected = try ShortcutAction.makeEvent(descriptor, source: nil)
+            XCTAssertNotNil(tap.handle(type: injected.type, event: injected))
+        }
+        XCTAssertTrue(observed.events.isEmpty)
+        _ = tap.handle(type: .flagsChanged, event: try makeFlagsEvent([.maskSecondaryFn]))
+        XCTAssertEqual(observed.events, [.began(.function)])
+    }
+
+    func testInjectedFunctionShortcutDoesNotArmOrCancelPhysicalGesture() throws {
+        let tap = ModifierEventTap(pointerLocationProvider: { .zero })
+        tap.watchedKeys = [.function]
+        let observed = ModifierEventRecorder()
+        tap.onEvent = { event, _, _ in observed.append(event) }
+        let physicalDown = try makeFlagsEvent([.maskSecondaryFn])
+        _ = tap.handle(type: .flagsChanged, event: physicalDown)
+        for flags: CGEventFlags in [[.maskSecondaryFn, .maskControl], []] {
+            let injected = try makeFlagsEvent(flags)
+            injected.setIntegerValueField(.eventSourceUserData, value: ShortcutAction.injectedEventMarker)
+            XCTAssertNotNil(tap.handle(type: .flagsChanged, event: injected))
+        }
+        _ = tap.handle(type: .flagsChanged, event: try makeFlagsEvent([]))
+        XCTAssertEqual(observed.events, [.began(.function), .ended(.function)])
+    }
+
     private func makeFlagsEvent(
         _ flags: CGEventFlags
     ) throws -> CGEvent {
@@ -191,5 +224,18 @@ final class ModifierEventTapTests: XCTestCase {
         ))
         event.flags = flags
         return event
+    }
+}
+
+private final class ModifierEventRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [ModifierFlagsStateMachine.Event] = []
+
+    var events: [ModifierFlagsStateMachine.Event] {
+        lock.withLock { storage }
+    }
+
+    func append(_ event: ModifierFlagsStateMachine.Event) {
+        lock.withLock { storage.append(event) }
     }
 }

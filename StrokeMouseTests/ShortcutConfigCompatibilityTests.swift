@@ -1,4 +1,5 @@
 import Carbon.HIToolbox
+import CoreGraphics
 import XCTest
 @testable import StrokeMouse
 
@@ -201,6 +202,110 @@ final class ShortcutConfigCompatibilityTests: XCTestCase {
         )
 
         XCTAssertEqual(decoded, .shortcutSequence([commandTab, send]))
+    }
+
+    func testFnVersionCoversPrimarySecondaryAndEverySequenceChord() throws {
+        let fn = ShortcutChord(modifiers: [.function], keyCode: nil)
+        let letter = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_V))
+        let actions: [GestureAction] = [
+            .shortcut(chord: fn),
+            .shortcut(chord: ShortcutChord(modifiers: [.function, .control], keyCode: UInt16(kVK_LeftArrow))),
+            .shortcutSequence([fn, letter]),
+            .shortcutSequence([letter, fn]),
+            .shortcut(keyCode: UInt16(kVK_ANSI_Q), modifiers: UInt(CGEventFlags.maskSecondaryFn.rawValue), display: "fnQ"),
+            .shortcut(keyCode: UInt16(kVK_Function), modifiers: 0, display: "fn")
+        ]
+        for action in actions {
+            for secondary in [false, true] {
+                var profile = GestureProfile(
+                    name: "Fn", pattern: .freePath(PathTemplates.up),
+                    action: secondary ? .none : action
+                )
+                profile.secondaryAction = secondary ? action : nil
+                XCTAssertEqual(GestureConfigFile.requiredVersion(for: [profile]), 3)
+                XCTAssertFalse(GestureConfigFile(version: 2, gestures: [profile]).hasSupportedVersion)
+                XCTAssertTrue(GestureConfigFile(version: 3, gestures: [profile]).hasSupportedVersion)
+            }
+        }
+    }
+
+    func testFnSurvivesSaveExportImportBackupRestoreAndReload() throws {
+        try withTemporaryDirectory { directory in
+            let letter = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_V))
+            let fn = ShortcutChord(modifiers: [.function], keyCode: nil)
+            var profile = GestureProfile(
+                name: "Fn Sequence", pattern: .freePath(PathTemplates.up),
+                action: .shortcutSequence([letter, fn])
+            )
+            profile.secondaryAction = .shortcut(chord: fn)
+            let regular = GestureProfile(name: "Regular", pattern: .freePath(PathTemplates.down))
+            let sourceURL = directory.appendingPathComponent("source.json")
+            let source = ConfigStore(configURL: sourceURL)
+            source.replaceAll([profile, regular])
+            XCTAssertNil(source.lastFailure)
+            XCTAssertEqual(try JSONDecoder().decode(GestureConfigFile.self, from: Data(contentsOf: sourceURL)).version, 3)
+            let package = try source.exportPackage(ids: [profile.id])
+            XCTAssertEqual(try JSONDecoder().decode(GestureConfigFile.self, from: package).version, 3)
+            let regularPackage = try source.exportPackage(ids: [regular.id])
+            XCTAssertEqual(try JSONDecoder().decode(GestureConfigFile.self, from: regularPackage).version, 2)
+
+            let destinationURL = directory.appendingPathComponent("destination.json")
+            let destination = ConfigStore(configURL: destinationURL)
+            destination.replaceAll([])
+            let importedIDs = try destination.importPackage(from: package)
+            XCTAssertEqual(destination.gestures.map(\.id), importedIDs)
+            XCTAssertTrue(try XCTUnwrap(destination.gestures.first).isContentEqual(to: profile))
+            let backup = try source.makeBackupGestureFile()
+            XCTAssertEqual(backup.version, 3)
+            try destination.replaceFromBackup(backup)
+            XCTAssertEqual(ConfigStore(configURL: destinationURL).gestures, [profile, regular])
+
+            source.replaceAll([regular])
+            XCTAssertEqual(source.library.version, 2)
+            XCTAssertEqual(try JSONDecoder().decode(GestureConfigFile.self, from: Data(contentsOf: sourceURL)).version, 2)
+        }
+    }
+
+    func testUnknownVersionAndFnMislabeledAsV2AreRejectedWithoutOverwriting() throws {
+        try withTemporaryDirectory { directory in
+            let profile = GestureProfile(
+                name: "Fn", pattern: .freePath(PathTemplates.up),
+                action: .shortcut(chord: ShortcutChord(modifiers: [.function], keyCode: nil))
+            )
+            for version in [2, 99] {
+                let file = GestureConfigFile(version: version, gestures: [profile])
+                let data = try JSONEncoder().encode(file)
+                let url = directory.appendingPathComponent("invalid-\(version).json")
+                try data.write(to: url)
+                let store = ConfigStore(configURL: url)
+                XCTAssertTrue(store.requiresRecovery)
+                XCTAssertEqual(store.lastFailure, .unsupportedVersion(version))
+                XCTAssertEqual(try Data(contentsOf: url), data)
+                XCTAssertFalse(store.save())
+                XCTAssertThrowsError(try store.analyzeImportPackage(from: data))
+                XCTAssertThrowsError(try store.validateBackupGestureFile(file))
+            }
+        }
+    }
+
+    func testLegacyNavigationFlagsDoNotRequireFnFormat() {
+        let actions: [GestureAction] = [
+            .shortcut(keyCode: UInt16(kVK_LeftArrow), modifiers: UInt(CGEventFlags.maskNumericPad.rawValue), display: "←"),
+            .shortcut(keyCode: UInt16(kVK_LeftArrow), modifiers: UInt(CGEventFlags.maskSecondaryFn.rawValue), display: "←",
+                      orderedChord: ShortcutChord(modifiers: [], keyCode: UInt16(kVK_LeftArrow)))
+        ]
+        for action in actions {
+            let profile = GestureProfile(name: "Arrow", pattern: .freePath(PathTemplates.up), action: action)
+            XCTAssertEqual(GestureConfigFile.requiredVersion(for: [profile]), 2)
+        }
+    }
+
+    private func withTemporaryDirectory(_ body: (URL) throws -> Void) throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseFnCompatibility-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try body(directory)
     }
 }
 

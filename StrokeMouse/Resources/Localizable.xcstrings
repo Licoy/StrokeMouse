@@ -10860,43 +10860,43 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Click the field or Record, then press the shortcut. Modifier-only shortcuts (e.g. ⌘⇧) are supported."
+            "value": "Click the field or Record, then press the shortcut. Modifier-only shortcuts, including Fn/Globe, are supported."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "点击输入框或「录制」后按下快捷键；支持仅修饰键组合（如 ⌘⇧）。"
+            "value": "点击输入框或「录制」后按下快捷键；支持仅修饰键组合，包括 Fn/地球仪。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "點選輸入框或「錄製」後按下快捷鍵；支援僅修飾鍵組合（如 ⌘⇧）。"
+            "value": "點選輸入框或「錄製」後按下快捷鍵；支援僅修飾鍵組合，包括 Fn/地球儀。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "필드나 기록을 클릭한 뒤 단축키를 누르며, 보조 키만으로 된 단축키(예: ⌘⇧)도 지원됩니다."
+            "value": "필드나 기록을 클릭한 뒤 단축키를 누르며, Fn/Globe를 포함한 보조 키만으로 된 단축키도 지원됩니다."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フィールドまたは「記録」をクリックしてからショートカットを押します。修飾キーのみのショートカット（例: ⌘⇧）にも対応しています。"
+            "value": "フィールドまたは「記録」をクリックしてからショートカットを押します。Fn/地球儀を含む、修飾キーのみのショートカットにも対応しています。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Щёлкните поле или «Записать», затем нажмите сочетание. Поддерживаются сочетания только из модификаторов (например, ⌘⇧)."
+            "value": "Щёлкните поле или «Записать», затем нажмите сочетание. Поддерживаются сочетания только из модификаторов, включая Fn/Globe."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cliquez dans le champ ou sur Enregistrer, puis appuyez sur le raccourci. Les raccourcis composés uniquement de touches de modification (p. ex. ⌘⇧) sont pris en charge."
+            "value": "Cliquez dans le champ ou sur Enregistrer, puis appuyez sur le raccourci. Les raccourcis composés uniquement de touches de modification, dont Fn/Globe, sont pris en charge."
           }
         }
       }
@@ -15087,48 +15087,94 @@
         }
       }
     },
-    "action.shortcutUnsupportedModifier": {
+    "action.shortcutReleaseModifiers": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Only Command, Option, Control, and Shift are supported as modifier keys."
+            "value": "Release all modifier keys, then click Record Shortcut again."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "仅支持 Command、Option、Control 和 Shift 作为修饰键。"
+            "value": "请先松开所有修饰键，再开始录制。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "僅支援 Command、Option、Control 和 Shift 作為修飾鍵。"
+            "value": "請先鬆開所有修飾鍵，再開始錄製。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "보조 키는 Command, Option, Control, Shift만 지원됩니다."
+            "value": "모든 보조 키를 놓은 뒤 단축키 기록을 다시 시작하세요."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "修飾キーとして使えるのは Command、Option、Control、Shift のみです。"
+            "value": "すべての修飾キーを離してから、ショートカットの記録をやり直してください。"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "В качестве модификаторов поддерживаются только Command, Option, Control и Shift."
+            "value": "Отпустите все клавиши-модификаторы, затем снова начните запись сочетания."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seuls Command, Option, Control et Shift sont pris en charge comme touches de modification."
+            "value": "Relâchez toutes les touches de modification, puis relancez l’enregistrement du raccourci."
+          }
+        }
+      }
+    },
+    "action.shortcutUnsupportedModifier": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only Command, Option, Control, Shift, and Fn/Globe are supported as modifier keys."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅支持 Command、Option、Control、Shift 和 Fn/Globe 作为修饰键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅支援 Command、Option、Control、Shift 和 Fn/Globe 作為修飾鍵。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보조 키는 Command, Option, Control, Shift, Fn/Globe만 지원됩니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修飾キーとして使えるのは Command、Option、Control、Shift、Fn/Globe のみです。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В качестве модификаторов поддерживаются только Command, Option, Control, Shift и Fn/Globe."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seuls Command, Option, Control, Shift et Fn/Globe sont pris en charge comme touches de modification."
           }
         }
       }

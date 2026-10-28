@@ -2,6 +2,27 @@ import XCTest
 @testable import StrokeMouse
 
 final class BackupMergePlannerTests: XCTestCase {
+    func testFnMergeProducesV3AndRejectsMislabeledV2Backup() throws {
+        var fnProfile = profile(name: "Fn", points: PathTemplates.up)
+        fnProfile.secondaryAction = .shortcut(
+            chord: ShortcutChord(modifiers: [.function], keyCode: nil)
+        )
+        let backup = GestureConfigFile(version: 3, gestures: [fnProfile])
+        let plan: BackupMergePlan<String> = try BackupMergePlanner.plan(
+            local: .empty, backup: backup, localSettings: [:], backupSettings: [:]
+        )
+        let merged = try plan.resolve().gestureFile
+        XCTAssertEqual(merged.version, 3)
+        XCTAssertEqual(merged.gestures, [fnProfile])
+        XCTAssertThrowsError(try BackupMergePlanner.plan(
+            local: GestureConfigFile.empty,
+            backup: GestureConfigFile(version: 2, gestures: [fnProfile]),
+            localSettings: [String: String](), backupSettings: [:]
+        )) { error in
+            XCTAssertEqual(error as? BackupMergePlannerError, .unsupportedConfigVersion(side: .backup, version: 2))
+        }
+    }
+
     func testMergePreservesLocalAndAppendsBackupOnlyInBackupOrder() throws {
         let localA = profile(name: "Local A", points: PathTemplates.up)
         let localB = profile(name: "Local B", points: PathTemplates.down)

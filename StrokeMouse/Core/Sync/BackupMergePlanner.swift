@@ -198,7 +198,7 @@ struct BackupMergePlan<Value: Equatable & Sendable>: Sendable {
 
         return BackupMergeResult(
             gestureFile: GestureConfigFile(
-                version: Constants.configVersion,
+                version: GestureConfigFile.requiredVersion(for: mergedGestures),
                 gestures: mergedGestures,
                 appPolicies: mergedPolicies,
                 appGroups: mergedGroups
@@ -230,13 +230,13 @@ enum BackupMergePlanner {
         localSettings: [String: Value],
         backupSettings: [String: Value]
     ) throws -> BackupMergePlan<Value> {
-        guard local.version == Constants.configVersion else {
+        guard local.hasSupportedVersion else {
             throw BackupMergePlannerError.unsupportedConfigVersion(
                 side: .local,
                 version: local.version
             )
         }
-        guard backup.version == Constants.configVersion else {
+        guard backup.hasSupportedVersion else {
             throw BackupMergePlannerError.unsupportedConfigVersion(
                 side: .backup,
                 version: backup.version

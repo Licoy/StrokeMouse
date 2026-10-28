@@ -258,6 +258,76 @@ final class ShortcutActionTests: XCTestCase {
         ])
     }
 
+    func testFunctionControlShiftArrowPressesAndReleasesEveryModifier() {
+        for arrow in [kVK_LeftArrow, kVK_RightArrow] {
+            let chord = ShortcutChord(modifiers: [.function, .control, .shift], keyCode: UInt16(arrow))
+            let plan = ShortcutAction.makeEventPlan(keyCode: chord.legacyKeyCode,
+                                                    modifiers: chord.legacyModifiers, orderedChord: chord)
+            XCTAssertEqual(plan, [
+                event(kVK_Function, isKeyDown: true, flags: [.maskSecondaryFn]),
+                event(kVK_Control, isKeyDown: true, flags: [.maskSecondaryFn, .maskControl]),
+                event(kVK_Shift, isKeyDown: true, flags: [.maskSecondaryFn, .maskControl, .maskShift]),
+                event(arrow, isKeyDown: true, flags: [.maskSecondaryFn, .maskControl, .maskShift]),
+                event(arrow, isKeyDown: false, flags: [.maskSecondaryFn, .maskControl, .maskShift]),
+                event(kVK_Shift, isKeyDown: false, flags: [.maskSecondaryFn, .maskControl]),
+                event(kVK_Control, isKeyDown: false, flags: [.maskSecondaryFn]),
+                event(kVK_Function, isKeyDown: false, flags: []),
+            ])
+        }
+    }
+
+    func testLegacyFunctionPrimaryPressesAndReleasesWithoutLeavingFunctionHeld() {
+        XCTAssertEqual(ShortcutAction.makeEventPlan(keyCode: UInt16(kVK_Function), modifiers: 0), [
+            event(kVK_Function, isKeyDown: true, flags: [.maskSecondaryFn]),
+            event(kVK_Function, isKeyDown: false, flags: []),
+        ])
+        for flags: NSEvent.ModifierFlags in [[.control], [.control, .function]] {
+            XCTAssertEqual(ShortcutAction.makeEventPlan(keyCode: UInt16(kVK_Function),
+                                                        modifiers: UInt(flags.rawValue)), [
+                event(kVK_Control, isKeyDown: true, flags: [.maskControl]),
+                event(kVK_Function, isKeyDown: true, flags: [.maskControl, .maskSecondaryFn]),
+                event(kVK_Function, isKeyDown: false, flags: [.maskControl]),
+                event(kVK_Control, isKeyDown: false, flags: []),
+            ])
+        }
+    }
+
+    func testLegacyRawFunctionModifierIsPressedAndReleased() {
+        let plan = ShortcutAction.makeEventPlan(keyCode: UInt16(kVK_ANSI_A),
+                                                modifiers: UInt(NSEvent.ModifierFlags.function.rawValue))
+        XCTAssertEqual(plan, [
+            event(kVK_Function, isKeyDown: true, flags: [.maskSecondaryFn]),
+            event(kVK_ANSI_A, isKeyDown: true, flags: [.maskSecondaryFn]),
+            event(kVK_ANSI_A, isKeyDown: false, flags: [.maskSecondaryFn]),
+            event(kVK_Function, isKeyDown: false, flags: []),
+        ])
+    }
+
+    func testFunctionOnlyUsesPairedFlagsChangedEvents() throws {
+        let chord = ShortcutChord(modifiers: [.function], keyCode: nil)
+        let plan = ShortcutAction.makeEventPlan(keyCode: chord.legacyKeyCode,
+                                                modifiers: chord.legacyModifiers, orderedChord: chord)
+        XCTAssertEqual(plan, [event(kVK_Function, isKeyDown: true, flags: [.maskSecondaryFn]),
+                              event(kVK_Function, isKeyDown: false, flags: [])])
+        for descriptor in plan {
+            let event = try ShortcutAction.makeEvent(descriptor, source: nil)
+            XCTAssertEqual(event.type, .flagsChanged)
+            XCTAssertEqual(event.flags, descriptor.flags)
+            XCTAssertEqual(event.getIntegerValueField(.eventSourceUserData), ShortcutAction.injectedEventMarker)
+        }
+    }
+
+    func testFunctionSequenceReleasesFunctionBeforeFollowingKey() {
+        let chords = [ShortcutChord(modifiers: [.function, .control, .shift], keyCode: UInt16(kVK_LeftArrow)),
+                      ShortcutChord(modifiers: [], keyCode: UInt16(kVK_Return))]
+        XCTAssertEqual(GestureAction.shortcut(chords: chords), .shortcutSequence(chords))
+        let plans = chords.map { ShortcutAction.makeEventPlan(keyCode: $0.legacyKeyCode,
+                                                              modifiers: $0.legacyModifiers, orderedChord: $0) }
+        XCTAssertEqual(plans[0].last, event(kVK_Function, isKeyDown: false, flags: []))
+        XCTAssertEqual(plans[1], [event(kVK_Return, isKeyDown: true, flags: []),
+                                  event(kVK_Return, isKeyDown: false, flags: [])])
+    }
+
     private func event(
         _ keyCode: Int,
         isKeyDown: Bool,

@@ -2,6 +2,23 @@ import XCTest
 @testable import StrokeMouse
 
 final class BackupCodecTests: XCTestCase {
+    func testFnBackupRoundTripsAndRejectsMislabeledOrFutureConfigVersions() throws {
+        var payload = makePayload(scope: .gesturesOnly)
+        payload.gestures.gestures[0].secondaryAction = .shortcut(
+            chord: ShortcutChord(modifiers: [.function], keyCode: nil)
+        )
+        payload.gestures.version = 3
+        let metadata = makeMetadata(scope: .gesturesOnly)
+        let encoded = try BackupCodec.encodePlaintext(payload: payload, metadata: metadata)
+        XCTAssertEqual(try BackupCodec.decode(encoded.data).payload, payload)
+        for version in [2, 99] {
+            payload.gestures.version = version
+            XCTAssertThrowsError(try BackupCodec.encodePlaintext(payload: payload, metadata: metadata)) { error in
+                XCTAssertEqual(error as? BackupCodecError, .unsupportedGestureConfigVersion(version))
+            }
+        }
+    }
+
     func testPlaintextRoundTripKeepsListableMetadata() throws {
         let payload = makePayload(scope: .gesturesOnly)
         let metadata = makeMetadata(scope: .gesturesOnly)
