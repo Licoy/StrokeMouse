@@ -1237,7 +1237,7 @@
 				CODE_SIGN_IDENTITY = "StrokeMouse Dev";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1246,7 +1246,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.34;
+				MARKETING_VERSION = 0.0.35;
 				PRODUCT_BUNDLE_IDENTIFIER = com.strokemouse.app;
 				PRODUCT_NAME = StrokeMouse;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1333,7 +1333,7 @@
 				CODE_SIGN_IDENTITY = "StrokeMouse Dev";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1342,7 +1342,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.0.34;
+				MARKETING_VERSION = 0.0.35;
 				PRODUCT_BUNDLE_IDENTIFIER = com.strokemouse.app.dev;
 				PRODUCT_NAME = StrokeMouse;
 				PROVISIONING_PROFILE_SPECIFIER = "";
