@@ -35,7 +35,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Menu bar app**: enable/disable gestures, open settings, quit; icon tints by status (normal / paused / needs permission); optional **hide menu bar icon** (confirm if Dock is also hidden; reopen via Dock or relaunch to open settings)
 - **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates)
 - **Mouse drawing**: each gesture can independently use the right, middle, or a side button; only buttons referenced by enabled profiles are monitored; optionally add a **left-click secondary action**—click the left button once while drawing and only that action runs on release
-- **Mouse combinations**: hold right and scroll up/down or click left; at any display’s top/bottom/left/right edge, right-click or scroll to run an action without drawing. Configure these under **Gestures → Add → Mouse Combinations**; app scopes and existing actions apply. [Details](docs/mouse-combinations.en.md).
+- **Mouse combinations**: hold right and scroll up/down, click left, or drag to scroll; at any display’s top/bottom/left/right edge, right-click or scroll to run an action without drawing. Configure these under **Gestures → Add → Mouse Combinations**; app scopes and existing actions apply. [Details](docs/mouse-combinations.en.md).
 - **Mouse button mappings**: a single click on a side or middle button runs an action directly (e.g. back side button → ⌘[), no drawing needed, and can require one held modifier (e.g. only ⌘ + back side button); when the same button also draws gestures, a press under the minimum stroke distance counts as a click and a longer one as a drawing, so nothing fires twice; global / per-app scopes apply, and apps without a mapping keep the button's native behavior
 - **Trackpad Draw**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
 - **Experimental Touch Gestures**: the built-in trackpad supports 40 gesture classes—three- to five-finger taps, double taps, clicks, double clicks, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
@@ -44,7 +44,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Per-gesture target**: choose the frontmost app or the app under the pointer at trigger-down; when a regular window exists, its exact window is frozen too, and app-scope checks and target-aware actions always reuse that target
 - **Free-path recognition**: record 1–5 samples per gesture (3 recommended), with the best-matching sample winning; elastic arc-length alignment that compares stroke direction first and position second, so curves, wobble and small end hooks are tolerated while reversed, mirrored, truncated or clearly extended strokes are rejected; live stroke HUD while holding the trigger
 - **App scope**: global, or pick apps by icon from installed applications (search / browse `.app`)
-- **Actions**: shortcuts (including Fn/Globe alone or combined with other keys, optionally followed by more keys pressed in order, e.g. ⌘V then Return), open app (icon picker), URL, media keys, window actions, Shell / AppleScript (syntax-highlighted editor; AppleScript presets such as sleep, lock screen, empty trash, plus custom)
+- **Actions**: system commands (Mission Control, Application Windows, previous / next Space, with customizable system shortcut bindings), shortcuts (including Fn/Globe alone or combined with other keys, optionally followed by more keys pressed in order, e.g. ⌘V then Return), open app (icon picker), URL, media keys, window actions, Shell / AppleScript (syntax-highlighted editor; AppleScript presets such as sleep, lock screen, empty trash, plus custom)
 - **Polish**: UI in English, Simplified Chinese, Traditional Chinese, Korean, Japanese, Russian, and French (or follow the system language), light/dark appearance (system or forced), launch at login, hide Dock / menu bar icon, Sparkle in-app updates (falls back to GitHub Releases on failure)
 
 ## Requirements
@@ -167,6 +167,8 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 
 > **Trackpad Draw**: modifier monitoring is listen-only and never consumes keyboard events; a short path runs no action. The path follows the system pointer, so either a trackpad or mouse can move it. StrokeMouse does not suppress the modifier's normal effect in the active app.
 
+> System commands use customizable shortcut bindings that must match Mission Control in System Settings; StrokeMouse does not change system settings. Application Windows activates the captured app and window first; Mission Control and Space navigation keep the current system context without activating the captured target. These are discrete commands, not native interactive four-finger animations.
+
 > Shortcuts activate the frozen app first and also bring its exact window forward when one was captured, which may switch focus or Spaces. Locations without a regular window, such as the Finder desktop, can still run shortcuts and **Hide App**; Close, Minimize, Zoom, Full Screen, and Center still require an exact window. A short click never activates the target.
 
 Release all modifier keys before starting shortcut recording, then press the keys in the order you want them replayed. Caps Lock may remain enabled once its key is released.
@@ -193,7 +195,7 @@ Path:
 
 Day to day, multi-select under **Settings → Gestures** to export / import JSON packages. For a full-library backup, copy the file above or edit by hand (keep the structure valid). Settings can **Reveal in Finder**.
 
-Libraries and exported packages containing Fn shortcuts use configuration format **v3** and require a StrokeMouse version with Fn shortcut support. Libraries and packages without Fn shortcuts remain **v2**, and existing v1/v2 configurations are still readable. Fn is preserved in imports and backups, including secondary actions and follow-up keys.
+Libraries and exported packages containing system actions or drag-to-scroll use configuration format **v4** and require a version supporting these features. Fn shortcuts alone use **v3**; other libraries remain **v2**. Existing v1/v2/v3 configurations remain readable, and all shortcut bindings are preserved in backups.
 
 ## Tech stack
 

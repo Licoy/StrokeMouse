@@ -300,6 +300,127 @@ final class ShortcutConfigCompatibilityTests: XCTestCase {
         }
     }
 
+    func testSystemActionsRequireV4AndSurviveExportBackupAndReload() throws {
+        try withTemporaryDirectory { directory in
+            let fn = ShortcutChord(modifiers: [.function], keyCode: nil)
+            for secondary in [false, true] {
+                for command in SystemCommand.allCases {
+                    let action = GestureAction.system(SystemAction(command: command, shortcutOverride: fn))
+                    var profile = GestureProfile(name: "System", pattern: .freePath(PathTemplates.up),
+                                                 action: secondary ? .none : action)
+                    profile.secondaryAction = secondary ? action : nil
+                    XCTAssertEqual(GestureConfigFile.requiredVersion(for: [profile]), 4)
+                    for version in [2, 3] {
+                        XCTAssertFalse(GestureConfigFile(version: version, gestures: [profile]).hasSupportedVersion)
+                    }
+                    let url = directory.appendingPathComponent("source.json")
+                    let source = ConfigStore(configURL: url)
+                    source.replaceAll([profile])
+                    XCTAssertNil(source.lastFailure)
+                    let package = try source.exportPackage(ids: [profile.id])
+                    let file = try JSONDecoder().decode(GestureConfigFile.self, from: package)
+                    XCTAssertEqual(file.version, 4)
+                    XCTAssertEqual(file.gestures, [profile])
+                    XCTAssertEqual(ConfigStore(configURL: url).gestures, [profile])
+                    let destination = ConfigStore(configURL: directory.appendingPathComponent("destination.json"))
+                    destination.replaceAll([])
+                    let importedIDs = try destination.importPackage(from: package)
+                    XCTAssertEqual(destination.gestures.map(\.id), importedIDs)
+                    XCTAssertEqual(destination.gestures.count, 1)
+                    XCTAssertTrue(try XCTUnwrap(destination.gestures.first).isContentEqual(to: profile))
+                    let backup = try source.makeBackupGestureFile()
+                    XCTAssertEqual(backup.version, 4)
+                    try destination.replaceFromBackup(backup)
+                    XCTAssertEqual(destination.gestures, [profile])
+                }
+            }
+        }
+    }
+
+    func testSystemDefaultChordsAndMissingOverrideDecode() throws {
+        XCTAssertEqual(SystemCommand.allCases.map { $0.defaultChord.keyCode }, [126, 125, 123, 124])
+        for command in SystemCommand.allCases {
+            let data = Data("{\"command\":\"\(command.rawValue)\"}".utf8)
+            let action = try JSONDecoder().decode(SystemAction.self, from: data)
+            XCTAssertNil(action.shortcutOverride)
+            XCTAssertEqual(action.effectiveChord, command.defaultChord)
+            XCTAssertEqual(action.effectiveChord.modifiers, [.control])
+        }
+    }
+
+    func testDragScrollRequiresV4AndRejectsInvalidProfiles() throws {
+        try withTemporaryDirectory { directory in
+            let store = ConfigStore(configURL: directory.appendingPathComponent("source.json"))
+            let valid = GestureProfile(name: "Drag scroll", input: .mouseCombination(.init(action: .dragScroll)),
+                                       action: .none, targetPolicy: .windowUnderPointer)
+            XCTAssertEqual(GestureConfigFile.requiredVersion(for: [valid]), 4)
+            let file = GestureConfigFile(version: 4, gestures: [valid])
+            XCTAssertNoThrow(try store.validateBackupGestureFile(file))
+            let encoded = try JSONEncoder().encode(file)
+            XCTAssertEqual(try JSONDecoder().decode(GestureConfigFile.self, from: encoded), file)
+            var invalidProfiles: [GestureProfile] = []
+            var profile = valid
+            profile.targetPolicy = .frontmostWindow
+            invalidProfiles.append(profile)
+            profile = valid
+            profile.action = .media(.playPause)
+            invalidProfiles.append(profile)
+            profile = valid
+            profile.input = .mouseCombination(.init(edge: .top, action: .dragScroll))
+            invalidProfiles.append(profile)
+            for sensitivity in [Double.nan, .infinity, 0, 4.1] {
+                profile = valid
+                profile.input = .mouseCombination(.init(action: .dragScroll,
+                    dragScroll: .init(sensitivity: sensitivity)))
+                invalidProfiles.append(profile)
+            }
+            for profile in invalidProfiles {
+                XCTAssertThrowsError(try store.validateBackupGestureFile(.init(version: 4, gestures: [profile]))) {
+                    XCTAssertEqual($0 as? ConfigStoreFailure,
+                                   .invalidConfiguration(.invalidMouseCombination(profile.id)))
+                }
+            }
+        }
+    }
+
+    func testV4BackupCodecAndMergePreserveSystemOverridesAndDragScroll() throws {
+        let fn = ShortcutChord(modifiers: [.function, .control], keyCode: 123)
+        var system = GestureProfile(name: "System", pattern: .freePath(PathTemplates.up),
+                                    action: .system(.init(command: .spaceLeft, shortcutOverride: fn)))
+        system.secondaryAction = .system(.init(command: .applicationWindows))
+        let drag = GestureProfile(name: "Drag", input: .mouseCombination(.init(action: .dragScroll,
+            dragScroll: .init(sensitivity: 2.5, reversesDirection: true))), targetPolicy: .windowUnderPointer)
+        let file = GestureConfigFile(version: 4, gestures: [system, drag])
+        let payload = BackupPayloadV1(gestures: file, settings: nil, restoredFromSnapshotID: nil)
+        let metadata = BackupMetadataV1(snapshotID: UUID(), createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            kind: .manual, deviceID: UUID(), deviceName: "Test Mac", appVersion: "1", appBuild: "1", scope: .gesturesOnly)
+        let plain = try BackupCodec.encodePlaintext(payload: payload, metadata: metadata)
+        let encrypted = try BackupCodec.encodeEncrypted(payload: payload, metadata: metadata,
+                                                       password: "system and drag backup")
+        let decodedFiles = [
+            try BackupCodec.decode(plain.data).payload.gestures,
+            try BackupCodec.decode(encrypted.data, derivedKey: XCTUnwrap(encrypted.derivedKey)).payload.gestures,
+        ]
+        for decoded in decodedFiles {
+            XCTAssertEqual(decoded, file)
+            let plan: BackupMergePlan<String> = try BackupMergePlanner.plan(
+                local: .empty, backup: decoded, localSettings: [:], backupSettings: [:])
+            XCTAssertEqual(try plan.resolve().gestureFile, file)
+        }
+        for version in [2, 3] {
+            var mislabeled = payload
+            mislabeled.gestures.version = version
+            XCTAssertThrowsError(try BackupCodec.encodePlaintext(payload: mislabeled, metadata: metadata)) {
+                XCTAssertEqual($0 as? BackupCodecError, .unsupportedGestureConfigVersion(version))
+            }
+            XCTAssertThrowsError(try BackupMergePlanner.plan(local: .empty, backup: mislabeled.gestures,
+                localSettings: [String: String](), backupSettings: [:])) {
+                XCTAssertEqual($0 as? BackupMergePlannerError,
+                               .unsupportedConfigVersion(side: .backup, version: version))
+            }
+        }
+    }
+
     private func withTemporaryDirectory(_ body: (URL) throws -> Void) throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseFnCompatibility-\(UUID().uuidString)")

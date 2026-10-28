@@ -188,6 +188,56 @@ final class ActionExecutorTests: XCTestCase {
         XCTAssertEqual(platform.shortcuts.count, 1)
     }
 
+    func testGlobalSystemCommandsIgnoreUnavailableAndCapturedTargets() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        var chords: [ShortcutChord] = []
+        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { chords.append($0) })
+        for command in [SystemCommand.missionControl, .spaceLeft, .spaceRight] {
+            try await executor.execute(.system(SystemAction(command: command)),
+                                       target: .unavailable(.windowUnavailable))
+            try await executor.execute(.system(SystemAction(command: command)),
+                                       target: .resolved(makeTargetContext()))
+        }
+        XCTAssertEqual(chords, [SystemCommand.missionControl, .spaceLeft, .spaceRight]
+            .flatMap { [$0.defaultChord, $0.defaultChord] })
+        XCTAssertTrue(platform.shortcuts.isEmpty)
+        XCTAssertTrue(platform.windows.isEmpty)
+    }
+
+    func testApplicationWindowsUsesExactFrozenTargetAndOverride() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        var postedGlobally = false
+        let executor = ActionExecutor(targetPlatform: platform, globalChordPoster: { _ in postedGlobally = true })
+        let target = makeTargetContext()
+        let chord = ShortcutChord(modifiers: [.function], keyCode: nil)
+        let action = GestureAction.system(SystemAction(command: .applicationWindows, shortcutOverride: chord))
+        try await executor.execute(action, target: .resolved(target))
+        XCTAssertEqual(platform.shortcuts.map(\.orderedChord), [chord])
+        XCTAssertTrue(platform.shortcuts[0].target.window === target.window)
+        XCTAssertFalse(postedGlobally)
+        do {
+            try await executor.executeForTesting(action)
+            XCTFail("Application Windows needs a captured target")
+        } catch ActionExecutionError.targetRequiredForTest {
+        }
+        XCTAssertEqual(platform.shortcuts.count, 1)
+    }
+
+    func testGlobalSystemOverrideIsTestableAndFailuresPropagate() async throws {
+        let chord = ShortcutChord(modifiers: [.function, .control], keyCode: 123)
+        var received: ShortcutChord?
+        let executor = ActionExecutor(globalChordPoster: { received = $0 })
+        try await executor.executeForTesting(.system(SystemAction(command: .spaceLeft, shortcutOverride: chord)))
+        XCTAssertEqual(received, chord)
+        let failing = ActionExecutor(globalChordPoster: { _ in throw ShortcutActionError.eventSourceUnavailable })
+        do {
+            try await failing.executeForTesting(.system(SystemAction(command: .missionControl)))
+            XCTFail("Expected event posting failure")
+        } catch ShortcutActionError.eventSourceUnavailable {
+        }
+        XCTAssertNotNil(failing.lastError)
+    }
+
     private func makeTargetContext(withWindow: Bool = true) -> GestureTargetContext {
         GestureTargetContext(
             policy: .frontmostWindow,

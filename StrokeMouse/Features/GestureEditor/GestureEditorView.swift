@@ -18,7 +18,7 @@ struct GestureEditorView: View {
     var onCancel: () -> Void
 
     enum ActionKind: String, CaseIterable, Identifiable {
-        case none, shortcut, openApp, openURL, shell, media, window, appleScript
+        case none, shortcut, system, openApp, openURL, shell, media, window, appleScript
         var id: String { rawValue }
         var titleKey: String { "action.\(rawValue)" }
     }
@@ -113,8 +113,14 @@ struct GestureEditorView: View {
             }
 
             Section(L10n.string("editor.action")) {
-                ActionPickerView(kind: $actionKind, action: $profile.action)
-                if profile.action.requiresCapturedTarget {
+                if isDragScroll {
+                    Text(L10n.string("editor.dragScrollTestHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ActionPickerView(kind: $actionKind, action: $profile.action)
+                }
+                if !isDragScroll, profile.action.requiresCapturedTarget {
                     Text(L10n.string("editor.testActionNeedsTarget"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -126,20 +132,26 @@ struct GestureEditorView: View {
             }
 
             Section(L10n.string("editor.target")) {
-                Picker(
-                    L10n.string("editor.targetWindow"),
-                    selection: $profile.targetPolicy
-                ) {
-                    ForEach(GestureTargetPolicy.allCases) { policy in
-                        Text(L10n.string(policy.displayKey))
-                            .tag(policy)
+                if isDragScroll {
+                    Text(L10n.string("editor.dragScrollTargetHelp"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Picker(
+                        L10n.string("editor.targetWindow"),
+                        selection: $profile.targetPolicy
+                    ) {
+                        ForEach(GestureTargetPolicy.allCases) { policy in
+                            Text(L10n.string(policy.displayKey))
+                                .tag(policy)
+                        }
                     }
+                    Text(L10n.string(usesSystemNavigation ? "editor.systemNavigationTargetHelp" : targetHelpKey))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                Text(L10n.string(targetHelpKey))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
 
-                if profile.targetPolicy == .windowUnderPointer,
+                if !isDragScroll, profile.targetPolicy == .windowUnderPointer,
                    usesShortcutAction
                 {
                     Label(
@@ -235,7 +247,7 @@ struct GestureEditorView: View {
             Button(L10n.string("common.testAction")) {
                 testAction(profile.action)
             }
-            .disabled(profile.action.requiresCapturedTarget)
+            .disabled(isDragScroll || profile.action.requiresCapturedTarget)
             Button(L10n.string("common.save")) {
                 commitAndSave()
             }
@@ -257,14 +269,12 @@ struct GestureEditorView: View {
             && GestureProfile.supportsSecondaryAction(profile.input)
             ? secondaryActionDraft
             : nil
-        switch scopeMode {
-        case .global:
-            profile.scope = .global
-        case .apps:
-            profile.scope = .apps(scopeBundleIds)
-        case .group:
-            guard let scopeGroupID else { return }
-            profile.scope = .group(scopeGroupID)
+        guard let draftScope else { return }
+        profile.scope = draftScope
+        if isDragScroll {
+            profile.action = .none
+            profile.secondaryAction = nil
+            profile.targetPolicy = .windowUnderPointer
         }
         onSave(profile)
     }
@@ -281,7 +291,31 @@ struct GestureEditorView: View {
         {
             return "editor.saveNeedsGroup"
         }
+        if let draftScope,
+           MouseMovementConflict.hasConflict(
+               draft: profile, scope: draftScope,
+               profiles: appState.configStore.gestures
+           ) {
+            return "editor.saveMovementConflict"
+        }
         return nil
+    }
+
+    private var draftScope: AppScope? {
+        switch scopeMode {
+        case .global: return .global
+        case .apps: return .apps(scopeBundleIds)
+        case .group: return scopeGroupID.map(AppScope.group)
+        }
+    }
+
+    private var isDragScroll: Bool { MouseMovementConflict.isDragScroll(profile.input) }
+
+    private var usesSystemNavigation: Bool {
+        if case .system(let system) = profile.action {
+            return system.command != .applicationWindows
+        }
+        return false
     }
 
     private var targetHelpKey: String {
@@ -299,6 +333,7 @@ private extension GestureEditorView.ActionKind {
         switch action {
         case .none: return .none
         case .shortcut, .shortcutSequence: return .shortcut
+        case .system: return .system
         case .openApp: return .openApp
         case .openURL: return .openURL
         case .shell: return .shell

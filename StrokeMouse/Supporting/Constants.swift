@@ -12,6 +12,7 @@ enum Constants {
     /// Keep libraries without Fn shortcuts readable by existing v2 releases.
     static let configVersion = 2
     static let fnShortcutConfigVersion = 3
+    static let extendedActionsConfigVersion = 4
 
     /// Public repository (About → GitHub).
     static let githubURL = URL(string: "https://github.com/Licoy/StrokeMouse")!

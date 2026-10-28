@@ -211,18 +211,12 @@ enum TrackpadGesturePresetCatalog {
         preset(
             "fourSwipeUpMissionControl",
             .swipe(.four, .up),
-            shortcut(
-                keyCode: UInt16(kVK_UpArrow),
-                display: "⌃↑"
-            )
+            .system(SystemAction(command: .missionControl))
         ),
         preset(
             "fourSwipeDownAppExpose",
             .swipe(.four, .down),
-            shortcut(
-                keyCode: UInt16(kVK_DownArrow),
-                display: "⌃↓"
-            )
+            .system(SystemAction(command: .applicationWindows))
         ),
         preset(
             "fourSwipeLeftPrevious",
@@ -266,21 +260,6 @@ enum TrackpadGesturePresetCatalog {
             nameKey: "trackpad.preset.\(id)",
             input: .trackpad(gesture),
             action: action
-        )
-    }
-
-    private static func shortcut(
-        keyCode: UInt16,
-        display: String
-    ) -> GestureAction {
-        .shortcut(
-            keyCode: keyCode,
-            modifiers: UInt(CGEventFlags.maskControl.rawValue),
-            display: display,
-            orderedChord: ShortcutChord(
-                modifiers: [.control],
-                keyCode: keyCode
-            )
         )
     }
 }

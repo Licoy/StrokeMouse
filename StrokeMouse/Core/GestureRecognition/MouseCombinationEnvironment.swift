@@ -5,6 +5,11 @@ final class MouseCombinationEnvironment: @unchecked Sendable {
     private let lock = NSLock()
     private var displayBounds: [CGRect] = []
     private var heldCandidates: [TargetedGesture] = []
+    private var dragActive = false
+    var dragOwnsMovement: Bool {
+        get { lock.withLock { dragActive } }
+        set { lock.withLock { dragActive = newValue } }
+    }
 
     var displays: [CGRect] {
         get { lock.withLock { displayBounds } }
@@ -15,7 +20,7 @@ final class MouseCombinationEnvironment: @unchecked Sendable {
         set { lock.withLock { heldCandidates = newValue } }
     }
     func reset() {
-        lock.withLock { heldCandidates = [] }
+        lock.withLock { heldCandidates = []; dragActive = false }
     }
 }
 

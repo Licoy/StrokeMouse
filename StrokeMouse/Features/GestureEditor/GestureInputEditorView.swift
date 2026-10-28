@@ -639,21 +639,46 @@ private struct MouseCombinationEditor: View {
                 }
                 Picker(L10n.string("combination.action"), selection: $gesture.action) {
                     ForEach(MouseCombinationAction.allCases.filter {
-                        gesture.edge == nil ? $0 != .rightClick : $0 != .leftClick
+                        gesture.edge == nil ? $0 != .rightClick : $0 != .leftClick && $0 != .dragScroll
                     }) { action in
                         Text(L10n.string(action.displayKey)).tag(action)
                     }
                 }
             }
+            if gesture.action == .dragScroll {
+                Section {
+                    HStack {
+                        Text(L10n.string("dragScroll.sensitivity"))
+                        Slider(value: dragConfiguration.sensitivity,
+                               in: MouseDragScrollConfiguration.sensitivityRange) {
+                            Text(L10n.string("dragScroll.sensitivity"))
+                        }
+                        .labelsHidden()
+                        Text(gesture.resolvedDragScrollConfiguration.sensitivity, format: .number.precision(.fractionLength(2)))
+                            .monospacedDigit()
+                            .frame(width: 36, alignment: .trailing)
+                    }
+                    Toggle(L10n.string("dragScroll.reversesDirection"),
+                           isOn: dragConfiguration.reversesDirection)
+                    Text(L10n.string("dragScroll.hint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Section {
                 Label(gesture.displaySummary, systemImage: "computermouse.fill")
                     .font(.headline)
-                Text(L10n.string(gesture.edge == nil ? "combination.hint.held" : "combination.hint.edge"))
+                Text(L10n.string(gesture.action == .dragScroll ? "editor.dragScrollTestHint" : (gesture.edge == nil ? "combination.hint.held" : "combination.hint.edge")))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var dragConfiguration: Binding<MouseDragScrollConfiguration> {
+        Binding(get: { gesture.resolvedDragScrollConfiguration },
+                set: { gesture.dragScroll = $0 })
     }
 
     private var edgeMode: Binding<Bool> {

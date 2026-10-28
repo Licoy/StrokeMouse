@@ -586,6 +586,13 @@ final class ConfigStore {
                     .duplicateProfileID(profile.id)
                 )
             }
+            if case .mouseCombination(let combination) = profile.input,
+               combination.action == .dragScroll {
+                guard combination.isValid && profile.targetPolicy == .windowUnderPointer
+                    && profile.action == .none && profile.secondaryAction == nil else {
+                    throw ConfigStoreFailure.invalidConfiguration(.invalidMouseCombination(profile.id))
+                }
+            }
             guard case .drawn(let drawn) = profile.input else { continue }
             guard drawn.allPaths.count <= DrawnGesture.maximumSampleCount else {
                 throw ConfigStoreFailure.invalidConfiguration(
@@ -625,7 +632,7 @@ final class ConfigStore {
         }
 
         switch header.version {
-        case Constants.configVersion, Constants.fnShortcutConfigVersion:
+        case Constants.configVersion, Constants.fnShortcutConfigVersion, Constants.extendedActionsConfigVersion:
             do {
                 let file = try decoder.decode(GestureConfigFile.self, from: data)
                 let compatibility = try decoder.decode(
@@ -899,6 +906,7 @@ enum ConfigValidationFailure: Equatable, Sendable {
     case duplicateAppGroupID(UUID)
     case missingAppGroup(UUID)
     case invalidAppPolicy(String)
+    case invalidMouseCombination(UUID)
 
     var localizedDescription: String {
         let key: String
@@ -924,6 +932,9 @@ enum ConfigValidationFailure: Equatable, Sendable {
             argument = id.uuidString
         case .missingAppGroup(let id):
             key = "config.failure.missingAppGroup"
+            argument = id.uuidString
+        case .invalidMouseCombination(let id):
+            key = "config.failure.invalidMouseCombination"
             argument = id.uuidString
         case .invalidAppPolicy(let bundleIdentifier):
             key = "config.failure.invalidAppPolicy"

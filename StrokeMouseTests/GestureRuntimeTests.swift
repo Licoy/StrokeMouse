@@ -3014,7 +3014,12 @@ final class GestureRuntimeTests: XCTestCase {
 
     private func makeButtonMappingRuntime(
         bundleIdentifier: String = "com.example.target",
-        wheelActionTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }
+        wheelActionTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        pointerLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
+        dragScrollPoster: ScrollEventPosting = DragScrollRuntimePoster(),
+        dragScrollEventFactory: @escaping (MouseDragScrollSession.Frame) -> CGEvent? = {
+            CGScrollEventPoster.makeEvent(deltaY: $0.y, deltaX: $0.x, flags: [], phase: $0.phase)
+        }
     ) -> (GestureRuntime, RuntimeMouseEventSource, RuntimeActionPlatform) {
         let mouse = RuntimeMouseEventSource()
         let platform = RuntimeActionPlatform()
@@ -3027,7 +3032,10 @@ final class GestureRuntimeTests: XCTestCase {
             ),
             mouseEventTap: mouse,
             trackpadClickEventTap: RuntimeTrackpadClickSource(),
+            pointerLocation: pointerLocation,
             wheelActionTime: wheelActionTime,
+            dragScrollPoster: dragScrollPoster,
+            dragScrollEventFactory: dragScrollEventFactory,
             multitouchSourceFactory: { RuntimeMultitouchSource() }
         )
         return (runtime, mouse, platform)
@@ -3054,6 +3062,234 @@ final class GestureRuntimeTests: XCTestCase {
             ),
             scope: scope
         )
+    }
+
+    func testDragScrollPostsPairedPhasesAndOwnsSubsequentCombinationInput() async throws {
+        var point = CGPoint.zero
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, platform) = makeButtonMappingRuntime(pointerLocation: { point }, dragScrollPoster: poster)
+        let profile = dragScrollProfile()
+        try runtime.apply(configuration(revision: 1, enabled: true,
+            profiles: [profile, combinationProfile(action: .wheelUp), combinationProfile(action: .leftClick)]))
+        let origin = CGPoint(x: 200, y: 200)
+        point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        await drainMainActor()
+        point.x += 5
+        await waitForCombination { poster.phases == [1] }
+        XCTAssertEqual(runtime.state.lastOutcome, .matched(profileID: profile.id, score: nil))
+        XCTAssertEqual(runtime.lastMatch?.profile.id, profile.id)
+        point.x += 10
+        point.y += 10
+        await waitForCombination { poster.phases.contains(2) }
+        XCTAssertTrue(runtime.currentPath.isEmpty)
+        XCTAssertFalse(mouse.scroll(.up, at: origin))
+        mouse.clickLeft()
+        mouse.release(.right, at: CGPoint(x: origin.x + 15, y: origin.y - 10))
+        await drainMainActor()
+        XCTAssertEqual(poster.phases, [1, 2, 4])
+        XCTAssertEqual(poster.deltas.last?.x, 0)
+        XCTAssertEqual(poster.deltas.dropLast().last, CGPoint(x: 10, y: -10))
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testDragScrollFastFirstMovementAtReleaseRetainsDistanceBeyondDeadzone() async throws {
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, _) = makeButtonMappingRuntime(dragScrollPoster: poster)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile()]))
+        // Both callbacks enqueue before any sampling task, so up is the first moved point.
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.release(.right, at: CGPoint(x: 214, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(poster.phases, [1, 4])
+        XCTAssertEqual(poster.deltas, [CGPoint(x: 10, y: 0), .zero])
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testDragScrollCancelsOnPermissionLossAndShortClickReplays() async throws {
+        var point = CGPoint.zero
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, _) = makeButtonMappingRuntime(pointerLocation: { point }, dragScrollPoster: poster)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile()]))
+        let origin = CGPoint(x: 200, y: 200)
+        point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        mouse.release(.right, at: origin)
+        await drainMainActor()
+        XCTAssertEqual(mouse.replayedClicks, 1)
+        XCTAssertTrue(poster.phases.isEmpty)
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        await drainMainActor()
+        point.x += 5
+        await waitForCombination { poster.phases == [1] }
+        runtime.accessibilityTrustDidChange(false)
+        XCTAssertEqual(poster.phases, [1, 8])
+        XCTAssertNil(runtime.state.activeSession)
+    }
+
+    func testDragScrollDiagnosticNeverCreatesOrPostsEvents() async throws {
+        var point = CGPoint.zero
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, _) = makeButtonMappingRuntime(pointerLocation: { point }, dragScrollPoster: poster)
+        let profile = dragScrollProfile()
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [profile]))
+        let diagnostic = runtime.beginDiagnostics()
+        defer { diagnostic.end() }
+        let origin = CGPoint(x: 200, y: 200)
+        point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        await drainMainActor()
+        point.x += 5
+        await waitForCombination { runtime.state.lastOutcome == .matched(profileID: profile.id, score: nil) }
+        mouse.release(.right, at: CGPoint(x: 210, y: 200))
+        await drainMainActor()
+        XCTAssertTrue(poster.phases.isEmpty)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testDragScrollSameTierDrawingConflictRequiresMovementAndShortPressReplays() async throws {
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, platform) = makeButtonMappingRuntime(dragScrollPoster: poster)
+        let drag = dragScrollProfile()
+        let drawing = rightUpProfile(name: "Draw")
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [drag, drawing]))
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.release(.right, at: CGPoint(x: 200, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(mouse.replayedClicks, 1)
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.release(.right, at: CGPoint(x: 205, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(runtime.state.lastOutcome, .conflict([drag.id, drawing.id]))
+        XCTAssertTrue(poster.phases.isEmpty)
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertEqual(mouse.replayedClicks, 1)
+    }
+
+    func testDragScrollCancellationPathsEndOnceAndNeverBeginFromCancelledRelease() async throws {
+        for reason in ["sleep", "pause", "interrupt", "suppress"] {
+            var point = CGPoint.zero
+            let poster = DragScrollRuntimePoster()
+            let (runtime, mouse, _) = makeButtonMappingRuntime(pointerLocation: { point }, dragScrollPoster: poster)
+            let profile = dragScrollProfile()
+            try runtime.apply(configuration(revision: 1, enabled: true, profiles: [profile]))
+            let origin = CGPoint(x: 200, y: 200)
+            point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+            XCTAssertTrue(mouse.press(.right, at: origin))
+            await drainMainActor()
+            point.x += 5
+            await waitForCombination { poster.phases == [1] }
+            switch reason {
+            case "sleep": runtime.handleSleep()
+            case "pause": try runtime.apply(configuration(revision: 2, enabled: false, profiles: [profile]))
+            case "interrupt": mouse.interrupt(.right, at: CGPoint(x: 250, y: 200))
+            default:
+                let suppression = runtime.suppress(reason: .gestureEditor)
+                suppression.release()
+            }
+            await drainMainActor()
+            XCTAssertEqual(poster.phases, [1, 8], reason)
+            if reason == "pause" {
+                XCTAssertNotNil(runtime.state.activeSession)
+                try runtime.apply(configuration(revision: 3, enabled: true, profiles: [profile]))
+            }
+            mouse.release(.right, at: CGPoint(x: 250, y: 200))
+            await drainMainActor()
+            XCTAssertEqual(poster.phases, [1, 8], reason)
+        }
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, _) = makeButtonMappingRuntime(dragScrollPoster: poster)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile()]))
+        XCTAssertTrue(mouse.press(.right, at: CGPoint(x: 200, y: 200)))
+        mouse.interrupt(.right, at: CGPoint(x: 250, y: 200))
+        await drainMainActor()
+        XCTAssertTrue(poster.phases.isEmpty, "Cancellation must not synthesize a movement first")
+    }
+
+    func testPendingDragScrollPauseAndReenableCannotReviveHeldPress() async throws {
+        var point = CGPoint.zero
+        let poster = DragScrollRuntimePoster()
+        let (runtime, mouse, _) = makeButtonMappingRuntime(pointerLocation: { point }, dragScrollPoster: poster)
+        let profile = dragScrollProfile()
+        let origin = CGPoint(x: 200, y: 200)
+        point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [profile]))
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        await drainMainActor()
+        try runtime.apply(configuration(revision: 2, enabled: false, profiles: [profile]))
+        XCTAssertNotNil(runtime.state.activeSession, "Retain ownership until paired up")
+        try runtime.apply(configuration(revision: 3, enabled: true, profiles: [profile]))
+        point.x += 50
+        mouse.release(.right, at: CGPoint(x: 250, y: 200))
+        await drainMainActor()
+        XCTAssertTrue(poster.phases.isEmpty)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+        XCTAssertNil(runtime.state.activeSession)
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        mouse.release(.right, at: CGPoint(x: 214, y: 200))
+        await drainMainActor()
+        XCTAssertEqual(poster.phases, [1, 4], "A new physical press can scroll after reenable")
+    }
+
+    func testRuntimeDeinitializationCancelsActiveDragScrollPhase() async throws {
+        var point = CGPoint.zero
+        let poster = DragScrollRuntimePoster()
+        var fixture: (GestureRuntime, RuntimeMouseEventSource, RuntimeActionPlatform)? =
+            makeButtonMappingRuntime(pointerLocation: { point }, dragScrollPoster: poster)
+        weak var releasedRuntime = fixture?.0
+        let mouse = try XCTUnwrap(fixture?.1)
+        let origin = CGPoint(x: 200, y: 200)
+        point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+        try fixture?.0.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile()]))
+        XCTAssertTrue(mouse.press(.right, at: origin))
+        await drainMainActor()
+        point.x += 5
+        await waitForCombination { poster.phases == [1] }
+        fixture = nil
+        XCTAssertNil(releasedRuntime)
+        XCTAssertEqual(poster.phases, [1, 8])
+        XCTAssertFalse(mouse.isActive)
+    }
+
+    func testDragScrollCreationFailureStopsAndTerminatesOnlyAnExistingPhase() async throws {
+        for failedPhase: Int64 in [1, 2] {
+            var point = CGPoint.zero
+            let poster = DragScrollRuntimePoster()
+            let (runtime, mouse, platform) = makeButtonMappingRuntime(pointerLocation: { point },
+                dragScrollPoster: poster, dragScrollEventFactory: { frame in
+                    guard frame.phase != failedPhase else { return nil }
+                    return CGScrollEventPoster.makeEvent(deltaY: frame.y, deltaX: frame.x, flags: [], phase: frame.phase)
+                })
+            try runtime.apply(configuration(revision: 1, enabled: true, profiles: [dragScrollProfile(), combinationProfile(action: .wheelUp), combinationProfile(action: .leftClick)]))
+            let origin = CGPoint(x: 200, y: 200)
+            point = GestureRuntime.appKitLocation(fromQuartz: origin, zeroScreenMaxY: try XCTUnwrap(NSScreen.screens.first).frame.maxY)
+            XCTAssertTrue(mouse.press(.right, at: origin))
+            await drainMainActor()
+            point.x += 5
+            if failedPhase == 2 {
+                await waitForCombination { poster.phases == [1] }
+                point.x += 10
+            }
+            await waitForCombination { runtime.lastError != nil }
+            XCTAssertEqual(poster.phases, failedPhase == 1 ? [] : [1, 8])
+            // Simulate already-swallowed tap callbacks reaching main after posting failed.
+            mouse.deliverSwallowedChordClick(.right)
+            mouse.deliverSwallowedScroll(.up, at: origin)
+            await drainMainActor()
+            XCTAssertEqual(mouse.replayedScrolls, 1)
+            XCTAssertEqual(platform.shortcutCount, 0)
+            mouse.release(.right, at: CGPoint(x: 250, y: 200))
+            await drainMainActor()
+            XCTAssertEqual(poster.phases, failedPhase == 1 ? [] : [1, 8])
+            guard case .actionFailed = runtime.state.lastOutcome else { return XCTFail("Expected observable creation failure") }
+            XCTAssertEqual(mouse.replayedClicks, 0)
+        }
+    }
+
+    private func dragScrollProfile() -> GestureProfile {
+        GestureProfile(name: "Drag", input: .mouseCombination(.init(action: .dragScroll)),
+            action: .none, targetPolicy: .windowUnderPointer)
     }
 
     // MARK: - App rules
@@ -3721,6 +3957,10 @@ private final class RuntimeMouseEventSource: MouseGestureEventSource {
         return true
     }
 
+    func deliverSwallowedChordClick(_ button: MouseTriggerButton) {
+        onEvent?(.chordClick(button), eventGeneration)
+    }
+
     /// Returns whether the left click was swallowed as a chord.
     @discardableResult
     func clickLeft() -> Bool {
@@ -4012,4 +4252,15 @@ private final class RuntimeActionPlatform: GestureTargetActionPlatform {
         _ command: WindowCommand,
         target: GestureTargetContext
     ) async throws {}
+}
+
+private final class DragScrollRuntimePoster: ScrollEventPosting {
+    private let lock = NSLock()
+    private var events: [CGEvent] = []
+    var phases: [Int64] { lock.withLock { events.map { $0.getIntegerValueField(.scrollWheelEventScrollPhase) } } }
+    var deltas: [CGPoint] { lock.withLock { events.map {
+        CGPoint(x: CGFloat($0.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)),
+                y: CGFloat($0.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)))
+    } } }
+    func post(_ event: CGEvent) { lock.withLock { events.append(event) } }
 }

@@ -651,6 +651,7 @@ enum GestureAction: Equatable, Sendable {
     case media(MediaCommand)
     case window(WindowCommand)
     case applicationSwitch(ApplicationSwitchCommand)
+    case system(SystemAction)
     case appleScript(String)
     /// Two or more chords posted in order to the same frozen target.
     case shortcutSequence([ShortcutChord])
@@ -665,6 +666,7 @@ enum GestureAction: Equatable, Sendable {
         case .media: return "action.media"
         case .window: return "action.window"
         case .applicationSwitch: return "action.window"
+        case .system: return "action.system"
         case .appleScript: return "action.appleScript"
         }
     }
@@ -687,6 +689,8 @@ enum GestureAction: Equatable, Sendable {
             return cmd.rawValue
         case .applicationSwitch(let command):
             return L10n.string(command.displayKey)
+        case .system(let system):
+            return L10n.string(system.command.displayKey)
         case .appleScript(let script):
             let preset = AppleScriptPreset.matching(source: script)
             if preset != .custom {
@@ -730,6 +734,7 @@ private enum PersistedGestureAction: Codable {
     case media(MediaCommand)
     case window(WindowCommand)
     case applicationSwitch(ApplicationSwitchCommand)
+    case system(SystemAction)
     case appleScript(String)
 
     init(runtimeAction action: GestureAction) {
@@ -755,6 +760,7 @@ private enum PersistedGestureAction: Codable {
                 display: KeyCodeNames.shortcutDisplay(chord: chord),
                 orderedChord: chord
             )
+        case .system(let system): self = .system(system)
         case .appleScript(let source): self = .appleScript(source)
         case .shortcutSequence(let chords):
             let first = chords[0]
@@ -794,6 +800,7 @@ private enum PersistedGestureAction: Codable {
         case .media(let command): return .media(command)
         case .window(let command): return .window(command)
         case .applicationSwitch(let command): return .applicationSwitch(command)
+        case .system(let system): return .system(system)
         case .appleScript(let source): return .appleScript(source)
         }
     }
@@ -1155,6 +1162,16 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     /// Fn cannot be decoded safely by v2 releases, including in later chords
     /// and secondary actions, so only libraries using it require v3.
     static func requiredVersion(for gestures: [GestureProfile]) -> Int {
+        if gestures.contains(where: { profile in
+            if case .mouseCombination(let combination) = profile.input,
+               combination.action == .dragScroll { return true }
+            return profile.actions.contains {
+                if case .system = $0 { return true }
+                return false
+            }
+        }) {
+            return Constants.extendedActionsConfigVersion
+        }
         let containsFunction = gestures.contains { profile in
             profile.actions.contains { action in
                 switch action {
@@ -1173,7 +1190,7 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     }
 
     var hasSupportedVersion: Bool {
-        [Constants.configVersion, Constants.fnShortcutConfigVersion].contains(version)
+        [Constants.configVersion, Constants.fnShortcutConfigVersion, Constants.extendedActionsConfigVersion].contains(version)
             && version >= Self.requiredVersion(for: gestures)
     }
 

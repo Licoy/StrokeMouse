@@ -141,6 +141,13 @@ final class GestureRuntime {
         var combinationTriggered = false
         var combinationLeftClicked = false
         var wheelRepeatGate = MouseCombinationWheelRepeatGate()
+        var dragScroll: MouseDragScrollSession?
+        var dragScrollProfileID: UUID?
+        var dragScrollClaimed = false
+        var movementConflict = false
+        var pendingMovementConflict: [UUID]?
+        var dragScrollFailed = false
+        var dragScrollHasPostedBegin = false
     }
 
     private struct DirectSession {
@@ -183,6 +190,8 @@ final class GestureRuntime {
     private let actionExecutor: ActionExecutor
     private let targetCapturer: any GestureTargetCapturing
     private let pointerLocation: () -> CGPoint
+    private let dragScrollPoster: ScrollEventPosting
+    private let dragScrollEventFactory: (MouseDragScrollSession.Frame) -> CGEvent?
     private let wheelActionTime: () -> TimeInterval
     private let multitouchSourceFactory: () -> any MultitouchFrameSource
     private let inputCoreQueue: DispatchQueue
@@ -236,6 +245,10 @@ final class GestureRuntime {
         doubleClickInterval: TimeInterval = NSEvent.doubleClickInterval,
         pointerLocation: @escaping () -> CGPoint = { NSEvent.mouseLocation },
         wheelActionTime: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
+        dragScrollPoster: ScrollEventPosting = CGScrollEventPoster(),
+        dragScrollEventFactory: @escaping (MouseDragScrollSession.Frame) -> CGEvent? = {
+            CGScrollEventPoster.makeEvent(deltaY: $0.y, deltaX: $0.x, flags: [], phase: $0.phase)
+        },
         multitouchSourceFactory: @escaping () -> any MultitouchFrameSource
     ) {
         let resolvedTargetCapturer =
@@ -246,6 +259,8 @@ final class GestureRuntime {
         self.permissionManager = permissionManager
         self.actionExecutor = actionExecutor
         self.targetCapturer = resolvedTargetCapturer
+        self.dragScrollPoster = dragScrollPoster
+        self.dragScrollEventFactory = dragScrollEventFactory
         self.pointerLocation = pointerLocation
         self.wheelActionTime = wheelActionTime
         self.mouseEventTap = mouseEventTap
@@ -316,9 +331,12 @@ final class GestureRuntime {
                 )
                 // Left clicks stay with the app unless a reachable gesture
                 // can turn them into its secondary action.
+                let allowsDrawSecondary: Bool
+                if case .drawn = MouseDragScrollSelection.select(targeted) { allowsDrawSecondary = true }
+                else { allowsDrawSecondary = false }
                 return .capture(
                     acceptsChordClick: targeted.contains { item in
-                        if item.profile.acceptsChordClick { return true }
+                        if allowsDrawSecondary && item.profile.acceptsChordClick { return true }
                         if case .mouseCombination(let combo) = item.profile.input {
                             return combo.needsHeldRight && combo.action == .leftClick
                         }
@@ -332,6 +350,7 @@ final class GestureRuntime {
                   drawCallbacks.isCurrent(callbackToken), let sessionGate else { return false }
             // Only locked value-state here; target capture runs on a separate queue.
             if sessionGate.activeSource == .mouse(.right) {
+                guard !combinationEnvironment.dragOwnsMovement else { return false }
                 return combinationEnvironment.held.contains { item in
                     guard case .mouseCombination(let combo) = item.profile.input else { return false }
                     return combo.needsHeldRight && combo.action.wheelDirection == direction
@@ -550,6 +569,7 @@ final class GestureRuntime {
 
     deinit {
         MainActor.assumeIsolated {
+            finishDragScroll(cancelled: true)
             sampleTimer?.invalidate()
             pendingTapTimer?.invalidate()
             pendingClickTimer?.invalidate()
@@ -597,6 +617,9 @@ final class GestureRuntime {
     ) throws -> GestureRuntimeState {
         try Self.validate(newConfiguration)
         let candidate = normalized(newConfiguration)
+        if configuration.isEnabled, !candidate.isEnabled {
+            cancelDragScrollUntilRelease()
+        }
         sessionGate.updateContext(admissionContext(for: candidate))
         configuration = candidate
         state.configurationRevision = configuration.revision
@@ -675,6 +698,8 @@ final class GestureRuntime {
         // have an edge in flight while stop waits for the run loop to drain.
         drawCallbackGeneration.rotate(enabled: false)
         sessionGate.disableAndInvalidateDrawInputs()
+        finishDragScroll(cancelled: true)
+        combinationEnvironment.reset()
         stopSampling()
         drawSession = nil
         currentPath = []
@@ -1186,6 +1211,7 @@ final class GestureRuntime {
     private func cancelActiveSessions() {
         edgeWheelRepeatGate = MouseCombinationWheelRepeatGate(interval: 0.1)
         edgeWheelRepeatProfiles = []
+        finishDragScroll(cancelled: true)
         combinationEnvironment.reset()
         stopSampling()
         drawSession = nil
@@ -1358,19 +1384,72 @@ final class GestureRuntime {
             liveHysteresis: LiveGestureViability.Hysteresis(),
             samplesSinceLiveEval: 0
         )
-        currentPath = [point]
+        if source == .mouse(.right) {
+            switch MouseDragScrollSelection.select(targeted) {
+            case .drawn: break
+            case .drag(let selected):
+                if case .mouseCombination(let combo) = selected.profile.input {
+                    drawSession?.dragScroll = MouseDragScrollSession(origin: point,
+                        configuration: combo.resolvedDragScrollConfiguration)
+                    drawSession?.dragScrollProfileID = selected.profile.id
+                }
+            case .conflict(let ids):
+                drawSession?.pendingMovementConflict = ids
+            }
+        }
+        currentPath = drawSession?.dragScroll == nil ? [point] : []
         state.activeSession = GestureActiveSessionSummary(
             source: source,
             configurationRevision: frozenConfiguration.revision,
             candidateCount: targeted.count
         )
-        if tracksPath {
+        if tracksPath || drawSession?.dragScroll != nil || drawSession?.pendingMovementConflict != nil {
             startSampling()
         }
     }
 
     private func appendDrawSample(_ point: CGPoint) {
         guard var session = drawSession else { return }
+        guard !session.movementConflict, !session.dragScrollFailed else { return }
+        if let ids = session.pendingMovementConflict {
+            guard !session.combinationTriggered,
+                  hypot(point.x - session.origin.x, point.y - session.origin.y) >= MouseDragScrollSession.deadzone
+            else { return }
+            session.movementConflict = true
+            session.combinationTriggered = true
+            session.path = []
+            drawSession = session
+            currentPath = []
+            stopSampling()
+            recordOutcome(.conflict(ids), source: session.source)
+            if session.mode.showsToast { GestureToastController.shared.showCombinationConflict() }
+            return
+        }
+        if var drag = session.dragScroll {
+            guard !session.combinationTriggered || drag.isActive else { return }
+            let frame = drag.sample(point)
+            session.dragScroll = drag
+            if drag.isActive {
+                session.dragScrollClaimed = true
+                session.combinationTriggered = true
+                session.path = []
+                combinationEnvironment.dragOwnsMovement = true
+            }
+            drawSession = session
+            currentPath = []
+            if let frame {
+                if frame.phase == 1, let profileID = session.dragScrollProfileID,
+                   let profile = session.targeted.first(where: { $0.profile.id == profileID })?.profile {
+                    lastError = nil
+                    let result = GestureMatchResult(profile: profile, score: 1, usesSecondaryAction: false)
+                    lastMatch = result
+                    recordOutcome(.matched(profileID: profileID, score: nil), source: session.source)
+                    onMatch?(result)
+                }
+                postDragScroll(frame, mode: session.mode, source: session.source)
+            }
+            return
+        }
         if let last = session.path.last,
            hypot(point.x - last.x, point.y - last.y) < 1.5
         {
@@ -1430,7 +1509,9 @@ final class GestureRuntime {
     private func registerChordClick(source: GestureInputSource) {
         guard var session = drawSession,
               session.source == source,
-              !session.chordClicked
+              !session.chordClicked,
+              !session.dragScrollClaimed, !session.dragScrollFailed,
+              !session.movementConflict
         else {
             return
         }
@@ -1448,10 +1529,14 @@ final class GestureRuntime {
             reconcileChannels()
             return
         }
-        if session.tracksPath && !session.combinationTriggered {
+        if !wasCancelled,
+           (session.tracksPath || session.dragScroll != nil || session.pendingMovementConflict != nil),
+           !session.combinationTriggered || session.dragScroll?.isActive == true {
             appendDrawSample(Self.appKitLocation(fromQuartz: quartzLocation))
         }
+        finishDragScroll(cancelled: wasCancelled)
         let finished = drawSession ?? session
+        combinationEnvironment.dragOwnsMovement = false
         stopSampling()
         drawSession = nil
         currentPath = []
@@ -1502,9 +1587,59 @@ final class GestureRuntime {
         }
     }
 
+    private func postDragScroll(_ frame: MouseDragScrollSession.Frame,
+                                mode: SessionMode, source: GestureInputSource) {
+        guard mode.executesActions else { return }
+        guard let event = dragScrollEventFactory(frame) else {
+            let message = L10n.string("dragScroll.eventCreationFailed")
+            lastError = message
+            recordOutcome(.actionFailed(message), source: source)
+            GestureToastController.shared.showActionError(message)
+            // Stop sampling immediately; the release still owns the swallowed right press.
+            stopSampling()
+            drawSession?.dragScrollFailed = true
+            if frame.phase == 2 {
+                finishDragScroll(cancelled: true)
+            } else if frame.phase == 1 {
+                _ = drawSession?.dragScroll?.finish(cancelled: true)
+            }
+            return
+        }
+        dragScrollPoster.post(event)
+        if frame.phase == 1 { drawSession?.dragScrollHasPostedBegin = true }
+    }
+
+    /// Pausing terminates continuous input immediately while retaining the
+    /// swallowed physical press and its paired up until the adapter drains it.
+    private func cancelDragScrollUntilRelease() {
+        guard let session = drawSession,
+              session.dragScroll != nil || session.pendingMovementConflict != nil else { return }
+        finishDragScroll(cancelled: true)
+        drawSession?.dragScrollClaimed = true
+        drawSession?.combinationTriggered = true
+        combinationEnvironment.dragOwnsMovement = true
+        stopSampling()
+        currentPath = []
+        GestureHUDController.shared.hide()
+        if drawSession?.dragScrollFailed != true {
+            recordOutcome(.cancelled, source: session.source)
+        }
+    }
+
+    private func finishDragScroll(cancelled: Bool) {
+        guard var session = drawSession, var drag = session.dragScroll else { return }
+        let frame = drag.finish(cancelled: cancelled)
+        session.dragScroll = drag
+        drawSession = session
+        if let frame, session.dragScrollHasPostedBegin {
+            postDragScroll(frame, mode: session.mode, source: session.source)
+        }
+    }
+
     /// Left clicks fire once per right-button hold; wheel ticks may repeat.
     private func triggerHeldCombination(action: MouseCombinationAction, preciseTimestamp: TimeInterval? = nil) -> Bool {
-        guard var session = drawSession, session.source == .mouse(.right) else { return false }
+        guard var session = drawSession, session.source == .mouse(.right),
+              !session.dragScrollClaimed, !session.dragScrollFailed, !session.movementConflict else { return false }
         let candidates = session.targeted.filter {
             guard case .mouseCombination(let combo) = $0.profile.input else { return false }
             return combo.needsHeldRight && combo.action == action
@@ -2200,6 +2335,8 @@ final class GestureRuntime {
 
     private func downgradeActiveSessionToDiagnostics() {
         if var session = drawSession {
+            finishDragScroll(cancelled: true)
+            session = drawSession ?? session
             session.mode = .diagnostic
             drawSession = session
             GestureHUDController.shared.hide()

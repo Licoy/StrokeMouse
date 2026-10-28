@@ -68,13 +68,22 @@ final class ActionExecutor {
 
     private let targetPlatform: any GestureTargetActionPlatform
     private let applicationSwitcher: any ApplicationSwitching
+    private let globalChordPoster: (ShortcutChord) throws -> Void
 
     init(
         targetPlatform: (any GestureTargetActionPlatform)? = nil,
-        applicationSwitcher: (any ApplicationSwitching)? = nil
+        applicationSwitcher: (any ApplicationSwitching)? = nil,
+        globalChordPoster: ((ShortcutChord) throws -> Void)? = nil
     ) {
         self.targetPlatform = targetPlatform ?? WindowActions()
         self.applicationSwitcher = applicationSwitcher ?? MacApplicationSwitcher()
+        self.globalChordPoster = globalChordPoster ?? { chord in
+            try ShortcutAction.post(
+                keyCode: chord.legacyKeyCode,
+                modifiers: chord.legacyModifiers,
+                orderedChord: chord
+            )
+        }
     }
 
     func execute(
@@ -146,6 +155,18 @@ final class ActionExecutor {
             )
         case .applicationSwitch(let command):
             try applicationSwitcher.perform(command)
+        case .system(let system):
+            let chord = system.effectiveChord
+            if system.command.requiresCapturedTarget {
+                try await targetPlatform.performShortcut(
+                    keyCode: chord.legacyKeyCode,
+                    modifiers: chord.legacyModifiers,
+                    orderedChord: chord,
+                    target: try target.requireContext()
+                )
+            } else {
+                try globalChordPoster(chord)
+            }
         case .appleScript(let source):
             try await ScriptActions.runAppleScript(source)
         case .shortcutSequence(let chords):
@@ -198,6 +219,8 @@ extension GestureAction {
         switch self {
         case .shortcut, .shortcutSequence, .window:
             return true
+        case .system(let system):
+            return system.command.requiresCapturedTarget
         case .none, .openApp, .openURL, .shell, .media,
              .applicationSwitch, .appleScript:
             return false

@@ -36,7 +36,8 @@ final class CGScrollEventPoster: ScrollEventPosting, @unchecked Sendable {
         deltaY: Int32,
         deltaX: Int32,
         flags: CGEventFlags,
-        source: CGEventSource? = sharedSource
+        source: CGEventSource? = sharedSource,
+        phase: Int64? = nil
     ) -> CGEvent? {
         guard let event = CGEvent(
             scrollWheelEvent2Source: source,
@@ -49,6 +50,7 @@ final class CGScrollEventPoster: ScrollEventPosting, @unchecked Sendable {
             return nil
         }
         event.flags = flags
+        if let phase { event.setIntegerValueField(.scrollWheelEventScrollPhase, value: phase) }
         // Do not assign `location`. The constructor samples the cursor, and a
         // stale point is applied by WindowServer as the pointer position.
         event.setIntegerValueField(.scrollWheelEventIsContinuous, value: 1)

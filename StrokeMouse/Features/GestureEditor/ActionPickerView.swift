@@ -54,6 +54,7 @@ struct ActionPickerView: View {
     @State private var shellCommand = "echo 'Hello from StrokeMouse'"
     @State private var mediaCommand: MediaCommand = .playPause
     @State private var windowActionSelection: WindowActionSelection = .window(.minimize)
+    @State private var systemAction = SystemAction(command: .missionControl)
     @State private var appleScriptPreset: AppleScriptPreset = .sleep
     @State private var appleScript = AppleScriptPreset.sleep.source ?? ""
     /// Draft kept while the user is on a built-in so switching back to Custom restores it.
@@ -134,6 +135,103 @@ struct ActionPickerView: View {
             .foregroundStyle(.secondary)
     }
 
+    private var displayedShortcut: String {
+        kind == .system ? KeyCodeNames.shortcutDisplay(chord: systemAction.effectiveChord) : shortcutDisplay
+    }
+
+    private var shortcutRecorderControl: some View {
+        HStack(spacing: 10) {
+            // Click-to-record field with live key feedback.
+            Button {
+                if isRecordingPrimaryShortcut {
+                    stopRecording()
+                } else {
+                    startRecording()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    if isRecordingPrimaryShortcut {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 7, height: 7)
+                        Text(shortcutLivePreview.isEmpty
+                             ? L10n.string("action.shortcutListening")
+                             : shortcutLivePreview)
+                            .font(.body.monospaced())
+                            .foregroundStyle(shortcutLivePreview.isEmpty ? .secondary : .primary)
+                    } else {
+                        Text(displayedShortcut.isEmpty
+                             ? L10n.string("action.shortcutEmpty")
+                             : displayedShortcut)
+                            .font(.body.monospaced())
+                            .foregroundStyle(displayedShortcut.isEmpty ? .secondary : .primary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .contentShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .buttonStyle(.plain)
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isRecordingPrimaryShortcut
+                          ? Color.accentColor.opacity(0.08)
+                          : Color(nsColor: .controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(
+                        isRecordingPrimaryShortcut ? Color.accentColor : Color.secondary.opacity(0.25),
+                        lineWidth: isRecordingPrimaryShortcut ? 1.5 : 1
+                    )
+            )
+
+            Button(isRecordingPrimaryShortcut
+                   ? L10n.string("action.shortcutStop")
+                   : L10n.string("action.shortcutRecord")) {
+                if isRecordingPrimaryShortcut {
+                    stopRecording()
+                } else {
+                    startRecording()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(isRecordingPrimaryShortcut ? .red : .accentColor)
+        }
+    }
+
+    @ViewBuilder
+    private var shortcutRecordingStatus: some View {
+        if isRecordingShortcut {
+            Text(L10n.string("action.shortcutRecordingHint"))
+                .font(.caption)
+                .foregroundStyle(.orange)
+        } else {
+            Text(L10n.string("action.shortcutHelp"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+
+        if releaseShortcutModifiers {
+            Text(L10n.string("action.shortcutReleaseModifiers"))
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+
+        if recorderFailed {
+            Text(L10n.string("action.shortcutRecorderNeedPermission"))
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+
+        if unsupportedShortcutModifier {
+            Text(L10n.string("action.shortcutUnsupportedModifier"))
+                .font(.caption)
+                .foregroundStyle(.red)
+        }
+    }
+
     private var openAppInfo: AppInfoLookup.Info? {
         let trimmed = appBundleId.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -198,98 +296,39 @@ struct ActionPickerView: View {
                     .foregroundStyle(.secondary)
 
             case .shortcut:
-                HStack(spacing: 10) {
-                    // Click-to-record field with live key feedback.
-                    Button {
-                        if isRecordingPrimaryShortcut {
-                            stopRecording()
-                        } else {
-                            startRecording()
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            if isRecordingPrimaryShortcut {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 7, height: 7)
-                                Text(shortcutLivePreview.isEmpty
-                                     ? L10n.string("action.shortcutListening")
-                                     : shortcutLivePreview)
-                                    .font(.body.monospaced())
-                                    .foregroundStyle(shortcutLivePreview.isEmpty ? .secondary : .primary)
-                            } else {
-                                Text(shortcutDisplay.isEmpty
-                                     ? L10n.string("action.shortcutEmpty")
-                                     : shortcutDisplay)
-                                    .font(.body.monospaced())
-                                    .foregroundStyle(shortcutDisplay.isEmpty ? .secondary : .primary)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .contentShape(RoundedRectangle(cornerRadius: 6))
-                    }
-                    .buttonStyle(.plain)
-                    .background(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(isRecordingPrimaryShortcut
-                                  ? Color.accentColor.opacity(0.08)
-                                  : Color(nsColor: .controlBackgroundColor))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(
-                                isRecordingPrimaryShortcut ? Color.accentColor : Color.secondary.opacity(0.25),
-                                lineWidth: isRecordingPrimaryShortcut ? 1.5 : 1
-                            )
-                    )
-
-                    Button(isRecordingPrimaryShortcut
-                           ? L10n.string("action.shortcutStop")
-                           : L10n.string("action.shortcutRecord")) {
-                        if isRecordingPrimaryShortcut {
-                            stopRecording()
-                        } else {
-                            startRecording()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(isRecordingPrimaryShortcut ? .red : .accentColor)
-                }
+                shortcutRecorderControl
 
                 // Legacy shortcuts without an ordered chord must be re-recorded first.
                 if orderedChord != nil {
                     shortcutSequenceEditor
                 }
 
-                if isRecordingShortcut {
-                    Text(L10n.string("action.shortcutRecordingHint"))
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                } else {
-                    Text(L10n.string("action.shortcutHelp"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                shortcutRecordingStatus
 
-                if releaseShortcutModifiers {
-                    Text(L10n.string("action.shortcutReleaseModifiers"))
-                        .font(.caption)
-                        .foregroundStyle(.red)
+            case .system:
+                Picker(L10n.string("action.systemCommand"), selection: Binding(
+                    get: { systemAction.command },
+                    set: { command in
+                        stopRecording()
+                        systemAction = SystemAction(command: command)
+                        action = .system(systemAction)
+                    }
+                )) {
+                    ForEach(SystemCommand.allCases) { command in
+                        Text(L10n.string(command.displayKey)).tag(command)
+                    }
                 }
-
-                if recorderFailed {
-                    Text(L10n.string("action.shortcutRecorderNeedPermission"))
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                shortcutRecorderControl
+                Button(L10n.string("action.systemResetShortcut")) {
+                    stopRecording()
+                    systemAction.shortcutOverride = nil
+                    action = .system(systemAction)
                 }
-
-                if unsupportedShortcutModifier {
-                    Text(L10n.string("action.shortcutUnsupportedModifier"))
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+                .disabled(systemAction.shortcutOverride == nil)
+                Text(L10n.string("action.systemShortcutHelp"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                shortcutRecordingStatus
 
             case .openApp:
                 openAppEditor
@@ -414,6 +453,12 @@ struct ActionPickerView: View {
             shortcutLivePreview = display
         }
         tap.onCapture = { chord, display in
+            if kind == .system {
+                systemAction.shortcutOverride = chord
+                action = .system(systemAction)
+                stopRecording()
+                return
+            }
             if followUp {
                 followingChords.append(chord)
             } else {
@@ -518,6 +563,8 @@ struct ActionPickerView: View {
             windowActionSelection = .window(command)
         case .applicationSwitch(let command):
             windowActionSelection = .applicationSwitch(command)
+        case .system(let system):
+            systemAction = system
         case .shortcutSequence(let chords):
             guard let first = chords.first else { break }
             orderedChord = first
@@ -552,6 +599,8 @@ struct ActionPickerView: View {
             action = .media(mediaCommand)
         case .window:
             action = windowActionSelection.action
+        case .system:
+            action = .system(systemAction)
         case .appleScript:
             applyAppleScriptPreset(appleScriptPreset)
         }

@@ -1092,6 +1092,9 @@ struct GesturesSettingsView: View {
     // MARK: - Actions
 
     private func actionLabel(for gesture: GestureProfile) -> String {
+        if MouseMovementConflict.isDragScroll(gesture.input) {
+            return L10n.string("combination.action.dragScroll")
+        }
         let primary = Self.actionLabel(gesture.action)
         guard gesture.acceptsChordClick,
               let secondaryAction = gesture.secondaryAction

@@ -8,7 +8,7 @@ enum MouseWheelDirection: String, Codable, CaseIterable, Identifiable, Sendable 
 }
 
 enum MouseCombinationAction: String, Codable, CaseIterable, Identifiable, Sendable {
-    case rightClick, leftClick, wheelUp, wheelDown
+    case rightClick, leftClick, wheelUp, wheelDown, dragScroll
     var id: String { rawValue }
     var displayKey: String { "combination.action.\(rawValue)" }
     var wheelDirection: MouseWheelDirection? {
@@ -46,12 +46,21 @@ struct MouseCombinationGesture: Codable, Equatable, Hashable, Sendable {
     var edge: MouseScreenEdge?
     var action: MouseCombinationAction
 
-    init(edge: MouseScreenEdge? = nil, action: MouseCombinationAction = .wheelUp) {
+    var dragScroll: MouseDragScrollConfiguration?
+
+    var resolvedDragScrollConfiguration: MouseDragScrollConfiguration { dragScroll ?? .init() }
+
+    init(edge: MouseScreenEdge? = nil, action: MouseCombinationAction = .wheelUp,
+         dragScroll: MouseDragScrollConfiguration? = nil) {
         self.edge = edge
         self.action = action
+        self.dragScroll = dragScroll
     }
 
-    var isValid: Bool { edge == nil ? action != .rightClick : action != .leftClick }
+    var isValid: Bool {
+        if action == .dragScroll { return edge == nil && resolvedDragScrollConfiguration.isValid }
+        return edge == nil ? action != .rightClick : action != .leftClick
+    }
     var needsHeldRight: Bool { edge == nil }
 
     func accepts(location: CGPoint, displays: [CGRect]) -> Bool {
