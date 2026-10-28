@@ -47,6 +47,22 @@ final class ActionExecutorTests: XCTestCase {
         XCTAssertTrue(platform.windows[0].target.window === context.window)
     }
 
+    func testMaximizeUsesFrozenTargetAndReportsVerificationFailure() async {
+        let platform = RecordingGestureTargetActionPlatform()
+        platform.error = GestureTargetError.windowMaximizeFailed
+        let executor = ActionExecutor(targetPlatform: platform)
+        let context = makeTargetContext()
+        do {
+            try await executor.execute(.window(.maximize), target: .resolved(context))
+            XCTFail("Expected maximize failure")
+        } catch GestureTargetError.windowMaximizeFailed {
+        } catch { XCTFail("Unexpected error: \(error)") }
+        XCTAssertEqual(platform.windows.count, 1)
+        XCTAssertEqual(platform.windows.first?.command, .maximize)
+        XCTAssertTrue(platform.windows.first?.target.window === context.window)
+        XCTAssertEqual(executor.lastError, L10n.string("action.targetWindowMaximizeFailed"))
+    }
+
     func testShortcutSequencePostsEveryChordInOrderToTheSameTarget() async throws {
         let platform = RecordingGestureTargetActionPlatform()
         let executor = ActionExecutor(targetPlatform: platform)

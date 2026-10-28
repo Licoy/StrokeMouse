@@ -31,6 +31,34 @@ final class GestureTargetScreenGeometryTests: XCTestCase {
         XCTAssertEqual(centered.y, 310, accuracy: 0.001)
     }
 
+    func testMaximizedFrameUsesVisibleAreaInAXPointsAcrossDisplayLayouts() {
+        let primary = CGRect(x: 0, y: 0, width: 1_440, height: 900)
+        let visibleFrames = [
+            CGRect(x: 0, y: 70, width: 1_440, height: 805),
+            CGRect(x: -1_920, y: -180, width: 1_920, height: 1_055),
+            CGRect(x: 1_440, y: -1_080, width: 1_920, height: 1_055),
+            CGRect(x: 0, y: 900, width: 1_920, height: 1_055),
+        ]
+        let expectedOrigins = [
+            CGPoint(x: 0, y: 25), CGPoint(x: -1_920, y: 25),
+            CGPoint(x: 1_440, y: 925), CGPoint(x: 0, y: -1_055),
+        ]
+        for (visible, origin) in zip(visibleFrames, expectedOrigins) {
+            let frame = GestureTargetScreenGeometry.maximizedAXFrame(
+                visibleFrame: visible,
+                zeroScreenFrame: primary
+            )
+            XCTAssertEqual(frame.origin, origin)
+            XCTAssertEqual(frame.size, visible.size)
+            XCTAssertEqual(
+                GestureTargetScreenGeometry.appKitWindowFrame(
+                    axOrigin: frame.origin, windowSize: frame.size, zeroScreenFrame: primary
+                ),
+                visible
+            )
+        }
+    }
+
     func testChoosesGreatestOverlapThenNearestScreen() {
         let primary = CGRect(x: 0, y: 0, width: 1_000, height: 800)
         let secondary = CGRect(x: 1_000, y: 0, width: 1_000, height: 800)

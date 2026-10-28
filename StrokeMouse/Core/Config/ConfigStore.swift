@@ -632,7 +632,8 @@ final class ConfigStore {
         }
 
         switch header.version {
-        case Constants.configVersion, Constants.fnShortcutConfigVersion, Constants.extendedActionsConfigVersion:
+        case Constants.configVersion, Constants.fnShortcutConfigVersion,
+             Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion:
             do {
                 let file = try decoder.decode(GestureConfigFile.self, from: data)
                 let compatibility = try decoder.decode(

@@ -185,6 +185,7 @@ final class WindowActionsTests: XCTestCase {
             .zoom,
             .fullscreen,
             .center,
+            .maximize,
         ] {
             let system = RecordingGestureTargetSystemClient()
             let actions = WindowActions(system: system)
@@ -541,6 +542,7 @@ final class WindowActionsTests: XCTestCase {
 
         try await actions.performWindow(.close, target: target)
         try await actions.performWindow(.center, target: target)
+        try await actions.performWindow(.maximize, target: target)
         try await actions.performWindow(.hide, target: target)
 
         XCTAssertEqual(system.operations, [
@@ -548,6 +550,8 @@ final class WindowActionsTests: XCTestCase {
             .pressWindowControl(.close),
             .validateWindow,
             .centerWindow,
+            .validateWindow,
+            .maximizeWindow,
             .hideApplication,
         ])
         XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
@@ -571,6 +575,21 @@ final class WindowActionsTests: XCTestCase {
             XCTFail("Unexpected error: \(error)")
         }
 
+        XCTAssertEqual(system.operations, [.validateWindow])
+    }
+
+    func testInvalidFrozenWindowStopsMaximizeBeforeAXWrites() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.validateError = GestureTargetError.axOperationFailed(
+            operation: .validateWindow, code: .invalidUIElement
+        )
+        do {
+            try await WindowActions(system: system).performWindow(.maximize, target: makeTargetContext())
+            XCTFail("Expected invalid frozen window to fail")
+        } catch GestureTargetError.axOperationFailed(let operation, let code) {
+            XCTAssertEqual(operation, .validateWindow)
+            XCTAssertEqual(code, .invalidUIElement)
+        } catch { XCTFail("Unexpected error: \(error)") }
         XCTAssertEqual(system.operations, [.validateWindow])
     }
 
@@ -633,6 +652,7 @@ private enum TargetSystemOperation: Equatable {
     case pressWindowControl(WindowCommand)
     case hideApplication
     case centerWindow
+    case maximizeWindow
     case setMainWindow
     case raiseWindow
     case activateApplication
@@ -678,6 +698,10 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     func hideApplication(_ target: GestureTargetContext) throws {
         record(.hideApplication, target: target)
         if let hideError { throw hideError }
+    }
+
+    func maximizeWindow(_ target: GestureTargetContext) async throws {
+        record(.maximizeWindow, target: target)
     }
 
     func centerWindow(_ target: GestureTargetContext) throws {

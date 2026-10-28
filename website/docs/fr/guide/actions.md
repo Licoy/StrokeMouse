@@ -17,7 +17,7 @@ En cas de correspondance, `ActionExecutor` dispatche l’action configurée.
 | **Ouvrir une app** | Choisir une app installée par icône et la lancer | Stocké comme bundle id |
 | **Ouvrir une URL** | Navigateur / gestionnaire par défaut | — |
 | **Média** | Lecture/pause, pistes, volume, sourdine | — |
-| **Fenêtre** | Fermer, réduire, zoomer, plein écran, masquer, centrer | Nécessite AX |
+| **Fenêtre** | Fermer, réduire, zoomer, agrandir au maximum, plein écran, masquer, centrer | Nécessite AX |
 | **Shell** | Exécuter une commande shell (éditeur coloré) | **Privilège élevé** |
 | **AppleScript** | Préréglages intégrés ou script perso (coloré) | **Privilège élevé** ; Automatisation parfois requise |
 
@@ -49,12 +49,17 @@ Toute URL que le système peut ouvrir. Le geste par défaut « Ouvrir GitHub » 
 |---------|------|
 | close | Fermer la fenêtre |
 | minimize | Réduire |
-| zoom | Zoom (sémantique du bouton vert) |
+| zoom | Taille choisie par l’app |
+| maximize | Agrandir la fenêtre au maximum |
 | fullscreen | Plein écran |
 | hide | Masquer l’app |
 | center | Centrer la fenêtre |
 
-Cible en général la fenêtre de premier plan ; échoue si AX est indisponible.
+Les actions de fenêtre ciblent la fenêtre exacte capturée au début du geste, plutôt que celle au premier plan lors de l’exécution. Masquer l’app utilise l’app capturée. Une fenêtre absente, une action non prise en charge ou une autorisation d’Accessibilité manquante entraîne un message d’échec.
+
+**Agrandir la fenêtre au maximum** remplit la zone disponible de l’écran où se trouve la fenêtre, en tenant compte de la barre des menus et du Dock. Répéter l’action conserve cette taille sans rétablir la précédente. `zoom` utilise la taille choisie par l’app et `fullscreen` passe en plein écran, tandis que l’agrandissement reste sur le bureau. Cette version ne quitte pas le plein écran avant d’agrandir : quittez-le d’abord manuellement. Si la position ou la taille ne peut pas être modifiée, ou si la fenêtre n’atteint pas les dimensions et la position requises, par exemple à cause de restrictions de l’app, un échec est affiché.
+
+Les configurations et exports avec cet agrandissement comme action principale ou secondaire utilisent le format **v5** et nécessitent une version compatible. Les autres conservent les règles v2/v3/v4 existantes.
 
 ## Shell
 

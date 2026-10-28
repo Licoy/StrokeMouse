@@ -10901,6 +10901,98 @@
         }
       }
     },
+    "action.targetWindowResizeUnavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The captured window does not support changing its position or size."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捕获的窗口不支持调整位置或大小。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "捕獲的視窗不支援調整位置或大小。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캡처한 윈도우는 위치 또는 크기 변경을 지원하지 않습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込んだウインドウは位置またはサイズの変更に対応していません。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Захваченное окно не поддерживает изменение положения или размера."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La fenêtre capturée ne permet pas de modifier sa position ou sa taille."
+          }
+        }
+      }
+    },
+    "action.targetWindowMaximizeFailed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The window did not reach the required position and size, possibly due to app restrictions."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口未达到所需的位置和大小，可能受应用限制。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "視窗未達到所需的位置和大小，可能受應用程式限制。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "윈도우가 필요한 위치와 크기에 도달하지 못했습니다. 앱의 제한 때문일 수 있습니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウインドウが必要な位置とサイズになりませんでした。App の制限が原因の可能性があります。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Окно не достигло требуемого положения и размера, возможно, из-за ограничений приложения."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La fenêtre n’a pas atteint la position et la taille requises, peut-être en raison de restrictions de l’app."
+          }
+        }
+      }
+    },
     "action.targetWindowControlUnavailable": {
       "localizations": {
         "en": {
@@ -13427,6 +13519,98 @@
           "stringUnit": {
             "state": "translated",
             "value": "Placer dans le Dock"
+          }
+        }
+      }
+    },
+    "window.maximize": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximize Window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化窗口"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化視窗"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "윈도우 최대화"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウインドウを最大化"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Развернуть окно"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agrandir la fenêtre au maximum"
+          }
+        }
+      }
+    },
+    "window.maximizeHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill the available area of the window’s screen. Triggering again keeps it maximized."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "铺满窗口所在屏幕的可用区域，再次触发保持最大化。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "填滿視窗所在螢幕的可用區域，再次觸發保持最大化。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "윈도우가 있는 화면의 사용 가능 영역을 채웁니다. 다시 실행해도 최대화 상태를 유지합니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウインドウがある画面の使用可能な領域いっぱいに広げます。再実行しても最大化を維持します。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заполняет доступную область экрана, на котором находится окно. Повторный вызов сохраняет развёрнутый размер."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remplit la zone disponible de l’écran où se trouve la fenêtre. Répéter l’action conserve la taille maximale."
           }
         }
       }

@@ -169,7 +169,7 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 
 > System commands use customizable shortcut bindings that must match Mission Control in System Settings; StrokeMouse does not change system settings. Application Windows activates the captured app and window first; Mission Control and Space navigation keep the current system context without activating the captured target. These are discrete commands, not native interactive four-finger animations.
 
-> Shortcuts activate the frozen app first and also bring its exact window forward when one was captured, which may switch focus or Spaces. Locations without a regular window, such as the Finder desktop, can still run shortcuts and **Hide App**; Close, Minimize, Zoom, Full Screen, and Center still require an exact window. A short click never activates the target.
+> Shortcuts activate the frozen app first and also bring its exact window forward when one was captured, which may switch focus or Spaces. Locations without a regular window, such as the Finder desktop, can still run shortcuts and **Hide App**; Close, Minimize, Zoom, Maximize Window, Full Screen, and Center still require an exact window. A short click never activates the target.
 
 Release all modifier keys before starting shortcut recording, then press the keys in the order you want them replayed. Caps Lock may remain enabled once its key is released.
 
@@ -195,7 +195,7 @@ Path:
 
 Day to day, multi-select under **Settings → Gestures** to export / import JSON packages. For a full-library backup, copy the file above or edit by hand (keep the structure valid). Settings can **Reveal in Finder**.
 
-Libraries and exported packages containing system actions or drag-to-scroll use configuration format **v4** and require a version supporting these features. Fn shortcuts alone use **v3**; other libraries remain **v2**. Existing v1/v2/v3 configurations remain readable, and all shortcut bindings are preserved in backups.
+Libraries and exports containing Maximize Window as a primary or secondary action use format **v5**. Otherwise, libraries and exported packages containing system actions or drag-to-scroll use configuration format **v4** and require a version supporting these features. Fn shortcuts alone use **v3**; other libraries remain **v2**. Existing v1/v2/v3/v4 configurations remain readable, and all shortcut bindings are preserved in backups.
 
 ## Tech stack
 

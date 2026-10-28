@@ -212,7 +212,7 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
             return kAXZoomButtonAttribute as CFString
         case .fullscreen:
             return kAXFullScreenButtonAttribute as CFString
-        case .hide, .center:
+        case .hide, .center, .maximize:
             throw GestureTargetError.windowControlUnavailable(command)
         }
     }

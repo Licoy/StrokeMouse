@@ -374,6 +374,11 @@ struct ActionPickerView: View {
                 .onChange(of: windowActionSelection) { _, newValue in
                     action = newValue.action
                 }
+                if windowActionSelection == .window(.maximize) {
+                    Text(L10n.string("window.maximizeHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
             case .appleScript:
                 Picker(L10n.string("action.appleScriptCommand"), selection: $appleScriptPreset) {

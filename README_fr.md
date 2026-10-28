@@ -167,7 +167,7 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 
 > **Dessin trackpad** : la surveillance des modificateur est en listen-only et ne consomme pas les événements clavier ; un chemin court n’exécute aucune action. Le chemin suit le pointeur système, donc trackpad ou souris peuvent le déplacer. StrokeMouse ne supprime pas l’effet normal du modificateur dans l’app active.
 
-> Les raccourcis activent d’abord l’app figée et amènent aussi sa fenêtre exacte au premier plan si elle a été capturée, ce qui peut changer le focus ou l’espace. Les emplacements sans fenêtre normale, comme le bureau du Finder, peuvent encore exécuter des raccourcis et **Masquer l’app** ; Fermer, Réduire, Zoom, Plein écran et Centrer exigent une fenêtre exacte. Un clic court n’active jamais la cible.
+> Les raccourcis activent d’abord l’app figée et amènent aussi sa fenêtre exacte au premier plan si elle a été capturée, ce qui peut changer le focus ou l’espace. Les emplacements sans fenêtre normale, comme le bureau du Finder, peuvent encore exécuter des raccourcis et **Masquer l’app** ; Fermer, Réduire, Zoom, Agrandir au maximum, Plein écran et Centrer exigent une fenêtre exacte. Un clic court n’active jamais la cible.
 
 Exemples de gestes par défaut (bouton droit par défaut ; chaque geste peut utiliser un autre bouton) :
 

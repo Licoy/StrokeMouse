@@ -17,7 +17,7 @@ On a successful match, `ActionExecutor` dispatches the configured action.
 | **Open app** | Pick an installed app by icon and launch | Stored as bundle id |
 | **Open URL** | Default browser / handler | — |
 | **Media** | Play/pause, tracks, volume, mute | — |
-| **Window** | Close, minimize, zoom, fullscreen, hide, center | Needs AX |
+| **Window** | Close, minimize, zoom, maximize, fullscreen, hide, center | Needs AX |
 | **Shell** | Run a shell command (syntax-highlighted editor) | **High privilege** |
 | **AppleScript** | Built-in presets or custom script (syntax-highlighted) | **High privilege**; may need Automation |
 
@@ -51,12 +51,17 @@ Any URL the system can open. Default “Open GitHub” uses this.
 |---------|------|
 | close | Close window |
 | minimize | Minimize |
-| zoom | Zoom (green-button semantics) |
+| zoom | Zoom to the app’s preferred size |
+| maximize | Maximize Window |
 | fullscreen | Full screen |
 | hide | Hide app |
 | center | Center window |
 
-Usually targets the front window; fails if AX is unavailable.
+Window actions use the exact window captured when the gesture begins, rather than whichever window is frontmost when the action runs; Hide App uses the captured app. Missing or unsupported windows and unavailable Accessibility access produce a failure message.
+
+**Maximize Window** fills the available area of the screen containing the captured window, respecting the menu bar and Dock. Repeating it keeps the window maximized; it does not restore the previous size. Unlike `zoom`, which uses the app’s preferred size, it aims to fill that available area; unlike `fullscreen`, it stays in the desktop. It does not exit full screen before maximizing, so leave full screen first. If the window cannot be moved or resized, or does not reach the required bounds (for example due to app restrictions), the action shows a failure.
+
+Libraries and exports with Maximize Window as a primary or secondary action use format **v5** and require a compatible version; configurations without it keep the existing v2/v3/v4 rules.
 
 ## Shell
 

@@ -523,6 +523,7 @@ enum WindowCommand: String, Codable, CaseIterable, Identifiable, Sendable {
     case close
     case minimize
     case zoom
+    case maximize
     case fullscreen
     case hide
     case center
@@ -1162,6 +1163,9 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     /// Fn cannot be decoded safely by v2 releases, including in later chords
     /// and secondary actions, so only libraries using it require v3.
     static func requiredVersion(for gestures: [GestureProfile]) -> Int {
+        if gestures.contains(where: { $0.actions.contains(.window(.maximize)) }) {
+            return Constants.maximizeWindowConfigVersion
+        }
         if gestures.contains(where: { profile in
             if case .mouseCombination(let combination) = profile.input,
                combination.action == .dragScroll { return true }
@@ -1190,7 +1194,8 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     }
 
     var hasSupportedVersion: Bool {
-        [Constants.configVersion, Constants.fnShortcutConfigVersion, Constants.extendedActionsConfigVersion].contains(version)
+        [Constants.configVersion, Constants.fnShortcutConfigVersion,
+         Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion].contains(version)
             && version >= Self.requiredVersion(for: gestures)
     }
 

@@ -49,6 +49,18 @@ enum GestureTargetScreenGeometry {
         )
     }
 
+    static func maximizedAXFrame(
+        visibleFrame: CGRect,
+        zeroScreenFrame: CGRect
+    ) -> CGRect {
+        CGRect(
+            x: visibleFrame.minX,
+            y: zeroScreenFrame.maxY - visibleFrame.maxY,
+            width: visibleFrame.width,
+            height: visibleFrame.height
+        )
+    }
+
     private static func squaredDistance(_ point: CGPoint, to frame: CGRect) -> CGFloat {
         let dx = max(max(frame.minX - point.x, 0), point.x - frame.maxX)
         let dy = max(max(frame.minY - point.y, 0), point.y - frame.maxY)

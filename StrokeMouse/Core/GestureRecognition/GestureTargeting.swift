@@ -62,6 +62,9 @@ enum GestureTargetAXOperation: String, Equatable, Sendable {
     case copyPosition
     case copySize
     case setPosition
+    case setSize
+    case checkPositionWritable
+    case checkSizeWritable
     case copyFocusedWindowForVerification
 }
 
@@ -78,6 +81,8 @@ enum GestureTargetError: LocalizedError {
     case processMismatch(expected: pid_t, actual: pid_t)
     case windowRoleMismatch
     case windowControlUnavailable(WindowCommand)
+    case windowResizeUnavailable
+    case windowMaximizeFailed
     case applicationHideFailed(pid_t)
     case activationFailed(pid_t)
     case activationTimedOut(pid_t)
@@ -98,6 +103,10 @@ enum GestureTargetError: LocalizedError {
             return L10n.string("action.targetActivationTimedOut")
         case .focusedWindowMismatch:
             return L10n.string("action.targetFocusChanged")
+        case .windowResizeUnavailable:
+            return L10n.string("action.targetWindowResizeUnavailable")
+        case .windowMaximizeFailed:
+            return L10n.string("action.targetWindowMaximizeFailed")
         case .windowControlUnavailable:
             return L10n.string("action.targetWindowControlUnavailable")
         case .axOperationFailed, .unexpectedAXValue, .processMismatch,

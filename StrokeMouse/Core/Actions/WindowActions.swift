@@ -9,6 +9,7 @@ protocol GestureTargetSystemClient: AnyObject {
         target: GestureTargetContext
     ) throws -> Bool
     func hideApplication(_ target: GestureTargetContext) throws
+    func maximizeWindow(_ target: GestureTargetContext) async throws
     func centerWindow(_ target: GestureTargetContext) throws
     func setMainWindow(_ target: GestureTargetContext) throws
     func raiseWindow(_ target: GestureTargetContext) throws
@@ -47,6 +48,10 @@ struct WindowActions: GestureTargetActionPlatform {
         switch command {
         case .hide:
             try system.hideApplication(target)
+        case .maximize:
+            _ = try target.requireWindow()
+            try system.validateWindow(target)
+            try await system.maximizeWindow(target)
         case .center:
             _ = try target.requireWindow()
             try system.validateWindow(target)
