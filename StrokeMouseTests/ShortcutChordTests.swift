@@ -34,6 +34,35 @@ final class ShortcutChordTests: XCTestCase {
         XCTAssertEqual(KeyCodeNames.displayName(keyCode: UInt16(kVK_Function)), "fn")
     }
 
+    func testFunctionLayerNavigationKeysDisplayAsPressedArrows() {
+        for (keyCode, arrow) in [(kVK_Home, "←"), (kVK_End, "→"), (kVK_PageUp, "↑"), (kVK_PageDown, "↓")] {
+            let chord = ShortcutChord(modifiers: [.control, .shift, .function], keyCode: UInt16(keyCode))
+            XCTAssertEqual(KeyCodeNames.shortcutDisplay(chord: chord), "⌃⇧fn\(arrow)")
+        }
+        // Without a physical Fn these are the dedicated navigation keys.
+        XCTAssertEqual(
+            KeyCodeNames.shortcutDisplay(chord: ShortcutChord(modifiers: [.control], keyCode: UInt16(kVK_Home))),
+            "⌃↖"
+        )
+        XCTAssertEqual(KeyCodeNames.shortcutDisplay(chord: ShortcutChord(modifiers: [], keyCode: UInt16(kVK_End))), "↘")
+    }
+
+    func testShortcutDetailRendersFromChordInsteadOfSavedLabel() {
+        let chord = ShortcutChord(modifiers: [.control, .shift, .function], keyCode: UInt16(kVK_Home))
+        let saved = GestureAction.shortcut(
+            keyCode: chord.legacyKeyCode,
+            modifiers: chord.legacyModifiers,
+            display: "⌃⇧fn↖",
+            orderedChord: chord
+        )
+
+        XCTAssertEqual(saved.detail, "⌃⇧fn←")
+        XCTAssertEqual(
+            GestureAction.shortcut(keyCode: UInt16(kVK_ANSI_Q), modifiers: 1_572_864, display: "⌥⌘Q").detail,
+            "⌥⌘Q"
+        )
+    }
+
     func testOrderedShortcutActionRoundTripsThroughCodable() throws {
         let chords = [
             ShortcutChord(

@@ -39,7 +39,8 @@ enum KeyCodeNames {
     static func shortcutDisplay(chord: ShortcutChord) -> String {
         var parts = chord.modifiers.map(\.displaySymbol)
         if let keyCode = chord.keyCode {
-            parts.append(displayName(keyCode: keyCode))
+            let pressedArrow = chord.modifiers.contains(.function) ? functionLayerArrow(keyCode) : nil
+            parts.append(pressedArrow ?? displayName(keyCode: keyCode))
         }
         return parts.joined()
     }
@@ -58,6 +59,19 @@ enum KeyCodeNames {
     }
 
     // MARK: - Private
+
+    /// Apple keyboards report Fn+←/→/↑/↓ as Home/End/Page Up/Page Down, and macOS
+    /// shortcuts such as window tiling match that translated key. A chord only holds
+    /// Fn when it was physically pressed, so show the arrow while keeping the key code.
+    private static func functionLayerArrow(_ keyCode: UInt16) -> String? {
+        switch Int(keyCode) {
+        case kVK_Home: return "←"
+        case kVK_End: return "→"
+        case kVK_PageUp: return "↑"
+        case kVK_PageDown: return "↓"
+        default: return nil
+        }
+    }
 
     private static func specialName(_ keyCode: UInt16) -> String? {
         switch Int(keyCode) {

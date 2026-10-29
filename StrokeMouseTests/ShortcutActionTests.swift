@@ -276,6 +276,23 @@ final class ShortcutActionTests: XCTestCase {
         }
     }
 
+    func testFunctionLayerHomeReplaysTheTranslatedKey() {
+        // Fn+⌃⇧← reaches apps as Home; replaying ← would collide with ⌃← (previous Space).
+        let chord = ShortcutChord(modifiers: [.control, .shift, .function], keyCode: UInt16(kVK_Home))
+        let plan = ShortcutAction.makeEventPlan(keyCode: chord.legacyKeyCode,
+                                                modifiers: chord.legacyModifiers, orderedChord: chord)
+        XCTAssertEqual(plan, [
+            event(kVK_Control, isKeyDown: true, flags: [.maskControl]),
+            event(kVK_Shift, isKeyDown: true, flags: [.maskControl, .maskShift]),
+            event(kVK_Function, isKeyDown: true, flags: [.maskControl, .maskShift, .maskSecondaryFn]),
+            event(kVK_Home, isKeyDown: true, flags: [.maskControl, .maskShift, .maskSecondaryFn]),
+            event(kVK_Home, isKeyDown: false, flags: [.maskControl, .maskShift, .maskSecondaryFn]),
+            event(kVK_Function, isKeyDown: false, flags: [.maskControl, .maskShift]),
+            event(kVK_Shift, isKeyDown: false, flags: [.maskControl]),
+            event(kVK_Control, isKeyDown: false, flags: []),
+        ])
+    }
+
     func testLegacyFunctionPrimaryPressesAndReleasesWithoutLeavingFunctionHeld() {
         XCTAssertEqual(ShortcutAction.makeEventPlan(keyCode: UInt16(kVK_Function), modifiers: 0), [
             event(kVK_Function, isKeyDown: true, flags: [.maskSecondaryFn]),

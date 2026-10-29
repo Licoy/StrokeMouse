@@ -676,8 +676,9 @@ enum GestureAction: Equatable, Sendable {
         switch self {
         case .none:
             return "—"
-        case .shortcut(_, _, let display, _):
-            return display
+        case .shortcut(_, _, let display, let chord):
+            // Saved labels can predate display fixes; the chord is authoritative.
+            return chord.map(KeyCodeNames.shortcutDisplay(chord:)) ?? display
         case .openApp(_, let name):
             return name
         case .openURL(let url):

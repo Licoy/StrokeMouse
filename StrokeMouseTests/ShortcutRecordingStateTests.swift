@@ -517,6 +517,28 @@ final class ShortcutRecordingStateTests: XCTestCase {
         }
     }
 
+    func testAppleKeyboardFunctionArrowKeepsTranslatedKeyAndShowsArrow() {
+        // Apple keyboards turn Fn+← into Home before the HID tap sees the key.
+        var state = ShortcutRecordingState()
+        var flags: CGEventFlags = []
+        let modifiers = [(kVK_Control, CGEventFlags.maskControl), (kVK_Shift, .maskShift),
+                         (kVK_Function, .maskSecondaryFn)]
+        for (key, flag) in modifiers {
+            flags.insert(flag)
+            _ = state.handle(.flagsChanged(keyCode: UInt16(key), flags: flags))
+        }
+        _ = state.handle(.keyDown(keyCode: UInt16(kVK_Home), isRepeat: false, flags: flags))
+        XCTAssertEqual(state.previewChord.map(KeyCodeNames.shortcutDisplay(chord:)), "⌃⇧fn←")
+
+        var result = state.handle(.keyUp(keyCode: UInt16(kVK_Home)))
+        for (key, flag) in modifiers.reversed() {
+            flags.remove(flag)
+            result = state.handle(.flagsChanged(keyCode: UInt16(key), flags: flags))
+        }
+        XCTAssertEqual(result, .captured(ShortcutChord(modifiers: [.control, .shift, .function],
+                                                       keyCode: UInt16(kVK_Home))))
+    }
+
     func testFunctionModifierRemapsUseEffectiveFlags() {
         for (key, flag, modifier) in [(kVK_CapsLock, CGEventFlags.maskSecondaryFn, ShortcutModifier.function),
                                      (kVK_Function, .maskControl, .control)] {
