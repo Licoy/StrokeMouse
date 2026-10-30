@@ -89,14 +89,17 @@ final class GestureHUDController {
 
         for screen in screens {
             let view = GesturePathView(frame: CGRect(origin: .zero, size: screen.frame.size))
-            let window = NSWindow(
+            // A nonactivating panel can join another app's full-screen Space
+            // even when StrokeMouse uses the regular (Dock-visible) policy.
+            let window = NSPanel(
                 contentRect: screen.frame,
-                styleMask: .borderless,
+                styleMask: [.borderless, .nonactivatingPanel],
                 backing: .buffered,
                 defer: false,
                 screen: screen
             )
             window.isReleasedWhenClosed = false
+            window.hidesOnDeactivate = false
             window.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.assistiveTechHighWindow)))
             window.isOpaque = false
             window.backgroundColor = .clear
