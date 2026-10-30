@@ -252,6 +252,112 @@ final class MacGestureTargetCapturerTests: XCTestCase {
         XCTAssertEqual(system.attributeReads, [.copyContainingWindow, .copyRole])
     }
 
+    func testMissingContainingWindowUsesSamePIDParentWindow() throws {
+        for code in [AXError.noValue, .attributeUnsupported] {
+            let system = try makeSystem()
+            system.containingWindowError = GestureTargetError.axOperationFailed(
+                operation: .copyContainingWindow, code: code
+            )
+            system.hitRole = "AXButton"
+            system.parentChain = [system.hitElement, system.windowElement]
+            let context = try MacGestureTargetCapturer(system: system).capture(
+                policies: [.windowUnderPointer], at: .zero
+            ).windowUnderPointer.requireContext()
+            XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.windowElement))
+            XCTAssertTrue(system.applicationWindowLookups.isEmpty)
+            XCTAssertTrue(system.pointerWindowLocations.isEmpty)
+        }
+    }
+
+    func testMissingContainingWindowTraversesDeepEditorHierarchy() throws {
+        let system = try makeSystem()
+        system.containingWindowError = GestureTargetError.axOperationFailed(
+            operation: .copyContainingWindow, code: .attributeUnsupported
+        )
+        let groups = (0..<6).map { AXUIElementCreateApplication(Int32($0) + 10) }
+        system.parentChain = [system.hitElement] + groups + [system.windowElement]
+        system.parentRoles = ["AXSplitGroup"] + Array(repeating: "AXGroup", count: 6) + ["AXWindow"]
+        let context = try MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer], at: .zero
+        ).windowUnderPointer.requireContext()
+        XCTAssertTrue(CFEqual(try XCTUnwrap(context.window).element, system.windowElement))
+        XCTAssertEqual(system.attributeReads.filter { $0 == .copyParent }.count, 7)
+    }
+
+    func testApplicationAncestorKeepsDesktopWindowless() throws {
+        let system = try makeSystem()
+        system.containingWindowError = GestureTargetError.axOperationFailed(
+            operation: .copyContainingWindow, code: .attributeUnsupported
+        )
+        system.parentChain = [system.hitElement, system.windowElement]
+        system.parentRoles = ["AXScrollArea", "AXApplication"]
+        let context = try MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer], at: .zero
+        ).windowUnderPointer.requireContext()
+        XCTAssertNil(context.window)
+        XCTAssertEqual(system.attributeReads.filter { $0 == .copyParent }.count, 1)
+    }
+
+    func testExcessiveParentDepthFailsExplicitly() throws {
+        let system = try makeSystem()
+        system.containingWindowError = GestureTargetError.axOperationFailed(
+            operation: .copyContainingWindow, code: .attributeUnsupported
+        )
+        system.parentChain = [system.hitElement] + (0..<33).map { AXUIElementCreateApplication(Int32($0) + 10) }
+        system.parentRoles = Array(repeating: "AXGroup", count: system.parentChain.count)
+        let result = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer], at: .zero
+        ).windowUnderPointer
+        guard case .unavailable(.unexpectedCaptureFailure) = result
+        else { return XCTFail("Excessive parent depth is not a windowless target") }
+    }
+
+    func testParentTraversalPropagatesAXFailures() throws {
+        for code in [AXError.cannotComplete, .apiDisabled, .invalidUIElement] {
+            let system = try makeSystem()
+            system.containingWindowError = GestureTargetError.axOperationFailed(
+                operation: .copyContainingWindow, code: .attributeUnsupported
+            )
+            system.hitRole = "AXButton"
+            system.parentError = GestureTargetError.axOperationFailed(operation: .copyParent, code: code)
+            let result = MacGestureTargetCapturer(system: system).capture(
+                policies: [.windowUnderPointer], at: .zero
+            ).windowUnderPointer
+            guard case .unavailable(.axOperationFailed(.copyParent, let actual)) = result
+            else { return XCTFail("Parent failures must remain observable") }
+            XCTAssertEqual(actual, code)
+        }
+    }
+
+    func testParentWindowPIDMismatchIsRejected() throws {
+        let system = try makeSystem()
+        system.containingWindowError = GestureTargetError.axOperationFailed(
+            operation: .copyContainingWindow, code: .attributeUnsupported
+        )
+        system.hitRole = "AXButton"
+        system.parentChain = [system.hitElement, system.windowElement]
+        system.windowProcessIdentifier = system.application.processIdentifier + 1
+        let result = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer], at: .zero
+        ).windowUnderPointer
+        guard case .unavailable(.processMismatch) = result
+        else { return XCTFail("Cross-process parent must not retarget") }
+    }
+
+    func testParentCycleFailsExplicitly() throws {
+        let system = try makeSystem()
+        system.containingWindowError = GestureTargetError.axOperationFailed(
+            operation: .copyContainingWindow, code: .attributeUnsupported
+        )
+        system.hitRole = "AXButton"
+        system.parentChain = [system.hitElement, system.hitElement]
+        let result = MacGestureTargetCapturer(system: system).capture(
+            policies: [.windowUnderPointer], at: .zero
+        ).windowUnderPointer
+        guard case .unavailable(.unexpectedCaptureFailure) = result
+        else { return XCTFail("A cyclic parent chain is not a windowless target") }
+    }
+
     func testDesktopElementCapturesItsApplicationWithoutAWindow() throws {
         for errorCode in [AXError.noValue, .attributeUnsupported] {
             let system = try makeSystem()
@@ -481,6 +587,10 @@ private final class RecordingGestureTargetCaptureSystemClient:
     let windowElement: AXUIElement
 
     var role = kAXWindowRole as String
+    var hitRole: String?
+    var parentChain: [AXUIElement] = []
+    var parentRoles: [String] = []
+    var parentError: Error?
     var hitTestError: Error?
     var focusedWindowError: Error?
     var containingWindowError: Error?
@@ -541,7 +651,7 @@ private final class RecordingGestureTargetCaptureSystemClient:
     }
 
     func copyElement(
-        from _: AXUIElement,
+        from element: AXUIElement,
         attribute: GestureTargetAXAttribute
     ) throws -> AXUIElement {
         attributeReads.append(attribute.operation)
@@ -549,6 +659,12 @@ private final class RecordingGestureTargetCaptureSystemClient:
         case .copyFocusedWindow:
             if let focusedWindowError { throw focusedWindowError }
             return windowElement
+        case .copyParent:
+            if let parentError { throw parentError }
+            guard let index = parentChain.firstIndex(where: { CFEqual($0, element) }),
+                  parentChain.indices.contains(index + 1)
+            else { throw GestureTargetError.axOperationFailed(operation: .copyParent, code: .attributeUnsupported) }
+            return parentChain[index + 1]
         case .copyContainingWindow:
             if let containingWindowError { throw containingWindowError }
             return windowElement
@@ -560,11 +676,13 @@ private final class RecordingGestureTargetCaptureSystemClient:
     }
 
     func copyString(
-        from _: AXUIElement,
+        from element: AXUIElement,
         attribute: GestureTargetAXAttribute
     ) throws -> String {
         attributeReads.append(attribute.operation)
-        return role
+        if let index = parentChain.firstIndex(where: { CFEqual($0, element) }),
+           parentRoles.indices.contains(index) { return parentRoles[index] }
+        return CFEqual(element, hitElement) ? (hitRole ?? role) : role
     }
 
     func processIdentifier(

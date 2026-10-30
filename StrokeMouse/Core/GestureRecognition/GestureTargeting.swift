@@ -50,6 +50,7 @@ struct GestureTargetContext {
 enum GestureTargetAXOperation: String, Equatable, Sendable {
     case hitTest
     case copyContainingWindow
+    case copyParent
     case copyFocusedWindow
     case copyWindows
     case copyRole

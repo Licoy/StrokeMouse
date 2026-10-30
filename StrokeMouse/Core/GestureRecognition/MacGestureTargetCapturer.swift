@@ -279,8 +279,46 @@ final class MacGestureTargetCapturer: GestureTargetCapturing,
             where operation == .copyContainingWindow
                 && (code == .noValue || code == .attributeUnsupported)
         {
-            return try windowIfOperable(hit)
+            let window = try parentWindow(of: hit, expectedProcessIdentifier: expectedProcessIdentifier)
+            Self.logger.notice(
+                "operation=copyContainingWindow code=\(code.rawValue) result=parentTraversal windowFound=\(window != nil) pid=\(expectedProcessIdentifier)"
+            )
+            return window
         }
+    }
+
+    /// Some apps (including HBuilderX) omit AXWindow but expose its parent chain.
+    /// Traverse only the hit's own ancestry, never a focused or arbitrary app window.
+    private func parentWindow(
+        of hit: AXUIElement,
+        expectedProcessIdentifier: pid_t
+    ) throws -> AXUIElement? {
+        var element = hit
+        var visited: [AXUIElement] = []
+        for _ in 0..<32 {
+            guard !visited.contains(where: { CFEqual($0, element) }) else {
+                throw GestureTargetError.unexpectedCaptureFailure("Cyclic AX parent chain")
+            }
+            visited.append(element)
+            try validatePID(of: element, expected: expectedProcessIdentifier)
+            let role = try system.copyString(
+                from: element,
+                attribute: GestureTargetAXAttribute(name: kAXRoleAttribute as CFString, operation: .copyRole)
+            )
+            if role == kAXWindowRole as String { return element }
+            if role == kAXApplicationRole as String { return nil }
+            do {
+                element = try system.copyElement(
+                    from: element,
+                    attribute: GestureTargetAXAttribute(name: kAXParentAttribute as CFString, operation: .copyParent)
+                )
+            } catch GestureTargetError.axOperationFailed(let operation, let code)
+                where operation == .copyParent && (code == .noValue || code == .attributeUnsupported)
+            {
+                return nil
+            }
+        }
+        throw GestureTargetError.unexpectedCaptureFailure("AX parent chain exceeds 32 elements")
     }
 
     private func windowIfOperable(_ element: AXUIElement) throws -> AXUIElement? {
