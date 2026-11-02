@@ -25,7 +25,8 @@ final class MouseCombinationEnvironment: @unchecked Sendable {
 }
 
 /// Both scroll taps consult the same owner before scroll enhancement, regardless
-/// of their installation order. An accepted event is consumed exactly once.
+/// of their installation order. An accepted event is consumed exactly once; an
+/// owner at the HID layer has already judged every tick, so it is not asked again.
 final class MouseCombinationScrollBridge: @unchecked Sendable {
     static let shared = MouseCombinationScrollBridge()
     private let lock = NSLock()
@@ -36,12 +37,15 @@ final class MouseCombinationScrollBridge: @unchecked Sendable {
     }
     func markInspectedBeforeReversing(_ event: CGEvent) {
         let tap = lock.withLock { owner }
-        guard tap?.interceptsScroll == true,
+        // A HID-level owner sits upstream and never sees the reversed event.
+        guard let tap, tap.interceptsScroll, !tap.inspectsWheelAtHID,
               event.getIntegerValueField(.eventSourceUserData) == 0 else { return }
         event.setIntegerValueField(.eventSourceUserData, value: MouseEventTap.combinationInspectedMarker)
     }
     func consume(_ event: CGEvent) -> Bool {
         let tap = lock.withLock { owner }
-        return tap.map { $0.handle(type: .scrollWheel, event: event) == nil } ?? false
+        // A HID-level owner already judged this device tick before it got here.
+        guard let tap, !tap.inspectsWheelAtHID else { return false }
+        return tap.handle(type: .scrollWheel, event: event) == nil
     }
 }

@@ -175,6 +175,27 @@ final class MouseCombinationTests: XCTestCase {
         XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis1), 1)
     }
 
+    func testHIDLevelCombinationIsNotJudgedAgainBySessionBridge() throws {
+        let mouse = MouseEventTap()
+        mouse.interceptsScroll = true
+        mouse.inspectsWheelAtHID = true
+        mouse.shouldCaptureScroll = { _, _ in true }
+        var count = 0
+        mouse.onEvent = { event, _ in if case .scroll = event { count += 1 } }
+        MouseCombinationScrollBridge.shared.install(mouse)
+        defer { MouseCombinationScrollBridge.shared.remove(mouse) }
+        let scroll = ScrollEventTap()
+        var snapshot = ScrollTapSnapshot()
+        snapshot.enhancementEnabled = true
+        snapshot.reverseMouseVertical = true
+        scroll.snapshot = snapshot
+        let event = try wheel(1)
+        XCTAssertTrue(scroll.handle(type: .scrollWheel, event: event) != nil)
+        XCTAssertEqual(count, 0)
+        XCTAssertEqual(event.getIntegerValueField(.scrollWheelEventDeltaAxis1), -1)
+        XCTAssertEqual(event.getIntegerValueField(.eventSourceUserData), 0)
+    }
+
     func testScrollReplayIsFreshEventWithOriginalDeltas() throws {
         let precise = try wheel(1, units: .pixel)
         precise.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: 0.75)

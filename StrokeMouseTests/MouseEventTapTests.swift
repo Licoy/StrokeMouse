@@ -10,8 +10,11 @@ final class MouseEventTapTests: XCTestCase {
     }
 
     func testWheelCombinationsReserveInputBeforeSessionScrollUtilities() {
-        XCTAssertEqual(MouseEventTap.tapLocation(includingScroll: true), .cghidEventTap)
-        XCTAssertEqual(MouseEventTap.tapLocation(includingScroll: false), .cgSessionEventTap)
+        XCTAssertEqual(
+            MouseEventTap.tapLocations(includingScroll: true),
+            [.cghidEventTap, .cgSessionEventTap]
+        )
+        XCTAssertEqual(MouseEventTap.tapLocations(includingScroll: false), [.cgSessionEventTap])
     }
 
     func testEventsOfInterestExcludesAllContinuousMouseMovement() {

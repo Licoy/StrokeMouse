@@ -8,8 +8,11 @@ import OSLog
 ///
 /// Important design constraints (esp. macOS 14):
 /// - Use `.defaultTap` only for trigger down/up (plus left down/up while a
-///   secondary action is configured). Continuous movement must bypass the
-///   filtering tap so macOS can update the cursor independently of this process.
+///   secondary action or left-click combination is configured, and wheel ticks
+///   while a wheel combination is configured). Continuous movement must bypass
+///   the filtering tap so macOS can update the cursor independently of this process.
+/// - Wheel combinations move the whole tap to the HID layer, ahead of session-level
+///   scroll utilities, and fall back to the session layer if HID is refused.
 /// - Run the tap on a dedicated CFRunLoop thread so main-thread UI work cannot stall
 ///   cursor delivery.
 final class MouseEventTap: @unchecked Sendable {
@@ -50,9 +53,11 @@ final class MouseEventTap: @unchecked Sendable {
     static let tapOptions: CGEventTapOptions = .defaultTap
     /// Reserve physical wheel input before session-level smooth-scroll utilities
     /// consume it and post tagged animation frames. Keep button edges in the same
-    /// tap so the held-right session is armed before its first wheel event.
-    static func tapLocation(includingScroll: Bool) -> CGEventTapLocation {
-        includingScroll ? .cghidEventTap : .cgSessionEventTap
+    /// tap so the held-right session is armed before its first wheel event. The
+    /// session layer stays as a fallback so a refused HID tap cannot take down
+    /// every mouse gesture.
+    static func tapLocations(includingScroll: Bool) -> [CGEventTapLocation] {
+        includingScroll ? [.cghidEventTap, .cgSessionEventTap] : [.cgSessionEventTap]
     }
     static let replayEventMarker: Int64 = 0x5354524F4B454D4F
     static let combinationReplayMarker: Int64 = 0x53544D434F4D424F
@@ -105,7 +110,14 @@ final class MouseEventTap: @unchecked Sendable {
         get { stateLock.withLock { shouldCaptureScrollStorage } }
         set { stateLock.withLock { shouldCaptureScrollStorage = newValue } }
     }
+    /// Set while installed at the HID layer: every device tick was already judged
+    /// here before it reaches `ScrollEventTap`, so the session bridge skips it.
+    var inspectsWheelAtHID: Bool {
+        get { stateLock.withLock { inspectsWheelAtHIDStorage } }
+        set { stateLock.withLock { inspectsWheelAtHIDStorage = newValue } }
+    }
     private var interceptsScrollStorage = false
+    private var inspectsWheelAtHIDStorage = false
     private var shouldCaptureScrollStorage: ((MouseWheelDirection, CGPoint) -> Bool)?
     private var installedScroll = false
 
@@ -560,19 +572,34 @@ final class MouseEventTap: @unchecked Sendable {
         let retainedContext = Unmanaged.passRetained(
             CallbackContext(owner: self)
         )
-        guard let eventTap = CGEvent.tapCreate(
-            tap: Self.tapLocation(includingScroll: includingScroll),
-            place: .headInsertEventTap,
-            options: Self.tapOptions,
-            eventsOfInterest: Self.eventsOfInterestMask
-                | (includingChordClicks ? Self.chordClickMask : 0)
-                | (includingScroll ? CGEventMask(1) << CGEventType.scrollWheel.rawValue : 0),
-            callback: callback,
-            userInfo: retainedContext.toOpaque()
-        ) else {
+        let mask = Self.eventsOfInterestMask
+            | (includingChordClicks ? Self.chordClickMask : 0)
+            | (includingScroll ? CGEventMask(1) << CGEventType.scrollWheel.rawValue : 0)
+        var created: (port: CFMachPort, location: CGEventTapLocation)?
+        for location in Self.tapLocations(includingScroll: includingScroll) {
+            if let eventTap = CGEvent.tapCreate(
+                tap: location,
+                place: .headInsertEventTap,
+                options: Self.tapOptions,
+                eventsOfInterest: mask,
+                callback: callback,
+                userInfo: retainedContext.toOpaque()
+            ) {
+                created = (eventTap, location)
+                break
+            }
+            if location == .cghidEventTap {
+                Self.logger.error(
+                    "HID mouse event tap creation failed; falling back to the session layer"
+                )
+            }
+        }
+        guard let created else {
             retainedContext.release()
             return false
         }
+        let eventTap = created.port
+        inspectsWheelAtHID = includingScroll && created.location == .cghidEventTap
 
         let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
         let current = CFRunLoopGetCurrent()
@@ -590,6 +617,7 @@ final class MouseEventTap: @unchecked Sendable {
         if let port {
             CGEvent.tapEnable(tap: port, enable: false)
         }
+        inspectsWheelAtHID = false
         if let runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
         }
