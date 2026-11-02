@@ -62,6 +62,9 @@ enum Constants {
     static let shortcutSequenceMaxSteps = 4
     /// Pause between sequence chords so the target handles each one first.
     static let shortcutSequenceStepDelay: Duration = .milliseconds(50)
+    /// Longest an action waits for the press-time window captured off the
+    /// event-tap thread before it reports the target as unavailable.
+    static let gestureWindowCaptureTimeout: TimeInterval = 2
 
     /// Initial smooth-scroll tuning. Step, duration, and acceleration are clamped
     /// to these ranges; frame timing stays fixed.

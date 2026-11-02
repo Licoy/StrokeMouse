@@ -170,6 +170,9 @@ final class TrackpadClickEventTap: @unchecked Sendable {
 
     func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            Self.logger.error(
+                "Trackpad click event tap disabled (\(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public)); re-enabling"
+            )
             // A swallowed down keeps owing its up across re-enable.
             if let port = lockedPort() {
                 CGEvent.tapEnable(tap: port, enable: true)

@@ -59,6 +59,7 @@ final class MouseEventTap: @unchecked Sendable {
     static func tapLocations(includingScroll: Bool) -> [CGEventTapLocation] {
         includingScroll ? [.cghidEventTap, .cgSessionEventTap] : [.cgSessionEventTap]
     }
+    static let slowCaptureDecisionMilliseconds: UInt64 = 50
     static let replayEventMarker: Int64 = 0x5354524F4B454D4F
     static let combinationReplayMarker: Int64 = 0x53544D434F4D424F
     static let combinationInspectedMarker: Int64 = 0x53544D434845434B
@@ -401,6 +402,10 @@ final class MouseEventTap: @unchecked Sendable {
             guard let interruptionBase else {
                 return Unmanaged.passUnretained(event)
             }
+            // A disabled filter lets presses reach the app untouched; keep it visible.
+            Self.logger.error(
+                "Mouse event tap disabled (\(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public)); re-enabled, interrupted \(interruptionBase.buttons.count) captured button(s)"
+            )
             // Sample only after re-enabling. A release before this sample is
             // observed here; one after it is delivered as the queued up edge.
             let stillPressed = Set(interruptionBase.buttons.filter {
@@ -496,8 +501,16 @@ final class MouseEventTap: @unchecked Sendable {
                !blockedButtonsUntilUp.contains(button)
             {
                 stateLock.unlock()
+                let started = DispatchTime.now()
                 let decision = shouldCapture?(button, location, event.flags)
                     ?? .capture(acceptsChordClick: false)
+                let milliseconds = (DispatchTime.now().uptimeNanoseconds - started.uptimeNanoseconds) / 1_000_000
+                if milliseconds >= Self.slowCaptureDecisionMilliseconds {
+                    // Long decisions approach WindowServer's tap timeout.
+                    Self.logger.notice(
+                        "Mouse capture decision took \(milliseconds) ms (button=\(String(describing: button), privacy: .public))"
+                    )
+                }
                 stateLock.lock()
                 if acceptingEvents,
                    case .capture(let acceptsChordClick) = decision,

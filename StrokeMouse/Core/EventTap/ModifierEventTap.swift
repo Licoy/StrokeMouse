@@ -275,6 +275,9 @@ final class ModifierEventTap: @unchecked Sendable {
             guard let interruptionGeneration else {
                 return Unmanaged.passUnretained(event)
             }
+            Self.logger.error(
+                "Modifier event tap disabled (\(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public)); re-enabled"
+            )
             // Enable first so a release racing this live-state sample is either
             // reflected by the sample or queued as the next flagsChanged edge.
             let physicalKeys = physicalKeysProvider()
