@@ -48,6 +48,12 @@ final class MouseEventTap: @unchecked Sendable {
     }
 
     static let tapOptions: CGEventTapOptions = .defaultTap
+    /// Reserve physical wheel input before session-level smooth-scroll utilities
+    /// consume it and post tagged animation frames. Keep button edges in the same
+    /// tap so the held-right session is armed before its first wheel event.
+    static func tapLocation(includingScroll: Bool) -> CGEventTapLocation {
+        includingScroll ? .cghidEventTap : .cgSessionEventTap
+    }
     static let replayEventMarker: Int64 = 0x5354524F4B454D4F
     static let combinationReplayMarker: Int64 = 0x53544D434F4D424F
     static let combinationInspectedMarker: Int64 = 0x53544D434845434B
@@ -555,7 +561,7 @@ final class MouseEventTap: @unchecked Sendable {
             CallbackContext(owner: self)
         )
         guard let eventTap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
+            tap: Self.tapLocation(includingScroll: includingScroll),
             place: .headInsertEventTap,
             options: Self.tapOptions,
             eventsOfInterest: Self.eventsOfInterestMask
