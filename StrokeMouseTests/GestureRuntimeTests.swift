@@ -3050,6 +3050,60 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(platform.shortcutCount, 1)
     }
 
+    func testSlowWindowCaptureNeitherBlocksPressNorRetargetsAction() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let capturer = BlockingIdentifyingRuntimeTargetCapturer(
+            identityProcessIdentifier: 101,
+            windowProcessIdentifier: 202
+        )
+        defer { capturer.unblock() }
+        let platform = RuntimeActionPlatform()
+        let runtime = GestureRuntime(
+            permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform),
+            targetCapturer: capturer,
+            mouseEventTap: mouse,
+            trackpadClickEventTap: RuntimeTrackpadClickSource(),
+            multitouchSourceFactory: { RuntimeMultitouchSource() }
+        )
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [
+            combinationProfile(edge: .left, action: .rightClick),
+        ]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let left = CGPoint(x: frame.minX + 1, y: frame.midY)
+
+        // The window capture is still blocked: the identity alone decides the press.
+        XCTAssertTrue(mouse.press(.right, at: left))
+        mouse.release(.right, at: left)
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 0, "The action waits for the press-time window")
+
+        capturer.unblock()
+        await waitForCombination { platform.shortcutCount == 1 }
+        XCTAssertEqual(platform.shortcutProcessIdentifiers, [202])
+    }
+
+    func testDeferredTargetDeliversOnlyTheFirstResolution() async {
+        func snapshot(_ processIdentifier: pid_t) -> GestureTargetSnapshot {
+            let target = GestureTargetResolution.resolved(GestureTargetContext(
+                policy: .frontmostWindow,
+                identity: GestureTargetIdentity(processIdentifier: processIdentifier, bundleIdentifier: nil),
+                application: nil,
+                window: nil
+            ))
+            return GestureTargetSnapshot(frontmostWindow: target, windowUnderPointer: target)
+        }
+        let pending = DeferredGestureTarget()
+        async let waited = pending.snapshot()
+        await drainMainActor()
+        XCTAssertTrue(pending.resolve(snapshot(101)))
+        XCTAssertFalse(pending.resolve(snapshot(202)), "A late capture cannot replace a timeout")
+        let resolved = await waited
+        XCTAssertEqual(resolved.frontmostWindow.context?.processIdentifier, 101)
+        let later = await pending.snapshot()
+        XCTAssertEqual(later.frontmostWindow.context?.processIdentifier, 101)
+    }
+
     private func waitForCombination(_ predicate: () -> Bool) async {
         for _ in 0..<200 {
             if predicate() { return }
@@ -3427,7 +3481,8 @@ final class GestureRuntimeTests: XCTestCase {
         mouse.release(.right, at: CGPoint(x: 20, y: 100))
         await drainMainActor()
         XCTAssertEqual(capturer.identityCount, 2)
-        XCTAssertEqual(capturer.windowCaptureCount, 1)
+        // The accepted press copies its window off the tap thread.
+        await waitForCombination { capturer.windowCaptureCount == 1 }
     }
 
     func testApplicationOnlyTriggerGesturesPassThroughElsewhere() async throws {
@@ -4281,6 +4336,61 @@ private final class IdentifyingRuntimeTargetCapturer: GestureTargetIdentifying,
             frontmostWindow: target,
             windowUnderPointer: target
         )
+    }
+}
+
+/// Holds the window capture until released, as an unresponsive target app would.
+private final class BlockingIdentifyingRuntimeTargetCapturer: GestureTargetIdentifying,
+    @unchecked Sendable
+{
+    private let identityProcessIdentifier: pid_t
+    private let windowProcessIdentifier: pid_t
+    private let gate = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var isUnblocked = false
+
+    init(identityProcessIdentifier: pid_t, windowProcessIdentifier: pid_t) {
+        self.identityProcessIdentifier = identityProcessIdentifier
+        self.windowProcessIdentifier = windowProcessIdentifier
+    }
+
+    func unblock() {
+        let first = lock.withLock {
+            defer { isUnblocked = true }
+            return !isUnblocked
+        }
+        if first { gate.signal() }
+    }
+
+    func captureIdentity(
+        policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetSnapshot {
+        snapshot(identityProcessIdentifier)
+    }
+
+    func capture(
+        policies: Set<GestureTargetPolicy>,
+        at quartzLocation: CGPoint
+    ) -> GestureTargetSnapshot {
+        gate.wait()
+        gate.signal()
+        return snapshot(windowProcessIdentifier)
+    }
+
+    private func snapshot(_ processIdentifier: pid_t) -> GestureTargetSnapshot {
+        let target = GestureTargetResolution.resolved(
+            GestureTargetContext(
+                policy: .frontmostWindow,
+                identity: GestureTargetIdentity(
+                    processIdentifier: processIdentifier,
+                    bundleIdentifier: "com.example.target"
+                ),
+                application: nil,
+                window: nil
+            )
+        )
+        return GestureTargetSnapshot(frontmostWindow: target, windowUnderPointer: target)
     }
 }
 

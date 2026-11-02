@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import Foundation
 import Observation
+import OSLog
 
 private final class MultitouchCallbackGeneration: @unchecked Sendable {
     enum StartDecision {
@@ -82,6 +83,7 @@ private final class DrawCallbackGeneration: @unchecked Sendable {
 private final class PendingMouseCapture: @unchecked Sendable {
     struct Capture {
         let snapshot: GestureTargetSnapshot
+        let pendingWindow: DeferredGestureTarget?
         let heldModifiers: Set<GestureModifierKey>
     }
 
@@ -336,15 +338,14 @@ final class GestureRuntime {
                     return .passThrough
                 }
                 let heldModifiers = ModifierEventTap.supportedKeys(in: flags)
-                let snapshot = Self.captureTargetSnapshot(
+                let reservation = Self.reservationSnapshot(
                     for: admission,
                     at: location,
-                    heldModifiers: heldModifiers,
                     using: resolvedTargetCapturer
                 )
                 let targeted = Self.targetedCandidates(
                     for: admission,
-                    snapshot: snapshot,
+                    snapshot: reservation.snapshot,
                     heldModifiers: heldModifiers
                 ).filter { Self.reachesPress($0.profile.input, at: location, displays: displays) }
                 guard admission.context.isDiagnostic || !targeted.isEmpty else {
@@ -353,7 +354,17 @@ final class GestureRuntime {
                 }
                 combinationEnvironment.held = button == .right ? targeted : []
                 pendingMouseCapture.store(
-                    .init(snapshot: snapshot, heldModifiers: heldModifiers),
+                    .init(
+                        snapshot: reservation.snapshot,
+                        pendingWindow: reservation.defersWindow
+                            ? Self.deferWindowCapture(
+                                for: admission,
+                                at: location,
+                                using: resolvedTargetCapturer
+                            )
+                            : nil,
+                        heldModifiers: heldModifiers
+                    ),
                     for: admission.id
                 )
                 // Left clicks stay with the app unless a reachable gesture
@@ -411,7 +422,9 @@ final class GestureRuntime {
                     // A held right button owns the session; its candidates are matched on main.
                     DispatchQueue.main.async { [weak self] in
                         MainActor.assumeIsolated {
-                            self?.handleMouseEvent(event, admission: nil, snapshot: nil, heldModifiers: [])
+                            self?.handleMouseEvent(
+                                event, admission: nil, snapshot: nil, pendingWindow: nil, heldModifiers: []
+                            )
                         }
                     }
                     return
@@ -448,15 +461,23 @@ final class GestureRuntime {
                         for: .mouse(button)
                     )
                     capture = admission.map {
-                        pendingMouseCapture.take(for: $0.id)
-                            ?? .init(
-                                snapshot: Self.captureTargetSnapshot(
+                        if let reserved = pendingMouseCapture.take(for: $0.id) { return reserved }
+                        let reservation = Self.reservationSnapshot(
+                            for: $0,
+                            at: location,
+                            using: resolvedTargetCapturer
+                        )
+                        return .init(
+                            snapshot: reservation.snapshot,
+                            pendingWindow: reservation.defersWindow
+                                ? Self.deferWindowCapture(
                                     for: $0,
                                     at: location,
                                     using: resolvedTargetCapturer
-                                ),
-                                heldModifiers: []
-                            )
+                                )
+                                : nil,
+                            heldModifiers: []
+                        )
                     }
                 case .buttonUp(let button, _):
                     combinationEnvironment.held = []
@@ -486,6 +507,7 @@ final class GestureRuntime {
                             event,
                             admission: admission,
                             snapshot: capture?.snapshot,
+                            pendingWindow: capture?.pendingWindow,
                             heldModifiers: capture?.heldModifiers ?? []
                         )
                     }
@@ -511,18 +533,21 @@ final class GestureRuntime {
                 }
                 let admission: GestureInputAdmission?
                 let snapshot: GestureTargetSnapshot?
+                var pendingWindow: DeferredGestureTarget?
                 switch event {
                 case .began(let key):
                     let claimed = sessionGate?.claim(.modifier(key))
-                    let captured = claimed.map {
-                        Self.captureTargetSnapshot(
+                    // The window copy runs off this queue: the mouse tap waits
+                    // on the input core to decide its next press.
+                    let reservation = claimed.map {
+                        Self.reservationSnapshot(
                             for: $0,
                             at: quartzLocation,
                             using: resolvedTargetCapturer
                         )
                     }
-                    if let claimed, let captured,
-                       !Self.hasCandidates(claimed, snapshot: captured)
+                    if let claimed, let reservation,
+                       !Self.hasCandidates(claimed, snapshot: reservation.snapshot)
                     {
                         // Listen-only: nothing to release to the app, just
                         // skip the session (no HUD) and free the gate.
@@ -531,7 +556,14 @@ final class GestureRuntime {
                         snapshot = nil
                     } else {
                         admission = claimed
-                        snapshot = captured
+                        snapshot = reservation?.snapshot
+                        if let claimed, reservation?.defersWindow == true {
+                            pendingWindow = Self.deferWindowCapture(
+                                for: claimed,
+                                at: quartzLocation,
+                                using: resolvedTargetCapturer
+                            )
+                        }
                     }
                 case .ended(let key):
                     if let completed = sessionGate?.admission(
@@ -566,7 +598,8 @@ final class GestureRuntime {
                             event,
                             quartzLocation: quartzLocation,
                             admission: admission,
-                            snapshot: snapshot
+                            snapshot: snapshot,
+                            pendingWindow: pendingWindow
                         )
                     }
                 }
@@ -1274,6 +1307,7 @@ final class GestureRuntime {
         _ event: MouseEventTap.EventKind,
         admission: GestureInputAdmission?,
         snapshot: GestureTargetSnapshot?,
+        pendingWindow: DeferredGestureTarget?,
         heldModifiers: Set<GestureModifierKey>
     ) {
         switch event {
@@ -1285,6 +1319,7 @@ final class GestureRuntime {
                 clickQuartzLocation: quartzLocation,
                 admission: admission,
                 snapshot: snapshot,
+                pendingWindow: pendingWindow,
                 heldModifiers: heldModifiers
             )
         case .buttonUp(let button, let quartzLocation):
@@ -1320,7 +1355,8 @@ final class GestureRuntime {
         _ event: ModifierFlagsStateMachine.Event,
         quartzLocation: CGPoint,
         admission: GestureInputAdmission?,
-        snapshot: GestureTargetSnapshot?
+        snapshot: GestureTargetSnapshot?,
+        pendingWindow: DeferredGestureTarget?
     ) {
         switch event {
         case .began(let key):
@@ -1331,6 +1367,7 @@ final class GestureRuntime {
                 clickQuartzLocation: nil,
                 admission: admission,
                 snapshot: snapshot,
+                pendingWindow: pendingWindow,
                 heldModifiers: []
             )
         case .ended(let key):
@@ -1363,6 +1400,7 @@ final class GestureRuntime {
         clickQuartzLocation: CGPoint?,
         admission: GestureInputAdmission,
         snapshot: GestureTargetSnapshot?,
+        pendingWindow: DeferredGestureTarget?,
         heldModifiers: Set<GestureModifierKey>
     ) {
         guard admission.source == source,
@@ -1383,6 +1421,10 @@ final class GestureRuntime {
                 at: quartzLocation,
                 displays: combinationEnvironment.displays
             )
+        }.map { candidate in
+            var candidate = candidate
+            candidate.pendingWindow = pendingWindow
+            return candidate
         }
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
         let mode: SessionMode = admission.context.isDiagnostic
@@ -1958,21 +2000,85 @@ final class GestureRuntime {
         )
     }
 
+    nonisolated private static func targetPolicies(
+        for admission: GestureInputAdmission
+    ) -> Set<GestureTargetPolicy> {
+        Set(admission.context.configuration.profiles.filter { profile in
+            guard profile.isEnabled else { return false }
+            return GestureInputMatcher.matches(
+                source: admission.source,
+                input: profile.input
+            )
+        }.map(\.targetPolicy))
+    }
+
+    /// The target that decides a press on the tap thread. With an identifying
+    /// capturer this never copies an AX window: waiting on a slow target app
+    /// here outlasts WindowServer's tap timeout, the press leaks to the app
+    /// and the session is interrupted. `defersWindow` asks the caller to
+    /// capture the window with `deferWindowCapture` once the press is accepted.
+    nonisolated private static func reservationSnapshot(
+        for admission: GestureInputAdmission,
+        at quartzLocation: CGPoint,
+        using capturer: any GestureTargetCapturing
+    ) -> (snapshot: GestureTargetSnapshot, defersWindow: Bool) {
+        let policies = targetPolicies(for: admission)
+        guard let identifying = capturer as? any GestureTargetIdentifying else {
+            return (capturer.capture(policies: policies, at: quartzLocation), false)
+        }
+        return (identifying.captureIdentity(policies: policies, at: quartzLocation), true)
+    }
+
+    nonisolated private static let targetCaptureQueue = DispatchQueue(
+        label: "com.strokemouse.app.gesture-runtime.window-target",
+        qos: .userInitiated,
+        attributes: .concurrent
+    )
+
+    nonisolated private static let logger = Logger(
+        subsystem: Constants.bundleID,
+        category: "GestureRuntime"
+    )
+
+    /// Captures the press-time window off the tap thread. Actions wait for it;
+    /// past `gestureWindowCaptureTimeout` they run against an unavailable
+    /// target and report it rather than hanging on an unresponsive app.
+    nonisolated private static func deferWindowCapture(
+        for admission: GestureInputAdmission,
+        at quartzLocation: CGPoint,
+        using capturer: any GestureTargetCapturing
+    ) -> DeferredGestureTarget {
+        let pending = DeferredGestureTarget()
+        let policies = targetPolicies(for: admission)
+        let started = DispatchTime.now()
+        targetCaptureQueue.async {
+            let snapshot = capturer.capture(policies: policies, at: quartzLocation)
+            let milliseconds = (DispatchTime.now().uptimeNanoseconds - started.uptimeNanoseconds) / 1_000_000
+            if milliseconds >= 100 {
+                logger.notice("Window target capture took \(milliseconds) ms")
+            }
+            pending.resolve(snapshot)
+        }
+        let timeout = Constants.gestureWindowCaptureTimeout
+        targetCaptureQueue.asyncAfter(deadline: started + timeout) {
+            let unavailable = GestureTargetSnapshot(
+                frontmostWindow: .unavailable(.targetNotCaptured(.frontmostWindow)),
+                windowUnderPointer: .unavailable(.targetNotCaptured(.windowUnderPointer))
+            )
+            if pending.resolve(unavailable) {
+                logger.error("Window target capture timed out after \(timeout) s")
+            }
+        }
+        return pending
+    }
+
     nonisolated private static func captureTargetSnapshot(
         for admission: GestureInputAdmission,
         at quartzLocation: CGPoint,
         heldModifiers: Set<GestureModifierKey> = [],
         using capturer: any GestureTargetCapturing
     ) -> GestureTargetSnapshot {
-        let profiles = admission.context.configuration.profiles.filter {
-            profile in
-            guard profile.isEnabled else { return false }
-            return GestureInputMatcher.matches(
-                source: admission.source,
-                input: profile.input
-            )
-        }
-        let policies = Set(profiles.map(\.targetPolicy))
+        let policies = targetPolicies(for: admission)
         if let identifying = capturer as? any GestureTargetIdentifying {
             let identity = identifying.captureIdentity(
                 policies: policies,
@@ -2686,9 +2792,10 @@ final class GestureRuntime {
         guard mode.executesActions else { return }
         Task { @MainActor [weak self] in
             do {
+                let target = await targeted.actionTarget()
                 try await self?.actionExecutor.execute(
                     action,
-                    target: targeted.target
+                    target: target
                 )
             } catch {
                 self?.lastError = error.localizedDescription

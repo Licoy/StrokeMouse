@@ -161,6 +161,9 @@ final class ScrollEventTap: ScrollEventSource, @unchecked Sendable {
 
     func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            Self.logger.error(
+                "Scroll event tap disabled (\(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public)); re-enabling"
+            )
             reenableAndCancelAnimation()
             return Unmanaged.passUnretained(event)
         }

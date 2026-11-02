@@ -161,6 +161,51 @@ struct GestureTargetSnapshot: @unchecked Sendable {
 struct TargetedGesture {
     let profile: GestureProfile
     let target: GestureTargetResolution
+    /// Set when the press was reserved from the identity alone; the window
+    /// capture lands here later and supersedes `target` for actions.
+    var pendingWindow: DeferredGestureTarget?
+
+    /// The target an action runs against, waiting for a deferred window capture.
+    func actionTarget() async -> GestureTargetResolution {
+        guard let pendingWindow else { return target }
+        return await pendingWindow.snapshot().resolution(for: profile.targetPolicy)
+    }
+}
+
+/// Window-level snapshot captured off the event-tap thread. The first
+/// `resolve` wins, so a timeout and a late capture cannot both deliver.
+final class DeferredGestureTarget: @unchecked Sendable {
+    private let lock = NSLock()
+    private var resolved: GestureTargetSnapshot?
+    private var waiters: [CheckedContinuation<GestureTargetSnapshot, Never>] = []
+
+    var resolvedSnapshot: GestureTargetSnapshot? {
+        lock.withLock { resolved }
+    }
+
+    @discardableResult
+    func resolve(_ snapshot: GestureTargetSnapshot) -> Bool {
+        let pending: [CheckedContinuation<GestureTargetSnapshot, Never>]? = lock.withLock {
+            guard resolved == nil else { return nil }
+            resolved = snapshot
+            defer { waiters = [] }
+            return waiters
+        }
+        guard let pending else { return false }
+        pending.forEach { $0.resume(returning: snapshot) }
+        return true
+    }
+
+    func snapshot() async -> GestureTargetSnapshot {
+        await withCheckedContinuation { continuation in
+            let ready: GestureTargetSnapshot? = lock.withLock {
+                if let resolved { return resolved }
+                waiters.append(continuation)
+                return nil
+            }
+            if let ready { continuation.resume(returning: ready) }
+        }
+    }
 }
 
 /// Candidate precedence: exact application > app group > global.
@@ -251,7 +296,8 @@ enum GestureCandidateSelector {
     }
 }
 
-/// Implementations are invoked only by GestureRuntime's serialized input core.
+/// Implementations must be stateless: GestureRuntime calls them from its input
+/// core and, for window captures, from a separate capture queue.
 protocol GestureTargetCapturing: AnyObject, Sendable {
     func capture(
         policies: Set<GestureTargetPolicy>,
@@ -259,9 +305,9 @@ protocol GestureTargetCapturing: AnyObject, Sendable {
     ) -> GestureTargetSnapshot
 }
 
-/// Identity without copying AX windows. Runtime uses this to decline a session
-/// before talking to the target application; only an accepted session calls
-/// `capture` for the operable window.
+/// Identity without copying AX windows. Runtime decides a press from this on
+/// the event-tap thread; only an accepted session calls `capture` for the
+/// operable window, asynchronously, so a slow target cannot stall the tap.
 protocol GestureTargetIdentifying: GestureTargetCapturing {
     func captureIdentity(
         policies: Set<GestureTargetPolicy>,
