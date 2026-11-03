@@ -270,7 +270,16 @@ final class GesturePathView: NSView {
         if let head {
             headLayer.position = head
             let offset = headRadius + 6
-            badgeLayer.position = CGPoint(x: head.x + offset, y: head.y + offset)
+            let size = badgeLayer.bounds.size
+            // Flip to the other side of the head near a screen edge so
+            // gesture names stay readable.
+            let x = head.x + offset + size.width > bounds.maxX
+                ? head.x - offset - size.width
+                : head.x + offset
+            let y = head.y + offset + size.height > bounds.maxY
+                ? head.y - offset - size.height
+                : head.y + offset
+            badgeLayer.position = CGPoint(x: x, y: y)
         }
 
         // Start point — red circle

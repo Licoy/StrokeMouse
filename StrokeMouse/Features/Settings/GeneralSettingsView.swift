@@ -24,6 +24,7 @@ struct GeneralSettingsView: View {
     @AppStorage(PreferenceKey.showMatchToast) private var showMatchToast = true
     @AppStorage(PreferenceKey.showMissToast) private var showMissToast = true
     @AppStorage(PreferenceKey.showLiveMismatchFeedback) private var showLiveMismatchFeedback = false
+    @AppStorage(PreferenceKey.showLiveMatchHint) private var showLiveMatchHint = true
     @AppStorage(PreferenceKey.hudMismatchLineColor) private var mismatchLineColorHex = Constants.defaultHUDMismatchLineColorHex
     @AppStorage(PreferenceKey.automaticallyChecksForUpdates) private var automaticallyChecksForUpdates = true
 
@@ -125,6 +126,8 @@ struct GeneralSettingsView: View {
                 Text(L10n.string("general.engineFooter"))
             }
 
+            GestureExcludedAppsSection()
+
             Section {
                 Toggle(L10n.string("general.showMatchToast"), isOn: $showMatchToast)
                     .onChange(of: showMatchToast) { _, newValue in
@@ -186,6 +189,19 @@ struct GeneralSettingsView: View {
                     step: 1
                 )
                 .disabled(!showStartPoint)
+
+                Toggle(
+                    L10n.string("general.showLiveMatchHint"),
+                    isOn: $showLiveMatchHint
+                )
+                .disabled(!showGestureHUD)
+                .onChange(of: showLiveMatchHint) { _, newValue in
+                    appState.updateShowLiveMatchHint(newValue)
+                }
+
+                Text(L10n.string("general.showLiveMatchHintHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 Toggle(
                     L10n.string("general.showLiveMismatchFeedback"),
@@ -373,6 +389,7 @@ struct GeneralSettingsView: View {
             showMatchToast = DrawingStyle.showMatchToast
             showMissToast = DrawingStyle.showMissToast
             showLiveMismatchFeedback = DrawingStyle.showLiveMismatchFeedback
+            showLiveMatchHint = DrawingStyle.showLiveMatchHint
             automaticallyChecksForUpdates = appState.updaterService.automaticallyChecksForUpdates
             hideMenuBarIcon = appState.prefersHideMenuBarIcon
         }
@@ -480,11 +497,13 @@ struct GeneralSettingsView: View {
         lineColorHex = Constants.defaultHUDLineColorHex
         lineColor = DrawingStyle.lineSwiftUIColor
         showLiveMismatchFeedback = false
+        showLiveMatchHint = true
         mismatchLineColorHex = Constants.defaultHUDMismatchLineColorHex
         DrawingStyle.mismatchLineColorHex = Constants.defaultHUDMismatchLineColorHex
         mismatchLineColor = DrawingStyle.mismatchLineSwiftUIColor
         appState.updateShowGestureHUD(true)
         appState.updateShowLiveMismatchFeedback(false)
+        appState.updateShowLiveMatchHint(true)
     }
 }
 

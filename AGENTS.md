@@ -160,6 +160,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
    - 所有绘制样本统一走 `ElasticPathMatcher`：64 点弧长重采样 + 轻度平滑，按主轴厚度平滑切换等比 / 分轴归一化，首尾锚定、`±12.5%` 带宽、斜率 1/2–2 的弹性对齐；局部代价以平方切线差为主、位置为辅，再对 15% 弧长窗口内超过下限的集中偏差加罚，分数 `exp(-d / 0.32)`
    - 不再使用结构门控或曲线 / 折线分通道：自然抖动、端点小钩、比例变化连续降分，反向、镜像、截断、明显多画的尾巴因代价过高被拒绝；不使用开放头尾、镜像、逆序或 near-miss 兜底
    - 实时 HUD 用 32 点粗剖面比较整条模板及其 10%–80% 前缀，先用平均代价下界剪枝，再算完整距离；终态识别不使用前缀
+   - 实时匹配提示（`LiveGestureMatch`）在专用串行队列上对当前路径调用与松手相同的 `evaluateDrawn`（同一冻结候选与策略），同一会话只有一个评估在途；新匹配连续 2 次相同才显示，丢失或改变立即清除；松手仍重新识别，提示只做显示
    - 调整参数前用 `Issue17LetterRecognitionTests`（Issue #17 真实字母轨迹）与各录制 fixture 回归，详见 `docs/elastic-path-recognition.md`
 4. 鼠标绘制可选 `GestureProfile.secondaryAction`：会话中点击过左键则只执行匹配手势的第二动作，匹配手势没有第二动作时不执行任何动作（`secondaryActionUnavailable`）；所有候选仍参与匹配，左键只选择动作；未达到有效轨迹的左键会话直接取消、不回放点击；触控板绘制与触控手势始终执行主动作
 5. 鼠标按键映射复用 mouse 会话与 `MouseEventTap`，不新增 tap 或掩码：按住期间位移未达 `minStrokeDistance` 时在松开执行映射，超过则走绘制识别、不执行映射；冻结目标没有该按键的绘制候选时不采样、不显示 HUD，松开即按单击执行。只取最具体作用域层（应用 > 应用组 > 全局），同层多条为冲突，执行零个动作并提示；成功不弹匹配提示。全局映射受 `GestureInputKind.mouseButton` 抑制，与鼠标绘制分开。修饰键取自按下事件自身的 flags（`shouldCapture` 第三个参数，经 `ModifierEventTap.supportedKeys` 换算），在 tap 线程决定捕获前过滤候选：按住的支持键集合必须与映射配置的修饰键（或空集）完全相等，绘制候选不看修饰键；所选修饰键若同时用于触控板绘制，modifier 会话先占用 session gate，映射不会触发

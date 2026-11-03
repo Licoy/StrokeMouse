@@ -62,6 +62,22 @@ final class ConfigStoreAppRulesTests: XCTestCase {
         XCTAssertTrue(store.appPolicies.isEmpty)
     }
 
+    func testBatchSuppressionAddsAllAndKeepsExistingSelections() {
+        let store = makeStore()
+        let partial = SuppressedGlobalInputs(kinds: [.mouseDrawing])
+        store.setSuppressedGlobalInputs(partial, forBundleIdentifier: "com.blender.Blender")
+
+        store.suppressAllGlobalInputs(forBundleIdentifiers: [
+            "COM.BLENDER.BLENDER", " com.apple.Safari ", "com.apple.safari", "",
+        ])
+
+        XCTAssertEqual(store.appPolicies, [
+            AppGesturePolicy(bundleIdentifier: "com.blender.Blender", suppressedGlobalInputs: partial),
+            AppGesturePolicy(bundleIdentifier: "com.apple.Safari"),
+        ])
+        XCTAssertEqual(makeStore().appPolicies, store.appPolicies)
+    }
+
     func testGestureReferencingMissingGroupIsRejected() throws {
         let store = makeStore()
         let before = store.gestures

@@ -23,6 +23,8 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
     var showMissToast: Bool
     var showLiveMismatchFeedback: Bool
     var hudMismatchLineColor: String
+    /// Optional so backups written before this setting existed still decode.
+    var showLiveMatchHint: Bool?
 
     static func capture(from defaults: UserDefaults) -> PortableSettingsV1 {
         PortableSettingsV1(
@@ -94,7 +96,12 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
             ),
             hudMismatchLineColor: defaults.string(
                 forKey: PreferenceKey.hudMismatchLineColor
-            ) ?? Constants.defaultHUDMismatchLineColorHex
+            ) ?? Constants.defaultHUDMismatchLineColorHex,
+            showLiveMatchHint: bool(
+                in: defaults,
+                key: PreferenceKey.showLiveMatchHint,
+                fallback: true
+            )
         )
     }
 
@@ -200,6 +207,10 @@ struct PortableSettingsV1: Codable, Equatable, Sendable {
         defaults.set(
             hudMismatchLineColor,
             forKey: PreferenceKey.hudMismatchLineColor
+        )
+        defaults.set(
+            showLiveMatchHint ?? true,
+            forKey: PreferenceKey.showLiveMatchHint
         )
     }
 

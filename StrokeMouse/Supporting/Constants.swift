@@ -57,6 +57,10 @@ enum Constants {
     /// Live hope threshold is `matchThreshold - offset`, then clamped.
     static let liveViabilityHopeThresholdOffset = 0.15
     static let liveViabilityHopeThresholdRange: ClosedRange<Double> = 0.45...0.75
+    /// Consecutive identical accepted evals before the HUD names the gesture.
+    static let liveMatchStableEvalCount = 2
+    /// Longest gesture name shown in the live match badge.
+    static let liveMatchBadgeNameLimit = 32
 
     /// Most chords one shortcut action may post in order.
     static let shortcutSequenceMaxSteps = 4
@@ -114,6 +118,7 @@ enum PreferenceKey {
     static let showMatchToast = "showMatchToast"
     static let showMissToast = "showMissToast"
     static let showLiveMismatchFeedback = "showLiveMismatchFeedback"
+    static let showLiveMatchHint = "showLiveMatchHint"
     static let hudMismatchLineColor = "hudMismatchLineColor"
     static let automaticallyChecksForUpdates = "automaticallyChecksForUpdates"
     static let scrollEnhancementEnabled = "scrollEnhancementEnabled"

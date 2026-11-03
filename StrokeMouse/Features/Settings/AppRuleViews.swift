@@ -18,27 +18,7 @@ struct SuppressedGlobalInputsControl: View {
             .controlSize(.small)
 
             if !value.isEmpty {
-                Menu {
-                    ForEach(GestureInputKind.allCases) { kind in
-                        Toggle(L10n.string(kind.displayKey), isOn: Binding(
-                            get: { value.contains(kind) },
-                            set: { isOn in
-                                var kinds = value.kinds
-                                if isOn {
-                                    kinds.insert(kind)
-                                } else {
-                                    kinds.remove(kind)
-                                }
-                                value = SuppressedGlobalInputs(kinds: kinds)
-                            }
-                        ))
-                    }
-                } label: {
-                    Text(Self.summary(of: value))
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                .help(L10n.string("appRule.inputs.help"))
+                SuppressedGlobalInputsMenu(value: $value)
             }
         }
     }
@@ -53,6 +33,157 @@ struct SuppressedGlobalInputsControl: View {
         let formatter = ListFormatter()
         formatter.locale = L10n.locale
         return formatter.string(from: names) ?? names.joined(separator: ", ")
+    }
+}
+
+/// Narrows which global inputs a rule suppresses.
+struct SuppressedGlobalInputsMenu: View {
+    @Binding var value: SuppressedGlobalInputs
+
+    var body: some View {
+        Menu {
+            ForEach(GestureInputKind.allCases) { kind in
+                Toggle(L10n.string(kind.displayKey), isOn: Binding(
+                    get: { value.contains(kind) },
+                    set: { isOn in
+                        var kinds = value.kinds
+                        if isOn {
+                            kinds.insert(kind)
+                        } else {
+                            kinds.remove(kind)
+                        }
+                        value = SuppressedGlobalInputs(kinds: kinds)
+                    }
+                ))
+            }
+        } label: {
+            Text(SuppressedGlobalInputsControl.summary(of: value))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(L10n.string("appRule.inputs.help"))
+    }
+}
+
+// MARK: - Excluded applications
+
+/// Applications whose policy suppresses global gestures, editable in one
+/// place. Same data as the per-application switch in the gestures sidebar.
+struct GestureExcludedAppsSection: View {
+    @Environment(AppState.self) private var appState
+    @State private var showPicker = false
+
+    private var policies: [AppGesturePolicy] {
+        appState.configStore.appPolicies
+            .filter { !$0.suppressedGlobalInputs.isEmpty }
+            .sorted {
+                AppInfoLookup.info(forBundleId: $0.bundleIdentifier).name
+                    .localizedStandardCompare(
+                        AppInfoLookup.info(forBundleId: $1.bundleIdentifier).name
+                    ) == .orderedAscending
+            }
+    }
+
+    var body: some View {
+        let policies = policies
+        Section {
+            if policies.isEmpty {
+                Text(L10n.string("gestureExclude.empty"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                SelectedAppsCard {
+                    VStack(spacing: 0) {
+                        ForEach(Array(policies.enumerated()), id: \.element.bundleIdentifier) { index, policy in
+                            row(policy)
+                            if index < policies.count - 1 {
+                                Divider().padding(.leading, 40)
+                            }
+                        }
+                    }
+                }
+            }
+            Button {
+                showPicker = true
+            } label: {
+                Label(L10n.string("gestureExclude.add"), systemImage: "plus.circle")
+            }
+        } header: {
+            Text(L10n.string("gestureExclude.section"))
+        } footer: {
+            Text(L10n.string("gestureExclude.footer"))
+        }
+        .sheet(isPresented: $showPicker) {
+            InstalledAppPickerSheet(
+                mode: .multi(alreadySelected: Set(
+                    appState.configStore.appPolicies.map(\.bundleIdentifier)
+                )),
+                onConfirm: { selected in
+                    appState.configStore.suppressAllGlobalInputs(
+                        forBundleIdentifiers: selected.map(\.bundleId)
+                    )
+                    showPicker = false
+                },
+                onCancel: { showPicker = false }
+            )
+        }
+    }
+
+    private func row(_ policy: AppGesturePolicy) -> some View {
+        let bundleId = policy.bundleIdentifier
+        let app = AppInfoLookup.info(forBundleId: bundleId)
+        let ownGestures = GestureSidebarCatalog.gestures(
+            in: .app(bundleId),
+            from: appState.configStore.gestures
+        ).filter(\.isEnabled).count
+        return HStack(spacing: 10) {
+            Image(nsImage: AppInfoLookup.icon(for: app.path))
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 28, height: 28)
+                .cornerRadius(6)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(app.name)
+                    .lineLimit(1)
+                Text(ownGestures > 0
+                    ? String(
+                        format: L10n.string("gestureExclude.ownGestures"),
+                        locale: L10n.locale,
+                        ownGestures
+                    )
+                    : app.displayPath)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(app.displayPath)
+            }
+
+            Spacer(minLength: 8)
+
+            SuppressedGlobalInputsMenu(value: Binding(
+                get: { policy.suppressedGlobalInputs },
+                set: {
+                    appState.configStore.setSuppressedGlobalInputs(
+                        $0,
+                        forBundleIdentifier: bundleId
+                    )
+                }
+            ))
+
+            Button(role: .destructive) {
+                appState.configStore.removeAppPolicy(forBundleIdentifier: bundleId)
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help(L10n.string("gestureExclude.remove"))
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
     }
 }
 

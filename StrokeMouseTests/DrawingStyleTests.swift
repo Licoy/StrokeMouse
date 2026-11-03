@@ -7,6 +7,7 @@ final class DrawingStyleTests: XCTestCase {
     private var previousShowMissToast: Any?
     private var previousShowLiveMismatch: Any?
     private var previousMismatchColor: Any?
+    private var previousShowLiveMatchHint: Any?
 
     override func setUp() {
         super.setUp()
@@ -26,7 +27,11 @@ final class DrawingStyleTests: XCTestCase {
         defaults.removeObject(forKey: PreferenceKey.showMatchToast)
         defaults.removeObject(forKey: PreferenceKey.showMissToast)
         defaults.removeObject(forKey: PreferenceKey.showLiveMismatchFeedback)
+        previousShowLiveMatchHint = defaults.object(
+            forKey: PreferenceKey.showLiveMatchHint
+        )
         defaults.removeObject(forKey: PreferenceKey.hudMismatchLineColor)
+        defaults.removeObject(forKey: PreferenceKey.showLiveMatchHint)
     }
 
     override func tearDown() {
@@ -35,6 +40,7 @@ final class DrawingStyleTests: XCTestCase {
         restore(previousShowMissToast, key: PreferenceKey.showMissToast)
         restore(previousShowLiveMismatch, key: PreferenceKey.showLiveMismatchFeedback)
         restore(previousMismatchColor, key: PreferenceKey.hudMismatchLineColor)
+        restore(previousShowLiveMatchHint, key: PreferenceKey.showLiveMatchHint)
         super.tearDown()
     }
 
@@ -77,6 +83,12 @@ final class DrawingStyleTests: XCTestCase {
 
     func testLiveMismatchFeedbackDefaultsOff() {
         XCTAssertFalse(DrawingStyle.showLiveMismatchFeedback)
+    }
+
+    func testLiveMatchHintDefaultsOn() {
+        XCTAssertTrue(DrawingStyle.showLiveMatchHint)
+        DrawingStyle.showLiveMatchHint = false
+        XCTAssertFalse(DrawingStyle.showLiveMatchHint)
     }
 
     func testMismatchColorDefaultsToAmber() {

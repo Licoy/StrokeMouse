@@ -394,6 +394,11 @@ final class AppState {
         applyCurrentGestureConfiguration()
     }
 
+    func updateShowLiveMatchHint(_ enabled: Bool) {
+        DrawingStyle.showLiveMatchHint = enabled
+        applyCurrentGestureConfiguration()
+    }
+
     func updateGestureHUDCapture(_ included: Bool) {
         DrawingStyle.includeHUDInCaptures = included
         GestureHUDController.shared.setIncludedInCaptures(included)
@@ -474,6 +479,7 @@ final class AppState {
                 ),
             showsHUD: DrawingStyle.showHUD,
             showsLiveMismatchFeedback: DrawingStyle.showLiveMismatchFeedback,
+            showsLiveMatchHint: DrawingStyle.showLiveMatchHint,
             directTrackpadEnabled: defaults.bool(
                 forKey: PreferenceKey.directTrackpadEnabled
             ),

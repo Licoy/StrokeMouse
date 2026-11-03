@@ -34,7 +34,7 @@ final class PortableSettingsTests: XCTestCase {
                 "directTrackpadEnabled", "hudLineColor", "hudLineWidth",
                 "hudShowStartPoint", "hudStartPointRadius", "showMatchToast",
                 "showMissToast", "showLiveMismatchFeedback",
-                "hudMismatchLineColor",
+                "hudMismatchLineColor", "showLiveMatchHint",
             ])
         )
         XCTAssertFalse(keys.contains("gesturesEnabled"))
@@ -176,6 +176,45 @@ final class PortableSettingsTests: XCTestCase {
 
     }
 
+    func testLegacySettingsWithoutLiveMatchHintDecodeAndApplyDefaultOn()
+        throws
+    {
+        let source = makeDefaults()
+        let destination = makeDefaults()
+        defer {
+            clear(source)
+            clear(destination)
+        }
+        seedPortableValues(in: source)
+        let encoded = try JSONEncoder().encode(
+            PortableSettingsV1.capture(from: source)
+        )
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object.removeValue(forKey: "showLiveMatchHint")
+        let legacy = try JSONDecoder().decode(
+            PortableSettingsV1.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+        XCTAssertNil(legacy.showLiveMatchHint)
+        XCTAssertFalse(legacy.mergeValues.keys.contains("showLiveMatchHint"))
+
+        destination.set(false, forKey: PreferenceKey.showLiveMatchHint)
+        try legacy.apply(to: destination)
+        XCTAssertTrue(destination.bool(forKey: PreferenceKey.showLiveMatchHint))
+    }
+
+    func testCaptureDefaultsMissingLiveMatchHintToOn() {
+        let defaults = makeDefaults()
+        defer { clear(defaults) }
+
+        XCTAssertEqual(
+            PortableSettingsV1.capture(from: defaults).showLiveMatchHint,
+            true
+        )
+    }
+
     func testCaptureDefaultsMissingAmbiguityResolutionToReject() {
         let defaults = makeDefaults()
         defer { clear(defaults) }
@@ -260,5 +299,6 @@ final class PortableSettingsTests: XCTestCase {
         defaults.set(false, forKey: PreferenceKey.showMissToast)
         defaults.set(true, forKey: PreferenceKey.showLiveMismatchFeedback)
         defaults.set("#AABBCCDD", forKey: PreferenceKey.hudMismatchLineColor)
+        defaults.set(false, forKey: PreferenceKey.showLiveMatchHint)
     }
 }

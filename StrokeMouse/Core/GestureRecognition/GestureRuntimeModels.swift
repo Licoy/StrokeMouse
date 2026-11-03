@@ -88,6 +88,8 @@ struct GestureRuntimeConfiguration: Equatable, Sendable {
     var showsHUD: Bool
     /// Live trail recolor while drawing when no candidate remains hopeful.
     var showsLiveMismatchFeedback: Bool
+    /// Live HUD badge naming the gesture releasing now would run.
+    var showsLiveMatchHint: Bool = false
     var directTrackpadEnabled: Bool
     /// Compiled app policies and groups consulted on every session begin.
     var appRules: GestureAppRules = .empty

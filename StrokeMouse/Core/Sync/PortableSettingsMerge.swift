@@ -24,6 +24,9 @@ extension PortableSettingsV1 {
         if let ambiguityResolution {
             values["ambiguityResolution"] = .string(ambiguityResolution)
         }
+        if let showLiveMatchHint {
+            values["showLiveMatchHint"] = .bool(showLiveMatchHint)
+        }
         return values
     }
 
@@ -62,6 +65,12 @@ extension PortableSettingsV1 {
         result.hudMismatchLineColor = try values.string(
             "hudMismatchLineColor"
         )
+        if let value = values["showLiveMatchHint"] {
+            guard case .bool(let enabled) = value else {
+                throw ConfigurationSyncError.invalidStoredConfiguration
+            }
+            result.showLiveMatchHint = enabled
+        }
         try result.validate()
         return result
     }

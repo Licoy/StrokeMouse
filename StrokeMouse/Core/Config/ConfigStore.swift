@@ -249,6 +249,23 @@ final class ConfigStore {
         commit(candidate)
     }
 
+    /// Suppresses every global input in each listed application with one
+    /// commit. Applications that already carry a policy keep their selection.
+    func suppressAllGlobalInputs(forBundleIdentifiers bundleIdentifiers: [String]) {
+        var candidate = library
+        var known = Set(candidate.appPolicies.map { $0.bundleIdentifier.lowercased() })
+        for bundleIdentifier in bundleIdentifiers {
+            guard let normalized = AppMatching.normalizedBundleIdentifier(bundleIdentifier),
+                  known.insert(normalized.lowercased()).inserted
+            else {
+                continue
+            }
+            candidate.appPolicies.append(AppGesturePolicy(bundleIdentifier: normalized))
+        }
+        guard candidate != library else { return }
+        commit(candidate)
+    }
+
     func removeAppPolicy(forBundleIdentifier bundleIdentifier: String) {
         setSuppressedGlobalInputs(.none, forBundleIdentifier: bundleIdentifier)
     }

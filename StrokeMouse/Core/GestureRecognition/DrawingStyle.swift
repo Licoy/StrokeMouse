@@ -105,6 +105,17 @@ enum DrawingStyle {
         }
     }
 
+    /// Names the gesture releasing now would run beside the stroke head. Default on.
+    static var showLiveMatchHint: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: PreferenceKey.showLiveMatchHint) == nil {
+                return true
+            }
+            return UserDefaults.standard.bool(forKey: PreferenceKey.showLiveMatchHint)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: PreferenceKey.showLiveMatchHint) }
+    }
+
     /// Trail color when live feedback marks the stroke as unlikely.
     static var mismatchLineColorHex: String {
         get {

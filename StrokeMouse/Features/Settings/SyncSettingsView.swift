@@ -983,6 +983,7 @@ struct SyncSettingsView: View {
             "showMatchToast": "general.showMatchToast",
             "showMissToast": "general.showMissToast",
             "showLiveMismatchFeedback": "general.showLiveMismatchFeedback",
+            "showLiveMatchHint": "general.showLiveMatchHint",
             "hudMismatchLineColor": "general.mismatchLineColor",
             "pinnedGestureAppBundleIds": "sync.setting.pinnedApps",
         ]

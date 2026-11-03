@@ -130,6 +130,7 @@ final class GestureRuntime {
         let recognitionPolicy: GestureRecognitionPolicy
         let showsHUD: Bool
         let showsLiveMismatchFeedback: Bool
+        let showsLiveMatchHint: Bool
         /// False when only button mappings can answer this press: the click
         /// runs the mapping however far the pointer moved.
         let tracksPath: Bool
@@ -137,6 +138,12 @@ final class GestureRuntime {
         var path: [CGPoint]
         var isDrawing: Bool
         var liveHysteresis: LiveGestureViability.Hysteresis
+        let liveMatchID: UInt64
+        var liveMatch = LiveGestureMatch.Tracker()
+        /// One live match runs at a time; a tick during it re-runs on the
+        /// latest path once it lands.
+        var liveMatchInFlight = false
+        var liveMatchStale = false
         var samplesSinceLiveEval: Int
         /// Sticky: one left click selects the secondary action at release.
         var chordClicked = false
@@ -224,6 +231,13 @@ final class GestureRuntime {
     private let wheelActionTime: () -> TimeInterval
     private let multitouchSourceFactory: () -> any MultitouchFrameSource
     private let inputCoreQueue: DispatchQueue
+    /// Live match evaluation scales with the candidate count, so it stays
+    /// off the main thread that draws the HUD.
+    private let liveMatchQueue = DispatchQueue(
+        label: "com.strokemouse.app.gesture-runtime.live-match",
+        qos: .userInteractive
+    )
+    private var nextLiveMatchID: UInt64 = 0
     private let sessionGate = GestureSessionGate()
     private let combinationEnvironment = MouseCombinationEnvironment()
     private let drawCallbackGeneration = DrawCallbackGeneration()
@@ -1448,6 +1462,7 @@ final class GestureRuntime {
                 paths: paths
             )
         }
+        nextLiveMatchID &+= 1
         drawSession = DrawSession(
             source: source,
             revision: frozenConfiguration.revision,
@@ -1462,11 +1477,15 @@ final class GestureRuntime {
             showsLiveMismatchFeedback: frozenConfiguration.showsLiveMismatchFeedback
                 && frozenConfiguration.showsHUD
                 && mode == .normal,
+            showsLiveMatchHint: frozenConfiguration.showsLiveMatchHint
+                && frozenConfiguration.showsHUD
+                && mode == .normal,
             tracksPath: tracksPath,
             mode: mode,
             path: [point],
             isDrawing: false,
             liveHysteresis: LiveGestureViability.Hysteresis(),
+            liveMatchID: nextLiveMatchID,
             samplesSinceLiveEval: 0
         )
         if source == .mouse(.right) {
@@ -1546,27 +1565,81 @@ final class GestureRuntime {
         {
             session.isDrawing = true
         }
-        if session.showsLiveMismatchFeedback, session.isDrawing {
+        if session.showsLiveMismatchFeedback || session.showsLiveMatchHint,
+           session.isDrawing
+        {
             session.samplesSinceLiveEval += 1
             let n = max(1, Constants.liveViabilityEvalEveryNSamples)
             if session.samplesSinceLiveEval == 1
                 || session.samplesSinceLiveEval % n == 0
             {
-                let observed = LiveGestureViability.evaluate(
-                    path: session.path,
-                    preparedTemplates: session.preparedTemplates,
-                    minimumPathLength: session.recognitionPolicy.minimumPathLength,
-                    matchThreshold: session.recognitionPolicy.matchThreshold
-                )
-                session.liveHysteresis = LiveGestureViability.applyHysteresis(
-                    current: session.liveHysteresis,
-                    observed: observed
-                )
+                evaluateLiveFeedback(&session)
             }
         }
         drawSession = session
         currentPath = session.path
         isDrawing = session.isDrawing
+        showDrawHUD(session)
+    }
+
+    private func evaluateLiveFeedback(_ session: inout DrawSession) {
+        if session.showsLiveMismatchFeedback {
+            let observed = LiveGestureViability.evaluate(
+                path: session.path,
+                preparedTemplates: session.preparedTemplates,
+                minimumPathLength: session.recognitionPolicy.minimumPathLength,
+                matchThreshold: session.recognitionPolicy.matchThreshold
+            )
+            session.liveHysteresis = LiveGestureViability.applyHysteresis(
+                current: session.liveHysteresis,
+                observed: observed
+            )
+        }
+        if session.showsLiveMatchHint {
+            if session.liveMatchInFlight {
+                session.liveMatchStale = true
+            } else {
+                startLiveMatch(&session)
+            }
+        }
+    }
+
+    private func startLiveMatch(_ session: inout DrawSession) {
+        session.liveMatchInFlight = true
+        session.liveMatchStale = false
+        let id = session.liveMatchID
+        let path = session.path
+        let profiles = session.targeted.map(\.profile)
+        let policy = session.recognitionPolicy
+        liveMatchQueue.async { [weak self] in
+            let accepted = LiveGestureMatch.acceptedProfileID(
+                path: path,
+                profiles: profiles,
+                policy: policy
+            )
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated {
+                    self?.applyLiveMatch(accepted, id: id)
+                }
+            }
+        }
+    }
+
+    private func applyLiveMatch(_ accepted: UUID?, id: UInt64) {
+        // Results for an ended session, or one whose movement now belongs to
+        // a combination, must not bring the HUD back.
+        guard var session = drawSession,
+              session.liveMatchID == id,
+              !session.combinationTriggered
+        else {
+            return
+        }
+        session.liveMatchInFlight = false
+        session.liveMatch.observe(accepted)
+        if session.liveMatchStale {
+            startLiveMatch(&session)
+        }
+        drawSession = session
         showDrawHUD(session)
     }
 
@@ -1580,14 +1653,18 @@ final class GestureRuntime {
         let showsMismatch = session.showsLiveMismatchFeedback
             && session.isDrawing
             && session.liveHysteresis.state == .unlikely
+        let liveMatch = session.liveMatch.shownProfileID.flatMap { id in
+            session.targeted.first { $0.profile.id == id }?.profile
+        }
         GestureHUDController.shared.showPath(
             session.path,
             lineColorOverride: showsMismatch
                 ? DrawingStyle.mismatchLineNSColor
                 : nil,
-            badge: session.chordClicked
-                ? L10n.string("hud.secondaryActionBadge")
-                : nil
+            badge: LiveGestureMatch.badge(
+                for: liveMatch,
+                chordClicked: session.chordClicked
+            )
         )
     }
 
