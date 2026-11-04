@@ -44,6 +44,25 @@ struct PermissionsSettingsView: View {
                         }
                     }
                 }
+                if !appState.permissionManager.isAccessibilityTrusted {
+                    HStack(alignment: .center) {
+                        Text(L10n.string("permissions.resetAccessibilityHint"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                        Button(L10n.string("permissions.resetAccessibility")) {
+                            appState.permissionManager.resetAccessibility(
+                                sourceFrameInScreen: clickSourceFrame()
+                            )
+                        }
+                    }
+                    if appState.permissionManager.didFailToResetAccessibility {
+                        Text(L10n.string("permissions.resetAccessibilityFailed"))
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
             } header: {
                 Text(L10n.string("permissions.required"))
             } footer: {

@@ -22953,6 +22953,144 @@
         }
       }
     },
+    "permissions.resetAccessibility": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset Authorization"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置授权"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重設授權"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "권한 재설정"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可をリセット"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сбросить разрешение"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser l’autorisation"
+          }
+        }
+      }
+    },
+    "permissions.resetAccessibilityFailed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't reset automatically. Remove StrokeMouse under Privacy & Security → Accessibility, then add it again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法自动重置，请在「隐私与安全性 → 辅助功能」中移除 StrokeMouse 后重新添加"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法自動重設，請在「隱私與安全性 → 輔助使用」中移除 StrokeMouse 後重新加入"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자동으로 재설정하지 못했습니다. 개인정보 보호 및 보안 → 손쉬운 사용에서 StrokeMouse를 제거한 뒤 다시 추가하세요."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動でリセットできませんでした。「プライバシーとセキュリティ → アクセシビリティ」で StrokeMouse を取り除いてから、もう一度追加してください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось сбросить автоматически. Удалите StrokeMouse в разделе «Конфиденциальность и безопасность → Универсальный доступ» и добавьте снова."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialisation automatique impossible. Retirez StrokeMouse dans Confidentialité et sécurité → Accessibilité, puis ajoutez-le à nouveau."
+          }
+        }
+      }
+    },
+    "permissions.resetAccessibilityHint": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switched on in System Settings but still not granted? The old record doesn't match this build's signature (common when upgrading from 0.0.39 or earlier). Reset it, then switch StrokeMouse on again."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统设置里已打开但这里仍未授权？旧授权记录与当前签名不匹配（从 0.0.39 及更早版本升级时常见），重置后重新打开 StrokeMouse 的开关即可"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統設定裡已開啟但這裡仍未授權？舊授權記錄與目前簽署不相符（從 0.0.39 及更早版本升級時常見），重設後重新開啟 StrokeMouse 的開關即可"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시스템 설정에서 켜져 있는데도 아직 허용되지 않았나요? 이전 기록이 현재 빌드의 서명과 맞지 않습니다(0.0.39 이하에서 업그레이드할 때 흔함). 재설정한 뒤 StrokeMouse를 다시 켜세요."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システム設定ではオンなのに未許可のままですか？以前の記録が現在のビルドの署名と一致していません（0.0.39 以前からのアップグレード時によくあります）。リセットしてから StrokeMouse をもう一度オンにしてください。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В Системных настройках включено, но доступ всё ещё не предоставлен? Старая запись не соответствует подписи этой сборки (часто после обновления с 0.0.39 и ранее). Сбросьте её и снова включите StrokeMouse."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activé dans Réglages Système mais toujours pas autorisé ? L’ancien enregistrement ne correspond plus à la signature de cette version (fréquent en venant de la 0.0.39 ou antérieure). Réinitialisez-le, puis réactivez StrokeMouse."
+          }
+        }
+      }
+    },
     "permissions.revealConfig": {
       "localizations": {
         "en": {

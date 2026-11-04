@@ -2,12 +2,20 @@ import ApplicationServices
 import AppKit
 import Foundation
 import Observation
+import OSLog
 import PermissionFlow
 
 @MainActor
 @Observable
 final class PermissionManager {
+    private nonisolated static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.strokemouse.app",
+        category: "PermissionManager"
+    )
+
     private(set) var isAccessibilityTrusted = false
+    /// True when the last `tccutil reset` failed; the UI then points to the manual steps.
+    private(set) var didFailToResetAccessibility = false
     /// Fired when accessibility trust flips from false → true (e.g. user enabled it in System Settings).
     var onBecameTrusted: (() -> Void)?
     /// Fired whenever accessibility trust changes (true→false or false→true).
@@ -76,6 +84,23 @@ final class PermissionManager {
         }
     }
 
+    /// Drops this app's Accessibility record, then restarts the guided flow.
+    /// A record made for another signature (e.g. self-signed builds before 0.0.40)
+    /// stays switched on in System Settings but no longer grants trust.
+    func resetAccessibility(sourceFrameInScreen: CGRect? = nil) {
+        guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
+        didFailToResetAccessibility = false
+        Task {
+            let succeeded = await Task.detached {
+                Self.runAccessibilityReset(bundleIdentifier: bundleIdentifier)
+            }.value
+            didFailToResetAccessibility = !succeeded
+            if succeeded {
+                authorizeAccessibility(sourceFrameInScreen: sourceFrameInScreen)
+            }
+        }
+    }
+
     /// Legacy entry: prefer guided authorize flow over a bare settings URL.
     func openAccessibilitySettings() {
         authorizeAccessibility()
@@ -102,6 +127,26 @@ final class PermissionManager {
             permissionFlow.closePanel(returnToPreviousApp: true)
             onBecameTrusted?()
         }
+    }
+
+    private nonisolated static func runAccessibilityReset(bundleIdentifier: String) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        process.arguments = ["reset", "Accessibility", bundleIdentifier]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            logger.error("tccutil launch failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            logger.error("tccutil reset exited with status \(process.terminationStatus)")
+            return false
+        }
+        return true
     }
 
     private static func defaultSourceFrame() -> CGRect {

@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 
 @MainActor
 enum BrandIconProvider {
@@ -108,6 +109,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // First launch: open settings for onboarding after AppState is wired.
         if !UserDefaults.standard.bool(forKey: PreferenceKey.hasCompletedOnboarding) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                NotificationCenter.default.post(name: .strokeMouseOpenSettings, object: SettingsTab.permissions)
+            }
+        } else if !AXIsProcessTrusted(),
+                  !UserDefaults.standard.bool(forKey: PreferenceKey.didShowLostAccessibilityPermissions) {
+            // Existing users lose the grant once when the signing identity changes
+            // (self-signed → Developer ID in 0.0.40); show the reset path once.
+            UserDefaults.standard.set(true, forKey: PreferenceKey.didShowLostAccessibilityPermissions)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                 NotificationCenter.default.post(name: .strokeMouseOpenSettings, object: SettingsTab.permissions)
             }

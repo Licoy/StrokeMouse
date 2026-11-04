@@ -107,6 +107,8 @@ enum PreferenceKey {
     /// Bundle IDs pinned in the gestures sidebar (may have zero gestures yet).
     static let pinnedGestureAppBundleIds = "pinnedGestureAppBundleIds"
     static let hasCompletedOnboarding = "hasCompletedOnboarding"
+    /// Permissions page auto-opened once for an onboarded user launching without Accessibility.
+    static let didShowLostAccessibilityPermissions = "didShowLostAccessibilityPermissions"
     static let showGestureHUD = "showGestureHUD"
     static let includeGestureHUDInCaptures = "includeGestureHUDInCaptures"
     static let directTrackpadEnabled = "directTrackpadEnabled"
