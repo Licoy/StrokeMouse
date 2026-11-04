@@ -10,7 +10,7 @@ keywords: "FAQ StrokeMouse,dépannage,menu clic droit,autorisations"
 
 Vérifiez dans l’ordre :
 
-1. **Accessibilité** pour **cette** copie de l’app (changement de chemin, rotation de certificat ou migration ad-hoc → auto-signé : réaccorder ; les mises à jour de la même identité officielle généralement pas)
+1. **Accessibilité** pour **cette** copie de l’app (un changement de chemin ou une mise à niveau depuis la 0.0.39 ou antérieure exige de réaccorder une fois via **Réinitialiser l’autorisation** dans la page Autorisations ; les mises à jour dans l’app depuis la 0.0.40 la conservent)
 2. État de la barre des menus pour pause ou erreurs d’autorisation
 3. Geste **activé**
 4. Vous maintenez le **déclencheur** configuré (droit par défaut, pas gauche)

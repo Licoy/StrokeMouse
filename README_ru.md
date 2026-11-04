@@ -77,7 +77,7 @@ brew uninstall --cask strokemouse
 brew uninstall --cask --zap strokemouse
 ```
 
-Можно скачать DMG нужной архитектуры на [официальной странице загрузок](https://strokemouse.com/ru/download). Текущие выпуски используют стабильную самоподписанную подпись и не нотаризованы Apple. Если Gatekeeper блокирует первый запуск, нажмите Control и щёлкните приложение, выберите «Открыть», либо в «Системных настройках → Конфиденциальность и безопасность» выберите «Всё равно открыть».
+Можно скачать DMG нужной архитектуры на [официальной странице загрузок](https://strokemouse.com/ru/download). Выпуски начиная с 0.0.40 подписаны Apple Developer ID и нотаризованы Apple. При обновлении с 0.0.39 и более ранних версий выдайте Универсальный доступ заново один раз: нажмите **Сбросить разрешение** на странице доступа, затем снова включите StrokeMouse.
 
 ## Доступ
 
@@ -137,10 +137,10 @@ Debug отображается как **StrokeMouse Dev** (Bundle ID `com.stroke
 
 ### Релизная упаковка
 
-ZIP, TAR.GZ и DMG по архитектурам, проверка подписи, entitlements и целостности артефактов (по умолчанию стабильная самоподпись **`StrokeMouse Release`**, чтобы доступ сохранялся после обновлений Sparkle):
+ZIP, TAR.GZ и DMG по архитектурам, проверка подписи, entitlements и целостности артефактов (по умолчанию подпись идентичностью **Developer ID Application** из связки ключей и нотаризация при наличии учётных данных, чтобы загрузки проходили Gatekeeper, а доступ сохранялся после обновлений Sparkle):
 
 ```bash
-# Первый раз локально: ./scripts/generate-codesign-cert.sh --import
+# Нотаризация: добавьте NOTARY_KEYCHAIN_PROFILE=<профиль из xcrun notarytool store-credentials>
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ```

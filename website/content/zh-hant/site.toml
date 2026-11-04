@@ -360,7 +360,7 @@ first_title = "首次啟動"
 first_lead = "從下載到第一個手勢，只要四步。"
 first_steps = [
   "開啟 DMG，將 StrokeMouse 拖進「應用程式」檔案夾。",
-  "啟動 App。發行版為自簽且未經 Apple 公證；若被 macOS 阻擋，請按住 Control 鍵並按一下 App，再選擇「打開」，或前往「系統設定 → 隱私權與安全性」選擇「仍要打開」。",
+  "啟動 App；發行版使用 Apple Developer ID 簽署並經過公證，macOS 可正常開啟。",
   "依提示授予輔助使用權限，「設定 → 權限 → 引導授權」會一步步帶你完成。",
   "按住右鍵向上畫，指揮中心隨即開啟。",
 ]
@@ -401,5 +401,4 @@ not_for = [
   "Windows 或 Linux 使用者：StrokeMouse 僅支援 macOS（macOS 14 以上）。",
   "需要鍵盤重新對應、Touch Bar 自訂或複雜自動化流程的使用者。",
   "使用 macOS 13 或更早版本的使用者。",
-  "要求 Apple 公證版本的組織：發行版為自簽且未經公證。",
 ]

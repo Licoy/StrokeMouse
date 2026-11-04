@@ -77,7 +77,7 @@ brew uninstall --cask strokemouse
 brew uninstall --cask --zap strokemouse
 ```
 
-[公式ダウンロードページ](https://strokemouse.com/ja/download) からアーキテクチャに合った DMG を入手することもできます。現行リリースは固定の自己署名コード署名を使い、Apple の公証は受けていません。初回起動が Gatekeeper にブロックされたら、App を Control クリックして「開く」を選ぶか、「システム設定 → プライバシーとセキュリティ」で「このまま開く」を選んでください。
+[公式ダウンロードページ](https://strokemouse.com/ja/download) からアーキテクチャに合った DMG を入手することもできます。0.0.40 以降のリリースは Apple Developer ID で署名され、Apple の公証を受けています。0.0.39 以前からアップグレードする場合は、アクセシビリティを一度だけ再許可してください。権限ページで**許可をリセット**をクリックし、StrokeMouse のスイッチをもう一度オンにします。
 
 ## 権限
 
@@ -137,10 +137,10 @@ Debug の表示名は **StrokeMouse Dev**（Bundle ID `com.strokemouse.app.dev`�
 
 ### リリースパッケージ
 
-アーキテクチャごとに ZIP、TAR.GZ、DMG を作り、署名、entitlements、成果物の整合性を検証します（デフォルトは固定の自己署名 ID **`StrokeMouse Release`**。Sparkle 更新後もアクセシビリティ権限が残るようにします）。
+アーキテクチャごとに ZIP、TAR.GZ、DMG を作り、署名、entitlements、成果物の整合性を検証します（デフォルトはキーチェーン内の **Developer ID Application** で署名し、公証の認証情報があれば公証も行います。ダウンロードは Gatekeeper を通過し、Sparkle 更新後もアクセシビリティ権限が残ります）。
 
 ```bash
-# 初回ローカル: ./scripts/generate-codesign-cert.sh --import
+# 公証: NOTARY_KEYCHAIN_PROFILE=<xcrun notarytool store-credentials で保存したプロファイル名> を追加
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ```

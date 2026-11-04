@@ -70,7 +70,7 @@ jobs:
               --keychain "$KC" \
               --keychain-password "$KC_PASS" \
               --create-keychain
-            echo "CODE_SIGN_IDENTITY=StrokeMouse Release" >>"$GITHUB_ENV"
+            echo "CODE_SIGN_IDENTITY=Developer ID Application" >>"$GITHUB_ENV"
           else
             echo "No CODE_SIGN_P12_* secrets; packaging with ad-hoc (CI smoke only)."
             echo "CODE_SIGN_IDENTITY=-" >>"$GITHUB_ENV"
@@ -80,10 +80,20 @@ jobs:
           EXPECTED_MACOS_SDK_MAJOR: "26"
           # Disposable public-only key; CI artifacts are never published.
           SPARKLE_PUBLIC_KEY: "Ih8Ezm5gKh1xeB6kG1mixJgjzV86LhfkjLXwc0LrSHo="
+          NOTARY_KEY_P8_BASE64: ${{ secrets.NOTARY_KEY_P8_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
         run: |
           host="$(uname -m)"
           test "$host" = "${{ matrix.arch }}" || {
             echo "Runner arch $host != package arch ${{ matrix.arch }}"
             exit 1
           }
+          # Notarize when secrets exist so the release pipeline can be rehearsed.
+          if [[ "$CODE_SIGN_IDENTITY" != "-" && -n "$NOTARY_KEY_P8_BASE64" && -n "$NOTARY_KEY_ID" && -n "$NOTARY_ISSUER_ID" ]]; then
+            export NOTARY_KEY_PATH="$RUNNER_TEMP/notary-key.p8"
+            printf '%s' "$NOTARY_KEY_P8_BASE64" | tr -d '\n\r' | base64 -D >"$NOTARY_KEY_PATH"
+          else
+            unset NOTARY_KEY_ID NOTARY_ISSUER_ID
+          fi
           ARCH=${{ matrix.arch }} ./scripts/package-app.sh

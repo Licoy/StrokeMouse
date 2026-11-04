@@ -78,14 +78,14 @@ Scheme **StrokeMouse** → Run.
 |------|--------|
 | Bundle ID | Release: `com.strokemouse.app`; Debug: `com.strokemouse.app.dev` (표시 이름 StrokeMouse Dev) |
 | 개발 신원 | 키체인의 **`StrokeMouse Dev`** (자체 서명; 로컬 빌드) |
-| Release 신원 | **`StrokeMouse Release`** 자체 서명 + Hardened Runtime (고정 신원; **사용자는 인증서를 설치하지 않음**) |
+| Release 신원 | **Developer ID Application** + Hardened Runtime (손쉬운 사용은 Team ID에 고정; **사용자는 인증서를 설치하지 않음**) |
 | Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` 또는 package (스모크 전용; **업데이트 후 손쉬운 사용이 유지되지 않음**) |
-| 공증 | 현재 Apple 공증 / Developer ID 없음 |
+| 공증 | 0.0.40부터 Apple 공증 및 티켓 스테이플 완료 (0.0.39 이하는 자체 서명) |
 
 ::: warning
-GitHub Release를 처음 실행할 때 Gatekeeper가 막으면 앱을 Control-클릭한 뒤 열기를 선택하거나 시스템 설정 → 개인정보 보호 및 보안 → 계속 열기를 사용하세요.
+0.0.40 이후 릴리스는 공증을 받았으므로 Gatekeeper가 추가 단계 없이 엽니다.
 
-**손쉬운 사용**: 공식 패키지는 고정 자체 서명 신원을 쓰므로 **같은 인증서로 서명한 앱 내 업데이트는 보통 권한을 유지**합니다. 예전 ad-hoc 빌드에서 옮기거나 인증서를 바꾸면 **한 번** 다시 승인해야 합니다. 최종 사용자는 게시자 인증서를 **설치하지 않습니다**.
+**손쉬운 사용**: 권한이 개발자의 Team ID에 고정되므로 앱 내 업데이트 후에도 유지됩니다. 0.0.39 이하(자체 서명)에서 업그레이드하면 **한 번** 다시 승인해야 합니다. StrokeMouse가 권한 페이지를 열면 **권한 재설정**을 클릭한 뒤 StrokeMouse 스위치를 다시 켜세요. 최종 사용자는 어떤 인증서도 **설치하지 않습니다**.
 :::
 
 ## 릴리스 산출물

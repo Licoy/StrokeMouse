@@ -78,14 +78,14 @@ open StrokeMouse.xcodeproj
 |----|-----|
 | Bundle ID | Release：`com.strokemouse.app`；Debug：`com.strokemouse.app.dev`（显示名 StrokeMouse Dev） |
 | 开发签名 | 本机钥匙串中的 **`StrokeMouse Dev`**（自签，本地构建用） |
-| Release 签名 | **`StrokeMouse Release`** 自签 + Hardened Runtime（固定身份；**用户无需安装证书**） |
+| Release 签名 | **Developer ID Application** + Hardened Runtime（辅助功能授权绑定开发者 Team ID；**用户无需安装证书**） |
 | Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` 或 package（仅 smoke；**更新后辅助功能会丢**） |
-| 公证 | 当前未经 Apple 公证 / 无 Developer ID |
+| 公证 | 自 0.0.40 起经 Apple 公证并装订票据（0.0.39 及更早版本为自签） |
 
 ::: warning
-GitHub Release 首次启动若被 Gatekeeper 阻止，请右键点按 App 并选择「打开」，或在「系统设置 → 隐私与安全性」中选择「仍要打开」。
+自 0.0.40 起的发行版均已经过公证，Gatekeeper 会直接放行，无需额外操作。
 
-**辅助功能**：正式包使用固定自签身份后，**同一证书签出的应用内更新通常无需重新授权**。从旧 ad-hoc 包迁到自签、或更换证书后，仍需**重新勾选一次**。用户**不要**手动安装发布方证书。
+**辅助功能**：授权绑定开发者的 Team ID，**应用内更新无需重新授权**；从 0.0.39 及更早的自签版本升级时需**重新授权一次**，StrokeMouse 会打开权限页，点击 **重置授权**，再重新打开 StrokeMouse 的开关即可。用户**不要**安装任何证书。
 :::
 
 ## 发布产物

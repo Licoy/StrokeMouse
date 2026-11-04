@@ -77,7 +77,7 @@ brew uninstall --cask strokemouse
 brew uninstall --cask --zap strokemouse
 ```
 
-也可前往 [官網下載頁](https://strokemouse.com/zh-hant/download) 手動下載對應架構的 DMG。目前發行版使用固定自簽程式碼簽署且未經 Apple 公證；首次啟動若被 Gatekeeper 阻擋，請按住 Control 點按 App 並選擇「打開」，或在「系統設定 → 隱私權與安全性」中選擇「仍要打開」。
+也可前往 [官網下載頁](https://strokemouse.com/zh-hant/download) 手動下載對應架構的 DMG。自 0.0.40 起，發行版使用 Apple Developer ID 簽署並經過 Apple 公證；從 0.0.39 及更早版本升級時需重新授權一次輔助使用：在權限頁點擊 **重設授權**，再重新打開 StrokeMouse 的開關即可。
 
 ## 權限
 
@@ -137,10 +137,10 @@ Debug 顯示名稱為 **StrokeMouse Dev**（Bundle ID `com.strokemouse.app.dev`�
 
 ### 發行打包
 
-依架構產生 ZIP、TAR.GZ 和 DMG，並驗證簽署、entitlements 與產物完整性（預設用固定自簽身分 **`StrokeMouse Release`**，便於輔助使用跨 Sparkle 更新保留）：
+依架構產生 ZIP、TAR.GZ 和 DMG，並驗證簽署、entitlements 與產物完整性（預設用鑰匙圈中的 **Developer ID Application** 身分簽署，提供公證憑證時一併公證，下載可通過 Gatekeeper，輔助使用也能跨 Sparkle 更新保留）：
 
 ```bash
-# 首次本機：./scripts/generate-codesign-cert.sh --import
+# 公證：加上 NOTARY_KEYCHAIN_PROFILE=<xcrun notarytool store-credentials 儲存的設定名稱>
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ```

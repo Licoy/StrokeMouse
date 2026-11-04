@@ -10,7 +10,7 @@ keywords: "StrokeMouse FAQ,troubleshooting,right-click menu,permissions"
 
 Check in order:
 
-1. **Accessibility** for **this** app copy (path change, cert rotation, or ad-hoc → self-signed migration needs re-grant; same official identity in-app updates usually do not)
+1. **Accessibility** for **this** app copy (a path change or upgrading from 0.0.39 or earlier needs one re-grant via **Reset Authorization** on the Permissions page; in-app updates since 0.0.40 keep it)
 2. Menu bar status for pause or permission errors
 3. Gesture **enabled**
 4. Holding the configured **trigger** (default right, not left)

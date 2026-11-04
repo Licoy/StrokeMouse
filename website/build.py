@@ -59,7 +59,8 @@ DEFAULT_GESTURES = [
     {"key": "upLeft", "seq": "UL", "d": "M70 88V34H16", "start": [70, 88]},
 ]
 SIGNING_NOTE_RE = re.compile(
-    r"\n*These builds use a stable self-signed.*?(?=\n#|\Z)", re.S
+    r"\n*These builds (?:use a stable self-signed|are signed with Apple Developer ID).*?(?=\n#|\Z)",
+    re.S,
 )
 
 

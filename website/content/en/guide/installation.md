@@ -78,14 +78,14 @@ Scheme **StrokeMouse** → Run.
 |------|--------|
 | Bundle ID | Release: `com.strokemouse.app`; Debug: `com.strokemouse.app.dev` (display name StrokeMouse Dev) |
 | Dev identity | **`StrokeMouse Dev`** in your keychain (self-signed; local builds) |
-| Release identity | **`StrokeMouse Release`** self-signed + Hardened Runtime (stable identity; **users never install the cert**) |
+| Release identity | **Developer ID Application** + Hardened Runtime (Accessibility pins to the Team ID; **users never install a cert**) |
 | Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` or package (smoke only; **Accessibility will not survive updates**) |
-| Notarization | Not Apple-notarized / no Developer ID currently |
+| Notarization | Apple-notarized and stapled since 0.0.40 (0.0.39 and earlier were self-signed) |
 
 ::: warning
-If Gatekeeper blocks a GitHub Release on first launch, right-click the app and choose Open, or use System Settings → Privacy & Security → Open Anyway.
+Releases since 0.0.40 are notarized, so Gatekeeper opens them without extra steps.
 
-**Accessibility**: official packages use a stable self-signed identity, so **in-app updates signed with the same cert usually keep the grant**. Migrating from old ad-hoc builds or rotating the cert still requires **one** re-authorization. End users do **not** install the publisher certificate.
+**Accessibility**: in-app updates keep the grant because it pins to the developer's Team ID. Upgrading from 0.0.39 or earlier (self-signed) requires **one** re-authorization: StrokeMouse opens the Permissions page, click **Reset Authorization**, then switch StrokeMouse on again. End users do **not** install any certificate.
 :::
 
 ## Release artifacts

@@ -360,7 +360,7 @@ first_title = "First launch"
 first_lead = "Four steps from download to your first gesture."
 first_steps = [
   "Open the DMG and drag StrokeMouse into Applications.",
-  "Launch it. Releases are self-signed and not notarized by Apple: if macOS blocks it, Control-click the app and choose Open, or use System Settings → Privacy & Security → Open Anyway.",
+  "Launch it. Releases are signed with Apple Developer ID and notarized, so macOS opens them normally.",
   "Grant Accessibility when asked. Settings → Permissions → Guide Me walks you through it.",
   "Hold the right button and draw upward. Mission Control opens.",
 ]
@@ -401,5 +401,4 @@ not_for = [
   "Windows or Linux users: StrokeMouse is macOS-only (macOS 14+).",
   "Users who need keyboard remapping, Touch Bar customization or complex automation chains.",
   "Users on macOS 13 or earlier.",
-  "Organizations that require Apple-notarized builds: releases are self-signed and not notarized.",
 ]

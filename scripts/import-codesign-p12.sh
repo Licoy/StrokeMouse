@@ -177,12 +177,35 @@ echo "    partition list done"
 
 # Self-signed identities need an explicit Code Signing trust entry or
 # find-identity reports CSSMERR_TP_NOT_TRUSTED (and codesign can hang on CI).
+# Apple-issued identities (Developer ID) chain to Apple's root and only need the
+# intermediate CA, which a p12 exported from Keychain Access usually omits.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-echo "==> [5/6] Trust certificate for Code Signing policy"
-if [[ -x "$SCRIPT_DIR/trust-codesign-cert.sh" ]]; then
-  "$SCRIPT_DIR/trust-codesign-cert.sh" --from-p12 "$P12" --password "$PASSWORD"
-else
-  echo "WARNING: trust-codesign-cert.sh missing; identity may be untrusted" >&2
+echo "==> [5/6] Establish certificate trust"
+LEAF_PEM="$(openssl pkcs12 -in "$P12" -clcerts -nokeys -passin "pass:$PASSWORD" 2>/dev/null \
+  || openssl pkcs12 -in "$P12" -clcerts -nokeys -passin "pass:$PASSWORD" -legacy)"
+LEAF_SUBJECT="$(printf '%s\n' "$LEAF_PEM" | openssl x509 -noout -subject -nameopt RFC2253 | sed 's/^subject=//')"
+LEAF_ISSUER="$(printf '%s\n' "$LEAF_PEM" | openssl x509 -noout -issuer -nameopt RFC2253 | sed 's/^issuer=//')"
+echo "    subject: $LEAF_SUBJECT"
+echo "    issuer:  $LEAF_ISSUER"
+if [[ "$LEAF_SUBJECT" == "$LEAF_ISSUER" ]]; then
+  if [[ -x "$SCRIPT_DIR/trust-codesign-cert.sh" ]]; then
+    "$SCRIPT_DIR/trust-codesign-cert.sh" --from-p12 "$P12" --password "$PASSWORD"
+  else
+    echo "WARNING: trust-codesign-cert.sh missing; identity may be untrusted" >&2
+  fi
+elif security find-identity -v -p codesigning "$KEYCHAIN" 2>/dev/null | grep -q '0 valid identities found'; then
+  case "$LEAF_ISSUER" in
+    *"CN=Developer ID Certification Authority"*"OU=G2"*|*"OU=G2"*"CN=Developer ID Certification Authority"*)
+      INTERMEDIATE="$(mktemp -t strokemouse-devid-g2.XXXXXX)"
+      curl -fsSL --retry 3 -o "$INTERMEDIATE" https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer
+      security import "$INTERMEDIATE" -k "$KEYCHAIN" -t cert -f x509 || true
+      rm -f "$INTERMEDIATE"
+      echo "    imported Developer ID G2 intermediate"
+      ;;
+    *)
+      echo "WARNING: identity is not yet valid and its issuer is not handled automatically" >&2
+      ;;
+  esac
 fi
 
 echo "==> [6/6] List valid code signing identities"

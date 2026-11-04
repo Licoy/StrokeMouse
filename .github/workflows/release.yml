@@ -72,11 +72,17 @@ jobs:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           CODE_SIGN_P12_BASE64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
           CODE_SIGN_P12_PASSWORD: ${{ secrets.CODE_SIGN_P12_PASSWORD }}
+          NOTARY_KEY_P8_BASE64: ${{ secrets.NOTARY_KEY_P8_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
         run: |
           test -n "$SPARKLE_PUBLIC_KEY" || { echo "Missing SPARKLE_PUBLIC_KEY secret"; exit 1; }
           test -n "$SPARKLE_PRIVATE_KEY" || { echo "Missing SPARKLE_PRIVATE_KEY secret"; exit 1; }
           test -n "$CODE_SIGN_P12_BASE64" || { echo "Missing CODE_SIGN_P12_BASE64 secret"; exit 1; }
           test -n "$CODE_SIGN_P12_PASSWORD" || { echo "Missing CODE_SIGN_P12_PASSWORD secret"; exit 1; }
+          test -n "$NOTARY_KEY_P8_BASE64" || { echo "Missing NOTARY_KEY_P8_BASE64 secret"; exit 1; }
+          test -n "$NOTARY_KEY_ID" || { echo "Missing NOTARY_KEY_ID secret"; exit 1; }
+          test -n "$NOTARY_ISSUER_ID" || { echo "Missing NOTARY_ISSUER_ID secret"; exit 1; }
       - name: Import release code signing identity
         env:
           CODE_SIGN_P12_BASE64: ${{ secrets.CODE_SIGN_P12_BASE64 }}
@@ -92,13 +98,19 @@ jobs:
         env:
           EXPECTED_MACOS_SDK_MAJOR: "26"
           SPARKLE_PUBLIC_KEY: ${{ secrets.SPARKLE_PUBLIC_KEY }}
-          CODE_SIGN_IDENTITY: StrokeMouse Release
+          CODE_SIGN_IDENTITY: Developer ID Application
+          REQUIRE_NOTARIZATION: "1"
+          NOTARY_KEY_P8_BASE64: ${{ secrets.NOTARY_KEY_P8_BASE64 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
         run: |
           host="$(uname -m)"
           test "$host" = "${{ matrix.arch }}" || {
             echo "Runner arch $host != package arch ${{ matrix.arch }}"
             exit 1
           }
+          export NOTARY_KEY_PATH="$RUNNER_TEMP/notary-key.p8"
+          printf '%s' "$NOTARY_KEY_P8_BASE64" | tr -d '\n\r' | base64 -D >"$NOTARY_KEY_PATH"
           version="${GITHUB_REF_NAME#v}"
           EXPECTED_VERSION="$version" ARCH=${{ matrix.arch }} ./scripts/package-app.sh
       - name: Generate appcast ${{ matrix.arch }}
@@ -159,9 +171,9 @@ jobs:
           fi
           cat >> release-notes.md <<'EOF'
 
-          These builds use a stable self-signed code signing identity (not Apple Developer ID) and are not notarized. Prefer the .dmg for manual installation. If macOS blocks the app, right-click Open or use Privacy & Security > Open Anyway. Accessibility grants should survive in-app updates signed with the same identity.
+          These builds are signed with Apple Developer ID and notarized by Apple. Prefer the .dmg for manual installation. When upgrading from 0.0.39 or earlier (self-signed builds), macOS no longer honors the old Accessibility grant: remove StrokeMouse under Privacy & Security > Accessibility and add it again once. Later in-app updates keep the grant.
 
-          当前构建使用固定自签代码签名（非 Apple Developer ID）且未经 Apple 公证。建议手动安装 .dmg；若 macOS 阻止启动，请右键选择“打开”，或前往“隐私与安全性”选择“仍要打开”。同一签名身份下的应用内更新通常无需重新授予辅助功能。
+          当前构建使用 Apple Developer ID 签名并经 Apple 公证，建议手动安装 .dmg。从 0.0.39 及更早的自签版本升级时，系统不再认可原有的辅助功能授权，请在“隐私与安全性 → 辅助功能”中移除 StrokeMouse 后重新添加一次，之后的应用内更新会保留授权。
           EOF
       - uses: actions/upload-artifact@v7
         with:

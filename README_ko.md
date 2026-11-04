@@ -77,7 +77,7 @@ brew uninstall --cask strokemouse
 brew uninstall --cask --zap strokemouse
 ```
 
-[공식 다운로드 페이지](https://strokemouse.com/ko/download)에서 해당 아키텍처 DMG를 받을 수도 있습니다. 현재 릴리스는 고정 자체 서명 코드 서명을 사용하며 Apple 공증을 받지 않았습니다. 첫 실행이 Gatekeeper에 막히면 앱을 Control-클릭한 뒤 「열기」를 선택하거나 「시스템 설정 → 개인정보 보호 및 보안」에서 「계속 열기」를 선택하세요.
+[공식 다운로드 페이지](https://strokemouse.com/ko/download)에서 해당 아키텍처 DMG를 받을 수도 있습니다. 0.0.40 이후 릴리스는 Apple Developer ID로 서명되고 Apple 공증을 받았습니다. 0.0.39 이하에서 업그레이드할 때는 손쉬운 사용을 한 번 다시 허용하세요. 권한 페이지에서 **권한 재설정**을 클릭한 뒤 StrokeMouse 스위치를 다시 켜면 됩니다.
 
 ## 권한
 
@@ -137,10 +137,10 @@ Debug 표시 이름은 **StrokeMouse Dev**(Bundle ID `com.strokemouse.app.dev`)�
 
 ### 릴리스 패키징
 
-아키텍처별로 ZIP, TAR.GZ, DMG를 만들고 서명, entitlements, 산출물 무결성을 검증합니다(기본값은 고정 자체 서명 신원 **`StrokeMouse Release`**, Sparkle 업데이트 후에도 손쉬운 사용 권한이 유지되도록).
+아키텍처별로 ZIP, TAR.GZ, DMG를 만들고 서명, entitlements, 산출물 무결성을 검증합니다(기본값은 키체인의 **Developer ID Application** 신원으로 서명하고, 공증 자격 증명이 있으면 공증까지 수행합니다. 다운로드가 Gatekeeper를 통과하고 Sparkle 업데이트 후에도 손쉬운 사용 권한이 유지됩니다).
 
 ```bash
-# 처음 로컬: ./scripts/generate-codesign-cert.sh --import
+# 공증: NOTARY_KEYCHAIN_PROFILE=<xcrun notarytool store-credentials로 저장한 프로필 이름> 추가
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ```

@@ -77,7 +77,7 @@ brew uninstall --cask strokemouse
 brew uninstall --cask --zap strokemouse
 ```
 
-Vous pouvez aussi télécharger le DMG de votre architecture sur la [page de téléchargement officielle](https://strokemouse.com/fr/download). Les versions actuelles utilisent une signature auto-signée stable et ne sont pas notariées par Apple. Si Gatekeeper bloque le premier lancement, cliquez l’app en maintenant Contrôle puis choisissez Ouvrir, ou utilisez Réglages Système → Confidentialité et sécurité → Ouvrir quand même.
+Vous pouvez aussi télécharger le DMG de votre architecture sur la [page de téléchargement officielle](https://strokemouse.com/fr/download). Les versions depuis la 0.0.40 sont signées avec un Apple Developer ID et notariées par Apple. En cas de mise à niveau depuis la 0.0.39 ou antérieure, réaccordez l’Accessibilité une fois : cliquez sur **Réinitialiser l’autorisation** dans la page Autorisations, puis réactivez StrokeMouse.
 
 ## Autorisations
 
@@ -137,10 +137,10 @@ Le Debug s’affiche comme **StrokeMouse Dev** (Bundle ID `com.strokemouse.app.d
 
 ### Empaquetage de version
 
-Génère ZIP, TAR.GZ et DMG par architecture, et vérifie la signature, les entitlements et l’intégrité des artefacts (identité auto-signée stable **`StrokeMouse Release`** par défaut, pour que l’Accessibilité survive aux mises à jour Sparkle) :
+Génère ZIP, TAR.GZ et DMG par architecture, et vérifie la signature, les entitlements et l’intégrité des artefacts (identité **Developer ID Application** du trousseau par défaut, avec notarisation si des identifiants sont fournis, pour que les téléchargements passent Gatekeeper et que l’Accessibilité survive aux mises à jour Sparkle) :
 
 ```bash
-# Première fois en local : ./scripts/generate-codesign-cert.sh --import
+# Notarisation : ajoutez NOTARY_KEYCHAIN_PROFILE=<profil enregistré par xcrun notarytool store-credentials>
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 ```

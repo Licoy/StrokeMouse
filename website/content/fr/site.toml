@@ -360,7 +360,7 @@ first_title = "Premier lancement"
 first_lead = "Quatre étapes entre le téléchargement et votre premier geste."
 first_steps = [
   "Ouvrez le DMG et faites glisser StrokeMouse dans Applications.",
-  "Lancez l’app. Les versions sont auto-signées et non notariées par Apple : si macOS la bloque, cliquez sur l’app en maintenant Contrôle et choisissez Ouvrir, ou passez par Réglages Système → Confidentialité et sécurité → Ouvrir quand même.",
+  "Lancez l’app. Les versions sont signées avec un Apple Developer ID et notariées, donc macOS les ouvre normalement.",
   "Accordez l’Accessibilité quand elle est demandée. Réglages → Autorisations → Me guider vous accompagne pas à pas.",
   "Maintenez le bouton droit et dessinez vers le haut : Mission Control s’ouvre.",
 ]
@@ -401,5 +401,4 @@ not_for = [
   "Utilisateurs de Windows ou Linux : StrokeMouse fonctionne uniquement sur macOS (macOS 14+).",
   "Utilisateurs qui ont besoin de remapper le clavier, de personnaliser la Touch Bar ou de chaînes d’automatisation complexes.",
   "Utilisateurs de macOS 13 ou antérieur.",
-  "Organisations qui exigent des builds notariées par Apple : les versions sont auto-signées et non notariées.",
 ]

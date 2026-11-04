@@ -78,14 +78,14 @@ Scheme **StrokeMouse** → Run。
 |------|--------|
 | Bundle ID | Release: `com.strokemouse.app`；Debug: `com.strokemouse.app.dev`（表示名 StrokeMouse Dev） |
 | 開発 ID | キーチェーンの **`StrokeMouse Dev`**（自己署名。ローカルビルド用） |
-| Release ID | **`StrokeMouse Release`** 自己署名 + Hardened Runtime（固定 ID。**ユーザーは証明書を入れない**） |
+| Release ID | **Developer ID Application** + Hardened Runtime（アクセシビリティは Team ID に紐づく。**ユーザーは証明書を入れない**） |
 | Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` または package（スモーク専用。**更新後にアクセシビリティは残らない**） |
-| 公証 | 現在 Apple 公証 / Developer ID なし |
+| 公証 | 0.0.40 以降は Apple の公証済みでチケットをステープル（0.0.39 以前は自己署名） |
 
 ::: warning
-GitHub Release の初回起動が Gatekeeper にブロックされたら、App を Control クリックして「開く」を選ぶか、システム設定 → プライバシーとセキュリティ → このまま開くを使ってください。
+0.0.40 以降のリリースは公証済みのため、Gatekeeper は追加の操作なしで開きます。
 
-**アクセシビリティ**: 公式パッケージは固定の自己署名 ID を使うため、**同じ証明書で署名したアプリ内アップデートは通常許可を維持**します。古い ad-hoc ビルドからの移行や証明書のローテーションでは、**一度**再承認が必要です。エンドユーザーは発行者証明書を**インストールしません**。
+**アクセシビリティ**: 許可は開発者の Team ID に紐づくため、アプリ内アップデートでは許可が維持されます。0.0.39 以前（自己署名）からのアップグレードでは**一度だけ**再承認が必要です。StrokeMouse が権限ページを開くので、**許可をリセット**をクリックし、StrokeMouse のスイッチをもう一度オンにしてください。エンドユーザーは証明書を**一切インストールしません**。
 :::
 
 ## リリース成果物

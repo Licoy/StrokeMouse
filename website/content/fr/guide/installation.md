@@ -78,14 +78,14 @@ Scheme **StrokeMouse** → Run.
 |------|--------|
 | Bundle ID | Release : `com.strokemouse.app` ; Debug : `com.strokemouse.app.dev` (nom StrokeMouse Dev) |
 | Identité de développement | **`StrokeMouse Dev`** dans le trousseau (auto-signée ; builds locaux) |
-| Identité Release | **`StrokeMouse Release`** auto-signée + Hardened Runtime (identité stable ; **les utilisateurs n’installent pas le certificat**) |
+| Identité Release | **Developer ID Application** + Hardened Runtime (l’Accessibilité est liée au Team ID ; **les utilisateurs n’installent pas de certificat**) |
 | Ad-hoc | `CODE_SIGN_IDENTITY="-" ./scripts/build.sh` ou package (smoke uniquement ; **l’Accessibilité ne survit pas aux mises à jour**) |
-| Notarisation | Pas de notarisation Apple / Developer ID pour l’instant |
+| Notarisation | Notarisée par Apple avec ticket agrafé depuis la 0.0.40 (la 0.0.39 et les versions antérieures étaient auto-signées) |
 
 ::: warning
-Si Gatekeeper bloque une GitHub Release au premier lancement, cliquez l’app en maintenant Contrôle puis choisissez Ouvrir, ou Réglages Système → Confidentialité et sécurité → Ouvrir quand même.
+Les versions depuis la 0.0.40 sont notariées, donc Gatekeeper les ouvre sans étape supplémentaire.
 
-**Accessibilité** : les paquets officiels utilisent une identité auto-signée stable, donc **les mises à jour dans l’app signées avec le même certificat conservent généralement l’autorisation**. Migrer depuis d’anciens builds ad-hoc ou changer de certificat exige **une** nouvelle autorisation. Les utilisateurs finaux n’installent **pas** le certificat de l’éditeur.
+**Accessibilité** : les mises à jour dans l’app conservent l’autorisation, car elle est liée au Team ID du développeur. Passer depuis la 0.0.39 ou antérieure (auto-signée) exige **une** nouvelle autorisation : StrokeMouse ouvre la page Autorisations, cliquez sur **Réinitialiser l’autorisation**, puis réactivez StrokeMouse. Les utilisateurs finaux n’installent **aucun** certificat.
 :::
 
 ## Artefacts de version

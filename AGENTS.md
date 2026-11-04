@@ -21,7 +21,7 @@ Bundle ID：Release `com.strokemouse.app`；Debug `com.strokemouse.app.dev`（�
 | i18n | `Localizable.xcstrings`（en + zh-Hans + zh-Hant + ko + ja + ru + fr） |
 | 工程 | XcodeGen（`project.yml`） |
 | 依赖 | LaunchAtLogin-Modern（登录启动）+ Sparkle（应用内更新） |
-| 签名 | 开发 `StrokeMouse Dev`；Release **`StrokeMouse Release`** 自签（固定身份，辅助功能跨更新保留）；仅 smoke 可用 ad-hoc |
+| 签名 | 开发 `StrokeMouse Dev`；Release **Developer ID Application** + Apple 公证（辅助功能按 Team ID 跨更新与证书续期保留）；仅 smoke 可用 ad-hoc |
 
 **不使用**：TCA、Core Data/GRDB、App Sandbox（当前）。
 
@@ -51,7 +51,7 @@ scripts/
   generate_project.sh
   build_release.sh
   package-app.sh
-  generate-codesign-cert.sh   # StrokeMouse Release 自签证书
+  generate-codesign-cert.sh   # 旧 StrokeMouse Release 自签证书（仅回退）
   import-codesign-p12.sh
   trust-codesign-cert.sh
 bump.sh
@@ -103,8 +103,9 @@ xcodebuild -scheme StrokeMouse -configuration Debug build
 # 测试
 xcodebuild -scheme StrokeMouse -configuration Debug test
 
-# 双架构 Release 产物（StrokeMouse Release 自签 + Hardened Runtime）
-# 首次：./scripts/generate-codesign-cert.sh --import  并将 certs/*.p12.b64 等写入 CI secrets
+# 双架构 Release 产物（Developer ID + Hardened Runtime；提供 NOTARY_* 凭据时公证并 staple）
+# 首次：钥匙串导入 Developer ID 证书；本地公证先 xcrun notarytool store-credentials，再加 NOTARY_KEYCHAIN_PROFILE=...
+# CI secrets：CODE_SIGN_P12_*（Developer ID p12）+ NOTARY_KEY_P8_BASE64 / NOTARY_KEY_ID / NOTARY_ISSUER_ID
 SPARKLE_PUBLIC_KEY="..." ARCH=arm64 ./scripts/package-app.sh
 SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 # 仅本地 smoke：CODE_SIGN_IDENTITY=- SPARKLE_PUBLIC_KEY=... ./scripts/package-app.sh

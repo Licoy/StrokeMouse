@@ -25,9 +25,18 @@ esac
 
 PLACEHOLDER_KEY="__REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY__"
 PUBLIC_KEY="${SPARKLE_PUBLIC_KEY:-}"
-# Stable self-signed identity so Accessibility TCC survives Sparkle updates.
+# Developer ID: Gatekeeper accepts notarized downloads and Accessibility TCC pins
+# to the Team ID, so grants survive Sparkle updates and certificate renewals.
+# Any substring matching exactly one keychain identity (or its SHA-1) works.
 # Use CODE_SIGN_IDENTITY="-" only for throwaway smoke builds (TCC will not stick).
-IDENTITY="${CODE_SIGN_IDENTITY:-StrokeMouse Release}"
+IDENTITY="${CODE_SIGN_IDENTITY:-Developer ID Application}"
+SIGN_IDENTITY="-"
+# Notarize when credentials are present: NOTARY_KEYCHAIN_PROFILE (local, saved by
+# `xcrun notarytool store-credentials`) or NOTARY_KEY_PATH + NOTARY_KEY_ID +
+# NOTARY_ISSUER_ID (App Store Connect API key, CI). REQUIRE_NOTARIZATION=1 makes
+# missing credentials fatal.
+REQUIRE_NOTARIZATION="${REQUIRE_NOTARIZATION:-0}"
+NOTARY_ARGS=()
 DERIVED="$ROOT/build/release-$ARCH"
 SOURCE_PACKAGES="$ROOT/build/SourcePackages"
 DIST="$ROOT/dist"
@@ -37,6 +46,7 @@ ZIP="$DIST/StrokeMouse-macos-$ARCH.zip"
 TAR_GZ="$DIST/StrokeMouse-macos-$ARCH.app.tar.gz"
 DMG="$DIST/StrokeMouse-macos-$ARCH.dmg"
 DMG_ROOT="$DIST/dmg-$ARCH"
+NOTARY_ZIP="$DIST/StrokeMouse-macos-$ARCH-notary.zip"
 ENTITLEMENTS="$ROOT/StrokeMouse/Supporting/StrokeMouse.entitlements"
 ENTITLEMENTS_DUMP=""
 ARCHIVE_LIST=""
@@ -49,6 +59,7 @@ cleanup() {
   if [[ -n "$ARCHIVE_LIST" ]]; then
     rm -f "$ARCHIVE_LIST"
   fi
+  rm -f "$NOTARY_ZIP"
   if [[ -n "$DMG_MOUNT" && -d "$DMG_MOUNT" ]]; then
     if ! hdiutil detach "$DMG_MOUNT" >/dev/null; then
       echo "Warning: unable to detach temporary DMG mount: $DMG_MOUNT" >&2
@@ -83,6 +94,24 @@ hdiutil_retry() {
   return "$status"
 }
 
+# Submit, wait, and require "Accepted"; print the notary log on rejection.
+notarize() {
+  local submission="$1"
+  local submit_json id status
+  echo "==> Notarizing $(basename "$submission")"
+  submit_json="$(xcrun notarytool submit "$submission" "${NOTARY_ARGS[@]}" --output-format json)"
+  id="$(printf '%s' "$submit_json" | plutil -extract id raw -o - -)"
+  echo "    submission id: $id"
+  xcrun notarytool wait "$id" "${NOTARY_ARGS[@]}" --timeout 45m || true
+  status="$(xcrun notarytool info "$id" "${NOTARY_ARGS[@]}" --output-format json | plutil -extract status raw -o - -)"
+  if [[ "$status" != "Accepted" ]]; then
+    echo "Notarization of $(basename "$submission") ended with status: $status" >&2
+    xcrun notarytool log "$id" "${NOTARY_ARGS[@]}" >&2 || true
+    exit 1
+  fi
+  echo "    notarization accepted"
+}
+
 for command in base64 xcodebuild xcodegen codesign hdiutil lipo otool plutil ditto; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "Required command not found: $command" >&2
@@ -105,16 +134,49 @@ fi
 
 if [[ "$IDENTITY" == "-" ]]; then
   echo "WARNING: CODE_SIGN_IDENTITY=- (ad-hoc). Accessibility TCC will NOT survive updates." >&2
-  echo "  For releases use a stable cert (default: StrokeMouse Release)." >&2
-  echo "  Generate: ./scripts/generate-codesign-cert.sh --import" >&2
+  echo "  For releases use the Developer ID Application identity (default)." >&2
 else
-  if ! security find-identity -v -p codesigning 2>/dev/null | grep -Fq "\"$IDENTITY\""; then
-    echo "Code signing identity not found in keychain: $IDENTITY" >&2
-    echo "  Generate + import: ./scripts/generate-codesign-cert.sh --import" >&2
-    echo "  Or import existing: ./scripts/import-codesign-p12.sh --p12 ... --password-file ..." >&2
-    echo "  Throwaway only: CODE_SIGN_IDENTITY=- $0 ..." >&2
+  IDENTITY_LINES="$(security find-identity -v -p codesigning 2>/dev/null | grep -F -- "$IDENTITY" || true)"
+  IDENTITY_HASHES="$(printf '%s\n' "$IDENTITY_LINES" | awk 'NF >= 3 { print $2 }' | sort -u)"
+  case "$(printf '%s' "$IDENTITY_HASHES" | grep -c .)" in
+    1)
+      SIGN_IDENTITY="$IDENTITY_HASHES"
+      ;;
+    0)
+      echo "Code signing identity not found in keychain: $IDENTITY" >&2
+      echo "  Import the Developer ID p12: ./scripts/import-codesign-p12.sh --p12 ... --password-file ..." >&2
+      echo "  Throwaway only: CODE_SIGN_IDENTITY=- $0 ..." >&2
+      exit 1
+      ;;
+    *)
+      echo "Code signing identity is ambiguous: $IDENTITY" >&2
+      printf '%s\n' "$IDENTITY_LINES" >&2
+      echo "  Set CODE_SIGN_IDENTITY to the full name or SHA-1." >&2
+      exit 1
+      ;;
+  esac
+fi
+
+if [[ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]]; then
+  NOTARY_ARGS=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
+elif [[ -n "${NOTARY_KEY_PATH:-}${NOTARY_KEY_ID:-}${NOTARY_ISSUER_ID:-}" ]]; then
+  [[ -f "${NOTARY_KEY_PATH:-}" && -n "${NOTARY_KEY_ID:-}" && -n "${NOTARY_ISSUER_ID:-}" ]] || {
+    echo "NOTARY_KEY_PATH (existing .p8), NOTARY_KEY_ID and NOTARY_ISSUER_ID must be set together." >&2
     exit 1
-  fi
+  }
+  NOTARY_ARGS=(--key "$NOTARY_KEY_PATH" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER_ID")
+fi
+if (( ${#NOTARY_ARGS[@]} > 0 )) && [[ "$IDENTITY" == "-" ]]; then
+  echo "Ad-hoc builds cannot be notarized; unset the NOTARY_* variables or use Developer ID." >&2
+  exit 1
+fi
+if [[ "$REQUIRE_NOTARIZATION" == "1" ]] && (( ${#NOTARY_ARGS[@]} == 0 )); then
+  echo "REQUIRE_NOTARIZATION=1 but no notary credentials were provided." >&2
+  echo "  Set NOTARY_KEYCHAIN_PROFILE, or NOTARY_KEY_PATH + NOTARY_KEY_ID + NOTARY_ISSUER_ID." >&2
+  exit 1
+fi
+if (( ${#NOTARY_ARGS[@]} == 0 )); then
+  echo "WARNING: notarization skipped (no NOTARY_* credentials); Gatekeeper will block downloads." >&2
 fi
 
 cd "$ROOT"
@@ -153,16 +215,26 @@ ditto "$BUILT_APP" "$APP"
 
 # Xcode's local ad-hoc signature injects get-task-allow. Re-sign the final
 # bundle from its production entitlement source after every bundle mutation.
-# Prefer a stable certificate identity so TCC pins to cert leaf, not cdhash.
-codesign \
-  --force \
-  --deep \
-  --options runtime \
-  --entitlements "$ENTITLEMENTS" \
-  --sign "$IDENTITY" \
-  "$APP"
+# Sign nested code inside-out (Sparkle's documented order) rather than --deep so
+# every helper gets Hardened Runtime and the secure timestamp notarization needs.
+TIMESTAMP_FLAG="--timestamp"
+[[ "$IDENTITY" == "-" ]] && TIMESTAMP_FLAG="--timestamp=none"
+sign() {
+  codesign --force --options runtime "$TIMESTAMP_FLAG" --sign "$SIGN_IDENTITY" "$@"
+}
+for framework in "$APP/Contents/Frameworks"/*; do
+  [[ -e "$framework" ]] || continue
+  if [[ "$(basename "$framework")" == "Sparkle.framework" ]]; then
+    for component in XPCServices/Installer.xpc XPCServices/Downloader.xpc Autoupdate Updater.app; do
+      sign --preserve-metadata=entitlements "$framework/Versions/Current/$component"
+    done
+  fi
+  sign "$framework"
+done
+sign --entitlements "$ENTITLEMENTS" "$APP"
 codesign --verify --deep --strict --verbose=4 "$APP"
-codesign -dvv "$APP" 2>&1 | grep -Eq 'flags=.*\(.*runtime.*\)'
+# Not grep -q: exiting early SIGPIPEs codesign and fails under pipefail.
+codesign -dvv "$APP" 2>&1 | grep -E 'flags=.*\(.*runtime.*\)' >/dev/null
 
 if [[ "$IDENTITY" != "-" ]]; then
   # DR should reference the certificate, not a one-off ad-hoc cdhash-only seal.
@@ -227,6 +299,18 @@ if /usr/libexec/PlistBuddy -c 'Print :com.apple.security.get-task-allow' "$ENTIT
   exit 1
 fi
 
+# Staple before archiving so the Sparkle ZIP / TAR.GZ and the DMG all carry the
+# ticket and pass Gatekeeper offline.
+if (( ${#NOTARY_ARGS[@]} > 0 )); then
+  rm -f "$NOTARY_ZIP"
+  ditto -c -k --keepParent "$APP" "$NOTARY_ZIP"
+  notarize "$NOTARY_ZIP"
+  rm -f "$NOTARY_ZIP"
+  xcrun stapler staple "$APP"
+  xcrun stapler validate "$APP"
+  spctl --assess --type execute --verbose=2 "$APP"
+fi
+
 echo "==> Packaging StrokeMouse $VERSION ($BUILD)"
 (
   cd "$APP_DIR"
@@ -243,6 +327,16 @@ hdiutil_retry create \
   -ov \
   -format UDZO \
   "$DMG"
+if [[ "$IDENTITY" != "-" ]]; then
+  codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
+  codesign --verify --strict "$DMG"
+fi
+if (( ${#NOTARY_ARGS[@]} > 0 )); then
+  notarize "$DMG"
+  xcrun stapler staple "$DMG"
+  xcrun stapler validate "$DMG"
+  spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG"
+fi
 
 unzip -tq "$ZIP"
 tar -tzf "$TAR_GZ" >/dev/null

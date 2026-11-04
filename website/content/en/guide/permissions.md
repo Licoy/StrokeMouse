@@ -33,8 +33,8 @@ You can also complete the same steps manually in System Settings.
 
 ### Common cases
 
-- **In-app updates of official builds** (stable `StrokeMouse Release` self-signed identity): Accessibility usually **does not** need re-granting
-- **Migrating from old ad-hoc builds, rotating the signing cert, or a new install path**: re-authorize **once**
+- **In-app updates of official builds** (Developer ID, same team): Accessibility **does not** need re-granting
+- **Upgrading from 0.0.39 or earlier (self-signed), migrating from old ad-hoc builds, or a new install path**: re-authorize **once**; if the toggle is on but the app still shows not granted, click **Reset Authorization** on the Permissions page
 - **Toggle on but dead**: off/on, or remove and re-add, then relaunch
 - **Multiple copies**: authorize the binary you actually launch
 

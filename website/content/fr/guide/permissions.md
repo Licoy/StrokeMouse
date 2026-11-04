@@ -33,8 +33,8 @@ Vous pouvez aussi faire les mêmes étapes manuellement dans Réglages Système.
 
 ### Cas fréquents
 
-- **Mises à jour dans l’app des builds officiels** (identité auto-signée stable `StrokeMouse Release`) : l’Accessibilité n’a **en général pas** besoin d’être réaccordée
-- **Migration depuis d’anciens builds ad-hoc, rotation du certificat ou nouveau chemin d’installation** : réautoriser **une fois**
+- **Mises à jour dans l’app des builds officiels** (Developer ID, même équipe) : l’Accessibilité n’a **pas** besoin d’être réaccordée
+- **Mise à niveau depuis la 0.0.39 ou antérieure (auto-signée), migration depuis d’anciens builds ad-hoc ou nouveau chemin d’installation** : réautoriser **une fois** ; si l’interrupteur est activé mais que l’app indique toujours un accès non accordé, cliquez sur **Réinitialiser l’autorisation** dans la page Autorisations
 - **Interrupteur allumé mais mort** : off/on, ou retirer et rajouter, puis relancer
 - **Plusieurs copies** : autorisez le binaire que vous lancez vraiment
 
