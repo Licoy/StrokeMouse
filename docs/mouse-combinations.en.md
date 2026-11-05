@@ -41,7 +41,7 @@ Exports and backups containing drag scrolling or system actions use v4; Fn-only 
 - A corner may satisfy two edge combinations; several matches at the same level are treated as a conflict.
 - Regular wheels and native high-precision pixel wheels (such as Logitech devices) are supported; trackpad gestures, system momentum scrolling, and smoothing frames posted by other scroll tools never trigger a new action.
 - An edge wheel runs its action at most once every 100 ms, for regular and high-precision wheels alike; scrolling in an unconfigured direction does not run the action.
-- While the right button is held, smooth-wheel actions are at least 120 ms apart; reversing direction or pressing the right button again triggers immediately, so the many smoothing frames of one scroll cannot flip through tabs.
+- While the right button is held, smooth-wheel actions are at least 60 ms apart; reversing direction or pressing the right button again triggers immediately, so the many smoothing frames of one scroll cannot flip through tabs.
 - Up / down follows the system wheel event direction and is recognized before the app's scroll reversal and smooth scrolling.
 - Wheel ticks used by a combination do not scroll the page; edge ticks outside every matching scope are replayed with a re-entry marker and still go through scroll enhancement.
 
@@ -56,3 +56,11 @@ Automated regression tests cover multi-display edge coordinates, config round tr
 For manual testing, start with a harmless shortcut or media action, then check the context menu, browser scrolling, multi-display edges, and the chosen app scope. The development build "StrokeMouse Dev" needs its own Accessibility permission.
 
 Drag scrolling and system actions still need real-app checks for both axes, screen-edge limits, stopping on release, and target semantics. Automated checks do not establish real-app scrolling or native trackpad-animation acceptance.
+
+## Right-button drawings starting at a screen edge
+
+Choose **Screen Edge → Top/Bottom/Left/Right → Right-button gesture**, record a shape, and select an action. For example, hold right at the top edge, draw into the screen, and release to run the Lock Screen AppleScript preset. Only the press position must be at the edge; release may be inside the screen. A short press replays the normal right click; an unmatched drawing runs nothing. An admitted edge drawing takes precedence over regular right-button drawings and drag scrolling; application/group/global precedence still applies between edge drawings. Libraries and exports containing an edge drawing require format v6; older libraries remain readable.
+
+## Shortcuts stay with the frozen target
+
+Ordinary shortcuts triggered by wheel combinations, including tab navigation in a browser or Finder, are delivered directly to the process frozen at right-button down. Existing window validation and focusing remain in place. Primary key events carry modifier flags without synthetic physical modifier edges, preventing generated Shift state from turning subsequent vertical wheel input into horizontal input. Fn, modifier-only chords, and system commands retain their system delivery path. Missing target processes fail explicitly rather than falling back to a global shortcut. Precise wheels use a fixed 60 ms repeat interval, with no additional sensitivity or scroll-amount setting.

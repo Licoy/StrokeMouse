@@ -55,7 +55,7 @@ struct GestureInputEditorView: View {
             case .mouseButton:
                 mouseButtonEditor
             case .mouseCombination:
-                MouseCombinationEditor(gesture: combinationGesture)
+                MouseCombinationEditor(gesture: combinationGesture, sampleState: $sampleState)
             }
         }
     }
@@ -622,6 +622,7 @@ struct GestureInputEditorView: View {
 
 private struct MouseCombinationEditor: View {
     @Binding var gesture: MouseCombinationGesture
+    @Binding var sampleState: GestureSampleEditorState
 
     var body: some View {
         Form {
@@ -639,10 +640,18 @@ private struct MouseCombinationEditor: View {
                 }
                 Picker(L10n.string("combination.action"), selection: $gesture.action) {
                     ForEach(MouseCombinationAction.allCases.filter {
-                        gesture.edge == nil ? $0 != .rightClick : $0 != .leftClick && $0 != .dragScroll
+                        gesture.edge == nil ? $0 != .rightClick && $0 != .rightGesture : $0 != .leftClick && $0 != .dragScroll
                     }) { action in
                         Text(L10n.string(action.displayKey)).tag(action)
                     }
+                }
+            }
+            if gesture.action == .rightGesture {
+                Section {
+                    GestureSampleEditorView(state: $sampleState)
+                    Text(L10n.string("combination.hint.rightGesture"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
             if gesture.action == .dragScroll {
@@ -673,7 +682,7 @@ private struct MouseCombinationEditor: View {
             Section {
                 Label(gesture.displaySummary, systemImage: "computermouse.fill")
                     .font(.headline)
-                if gesture.action != .dragScroll {
+                if gesture.action != .dragScroll && gesture.action != .rightGesture {
                     Text(L10n.string(gesture.edge == nil ? "combination.hint.held" : "combination.hint.edge"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -700,7 +709,10 @@ private struct MouseCombinationEditor: View {
     private var edgeMode: Binding<Bool> {
         Binding(get: { gesture.edge != nil }, set: { enabled in
             gesture.edge = enabled ? .top : nil
-            if !gesture.isValid { gesture.action = .wheelUp }
+            if (enabled && (gesture.action == .leftClick || gesture.action == .dragScroll))
+                || (!enabled && (gesture.action == .rightClick || gesture.action == .rightGesture)) {
+                gesture.action = .wheelUp
+            }
         })
     }
     private var edge: Binding<MouseScreenEdge> {

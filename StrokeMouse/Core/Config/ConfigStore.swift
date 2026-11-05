@@ -610,7 +610,10 @@ final class ConfigStore {
                     throw ConfigStoreFailure.invalidConfiguration(.invalidMouseCombination(profile.id))
                 }
             }
-            guard case .drawn(let drawn) = profile.input else { continue }
+            if case .mouseCombination(let combo) = profile.input, !combo.isValid {
+                throw ConfigStoreFailure.invalidConfiguration(.invalidMouseCombination(profile.id))
+            }
+            guard let drawn = profile.input.recognitionDrawing else { continue }
             guard drawn.allPaths.count <= DrawnGesture.maximumSampleCount else {
                 throw ConfigStoreFailure.invalidConfiguration(
                     .tooManyDrawnSamples(profile.id)
@@ -650,7 +653,7 @@ final class ConfigStore {
 
         switch header.version {
         case Constants.configVersion, Constants.fnShortcutConfigVersion,
-             Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion:
+             Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion, Constants.edgeDrawingConfigVersion:
             do {
                 let file = try decoder.decode(GestureConfigFile.self, from: data)
                 let compatibility = try decoder.decode(
