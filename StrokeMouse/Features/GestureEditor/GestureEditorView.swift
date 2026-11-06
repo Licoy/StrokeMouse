@@ -121,7 +121,7 @@ struct GestureEditorView: View {
                     ActionPickerView(kind: $actionKind, action: $profile.action)
                 }
                 if !isDragScroll, profile.action.requiresCapturedTarget {
-                    Text(L10n.string("editor.testActionNeedsTarget"))
+                    Text(testActionHint(profile.action))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -202,7 +202,7 @@ struct GestureEditorView: View {
                         .foregroundStyle(.secondary)
                 }
                 if secondaryActionDraft.requiresCapturedTarget {
-                    Text(L10n.string("editor.testActionNeedsTarget"))
+                    Text(testActionHint(secondaryActionDraft))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
@@ -223,8 +223,16 @@ struct GestureEditorView: View {
     }
 
     private func postsToCapturedTarget(_ action: GestureAction) -> Bool {
+        if case .openURLWithSelection = action { return true }
         if case .system(let system) = action { return system.command.requiresCapturedTarget }
         return false
+    }
+
+    private func testActionHint(_ action: GestureAction) -> String {
+        if case .openURLWithSelection = action {
+            return L10n.string("editor.testSelectionURL")
+        }
+        return L10n.string("editor.testActionNeedsTarget")
     }
 
     private func testAction(_ action: GestureAction) {
@@ -265,6 +273,7 @@ struct GestureEditorView: View {
     }
 
     private func commitAndSave() {
+        guard canSave else { return }
         if case .drawn(var drawn) = profile.input {
             guard let primary = sampleState.samples.first else { return }
             drawn.points = primary
@@ -296,6 +305,15 @@ struct GestureEditorView: View {
            !appState.configStore.appGroups.contains(where: { $0.id == scopeGroupID })
         {
             return L10n.string("editor.saveNeedsGroup")
+        }
+        if !isDragScroll {
+            let actions = isSecondaryActionEnabled && GestureProfile.supportsSecondaryAction(profile.input)
+                ? [profile.action, secondaryActionDraft] : [profile.action]
+            for case .openURLWithSelection(let template) in actions {
+                if (try? SelectionURLTemplate(template)) == nil {
+                    return L10n.string("editor.saveNeedsSelectionURLTemplate")
+                }
+            }
         }
         if let draftScope {
             let conflicts = MouseMovementConflict.conflicts(
@@ -341,7 +359,7 @@ private extension GestureEditorView.ActionKind {
         case .shortcut, .shortcutSequence: return .shortcut
         case .system: return .system
         case .openApp: return .openApp
-        case .openURL: return .openURL
+        case .openURL, .openURLWithSelection: return .openURL
         case .shell: return .shell
         case .media: return .media
         case .window: return .window

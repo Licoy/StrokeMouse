@@ -74,55 +74,35 @@ struct WindowActions: GestureTargetActionPlatform {
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
-        orderedChord: ShortcutChord? = nil,
-        target: GestureTargetContext
+        orderedChord: ShortcutChord?,
+        target: GestureTargetContext,
+        beforePosting: (() -> Void)?
     ) async throws {
-        guard target.window != nil else {
-            try await performApplicationShortcut(
-                keyCode: keyCode,
-                modifiers: modifiers,
-                orderedChord: orderedChord,
-                target: target
-            )
-            return
-        }
-        try system.validateWindow(target)
-        if try system.isWindowFocused(target) {
-            if try !system.isApplicationActive(target) {
+        if target.window != nil {
+            try system.validateWindow(target)
+            if try system.isWindowFocused(target) {
+                if try !system.isApplicationActive(target) {
+                    guard system.activateApplication(target) else {
+                        throw GestureTargetError.activationFailed(target.processIdentifier)
+                    }
+                    try await waitUntilActive(target)
+                }
+            } else {
+                try system.setMainWindow(target)
+                try system.raiseWindow(target)
                 guard system.activateApplication(target) else {
                     throw GestureTargetError.activationFailed(target.processIdentifier)
                 }
                 try await waitUntilActive(target)
             }
-        } else {
-            try system.setMainWindow(target)
-            try system.raiseWindow(target)
+            try system.verifyFocusedWindow(target)
+        } else if try !system.isApplicationActive(target) {
             guard system.activateApplication(target) else {
                 throw GestureTargetError.activationFailed(target.processIdentifier)
             }
             try await waitUntilActive(target)
         }
-        try system.verifyFocusedWindow(target)
-        try system.postShortcut(
-            keyCode: keyCode,
-            modifiers: modifiers,
-            orderedChord: orderedChord,
-            target: target
-        )
-    }
-
-    private func performApplicationShortcut(
-        keyCode: UInt16,
-        modifiers: UInt,
-        orderedChord: ShortcutChord?,
-        target: GestureTargetContext
-    ) async throws {
-        if try !system.isApplicationActive(target) {
-            guard system.activateApplication(target) else {
-                throw GestureTargetError.activationFailed(target.processIdentifier)
-            }
-            try await waitUntilActive(target)
-        }
+        beforePosting?()
         try system.postShortcut(
             keyCode: keyCode,
             modifiers: modifiers,

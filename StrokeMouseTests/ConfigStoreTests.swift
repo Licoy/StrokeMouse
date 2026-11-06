@@ -825,6 +825,71 @@ final class ConfigStoreTests: XCTestCase {
 
     // MARK: - Import / Export
 
+    func testSelectionURLRoundTripsInLibraryExportAndBackup() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let url = dir.appendingPathComponent("gestures.json")
+        let store = ConfigStore(configURL: url)
+        let template = GestureAction.openURLWithSelection(template: "https://www.baidu.com/s?wd={0}")
+        let primary = GestureProfile(name: "Search", pattern: .freePath(PathTemplates.up), action: template)
+        let fixed = GestureAction.openURL("https://example.com")
+        var secondary = GestureProfile(name: "Other", pattern: .freePath(PathTemplates.down), action: fixed)
+        secondary.secondaryAction = template
+        store.replaceAll([primary, secondary])
+
+        let persisted = try JSONDecoder().decode(GestureConfigFile.self, from: Data(contentsOf: url))
+        XCTAssertEqual(persisted.version, 6)
+        let reloaded = ConfigStore(configURL: url)
+        XCTAssertEqual(reloaded.gestures.map(\.action), [template, fixed])
+        XCTAssertEqual(reloaded.gestures.last?.secondaryAction, template)
+        XCTAssertEqual(try reloaded.makeBackupGestureFile().version, 6)
+
+        let destination = ConfigStore(configURL: dir.appendingPathComponent("imported.json"))
+        destination.replaceAll([])
+        let data = try reloaded.exportPackage(ids: [secondary.id])
+        XCTAssertEqual(try JSONDecoder().decode(GestureConfigFile.self, from: data).version, 6)
+        XCTAssertEqual(try destination.importPackage(from: data).count, 1)
+        XCTAssertEqual(destination.gestures.first?.action, fixed)
+        XCTAssertEqual(destination.gestures.first?.secondaryAction, template)
+    }
+
+    func testInvalidSelectionURLTemplatesAreRejectedOnImport() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)
+        let store = ConfigStore(configURL: dir.appendingPathComponent("gestures.json"))
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let before = store.gestures
+        for template in [
+            "https://example.com/?q=hi",
+            "https://example.com/?q={selection}",
+            "https://example.com/?q={0}&other={0}",
+            "https://example.com/?q=prefix{0}",
+            "https://example.com/?q={0}=suffix",
+            "https://example.com/?{0}=q",
+            "https://example.com/#?q={0}",
+            "https://{0}.example.com/?q=hi",
+            "https://example.com/{0}",
+            "https://example.com/?={0}",
+            "https:///path?q={0}",
+            "ftp://example.com/?q={0}",
+        ] {
+            let profile = GestureProfile(
+                name: "Invalid",
+                pattern: .freePath(PathTemplates.up),
+                action: .openURLWithSelection(template: template)
+            )
+            let file = GestureConfigFile(version: 6, gestures: [profile])
+            let data = try JSONEncoder().encode(file)
+            XCTAssertThrowsError(try store.importPackage(from: data), template) { error in
+                guard case ConfigStoreFailure.invalidConfiguration(.invalidSelectionURLTemplate(let id, _)) = error
+                else { return XCTFail("Unexpected error: \(error)") }
+                XCTAssertEqual(id, profile.id)
+            }
+        }
+        XCTAssertEqual(store.gestures, before)
+    }
+
     func testExportPackageContainsOnlySelectedGestures() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("StrokeMouseTests-\(UUID().uuidString)", isDirectory: true)

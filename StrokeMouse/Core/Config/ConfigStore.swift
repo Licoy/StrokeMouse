@@ -603,6 +603,15 @@ final class ConfigStore {
                     .duplicateProfileID(profile.id)
                 )
             }
+            for case .openURLWithSelection(let template) in profile.actions {
+                do {
+                    _ = try SelectionURLTemplate(template)
+                } catch {
+                    throw ConfigStoreFailure.invalidConfiguration(
+                        .invalidSelectionURLTemplate(profile.id, error.localizedDescription)
+                    )
+                }
+            }
             if case .mouseCombination(let combination) = profile.input,
                combination.action == .dragScroll {
                 guard combination.isValid && profile.targetPolicy == .windowUnderPointer
@@ -650,7 +659,8 @@ final class ConfigStore {
 
         switch header.version {
         case Constants.configVersion, Constants.fnShortcutConfigVersion,
-             Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion:
+             Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion,
+             Constants.selectionURLConfigVersion:
             do {
                 let file = try decoder.decode(GestureConfigFile.self, from: data)
                 let compatibility = try decoder.decode(
@@ -925,6 +935,7 @@ enum ConfigValidationFailure: Equatable, Sendable {
     case missingAppGroup(UUID)
     case invalidAppPolicy(String)
     case invalidMouseCombination(UUID)
+    case invalidSelectionURLTemplate(UUID, String)
 
     var localizedDescription: String {
         let key: String
@@ -954,6 +965,13 @@ enum ConfigValidationFailure: Equatable, Sendable {
         case .invalidMouseCombination(let id):
             key = "config.failure.invalidMouseCombination"
             argument = id.uuidString
+        case .invalidSelectionURLTemplate(let id, let message):
+            return String(
+                format: L10n.string("config.failure.invalidSelectionURLTemplate"),
+                locale: L10n.locale,
+                id.uuidString,
+                message
+            )
         case .invalidAppPolicy(let bundleIdentifier):
             key = "config.failure.invalidAppPolicy"
             argument = bundleIdentifier

@@ -247,12 +247,16 @@ final class WindowActionsTests: XCTestCase {
             pollInterval: .milliseconds(1)
         )
 
+        var operationsBeforePosting: [TargetSystemOperation]?
         try await actions.performShortcut(
             keyCode: 42,
             modifiers: 7,
-            target: makeTargetContext()
+            orderedChord: nil,
+            target: makeTargetContext(),
+            beforePosting: { operationsBeforePosting = system.operations }
         )
 
+        XCTAssertEqual(operationsBeforePosting, Array(system.operations.dropLast()))
         XCTAssertEqual(system.operations, [
             .validateWindow,
             .isWindowFocused,

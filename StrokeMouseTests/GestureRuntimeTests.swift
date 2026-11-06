@@ -4404,8 +4404,10 @@ private final class RuntimeActionPlatform: GestureTargetActionPlatform {
         keyCode: UInt16,
         modifiers: UInt,
         orderedChord: ShortcutChord?,
-        target: GestureTargetContext
+        target: GestureTargetContext,
+        beforePosting: (() -> Void)?
     ) async throws {
+        beforePosting?()
         shortcutCount += 1
         shortcutProcessIdentifiers.append(target.processIdentifier)
         shortcutKeyCodes.append(keyCode)
