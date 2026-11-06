@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 
 @MainActor
@@ -9,6 +10,7 @@ protocol GestureTargetSystemClient: AnyObject {
         target: GestureTargetContext
     ) throws -> Bool
     func hideApplication(_ target: GestureTargetContext) throws
+    func setWindowMinimized(_ target: GestureTargetContext) throws
     func maximizeWindow(_ target: GestureTargetContext) async throws
     func centerWindow(_ target: GestureTargetContext) throws
     func setMainWindow(_ target: GestureTargetContext) throws
@@ -56,7 +58,25 @@ struct WindowActions: GestureTargetActionPlatform {
             _ = try target.requireWindow()
             try system.validateWindow(target)
             try system.centerWindow(target)
-        case .close, .minimize, .zoom:
+        case .minimize:
+            _ = try target.requireWindow()
+            try system.validateWindow(target)
+            if try !system.pressWindowControl(.minimize, target: target) {
+                do {
+                    try system.setWindowMinimized(target)
+                } catch GestureTargetError.windowControlUnavailable(.minimize)
+                    where target.bundleIdentifier == "com.netease.game.popo"
+                {
+                    let chord = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_M))
+                    try await performShortcut(
+                        keyCode: chord.legacyKeyCode,
+                        modifiers: chord.legacyModifiers,
+                        orderedChord: chord,
+                        target: target
+                    )
+                }
+            }
+        case .close, .zoom:
             _ = try target.requireWindow()
             try system.validateWindow(target)
             guard try system.pressWindowControl(command, target: target) else {

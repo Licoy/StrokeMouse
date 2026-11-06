@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 import XCTest
 @testable import StrokeMouse
 
@@ -545,6 +546,7 @@ final class WindowActionsTests: XCTestCase {
         let target = makeTargetContext()
 
         try await actions.performWindow(.close, target: target)
+        try await actions.performWindow(.minimize, target: target)
         try await actions.performWindow(.center, target: target)
         try await actions.performWindow(.maximize, target: target)
         try await actions.performWindow(.hide, target: target)
@@ -553,10 +555,64 @@ final class WindowActionsTests: XCTestCase {
             .validateWindow,
             .pressWindowControl(.close),
             .validateWindow,
+            .pressWindowControl(.minimize),
+            .validateWindow,
             .centerWindow,
             .validateWindow,
             .maximizeWindow,
             .hideApplication,
+        ])
+        XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
+    }
+
+    func testMinimizeWithoutButtonWritesOnlyToFrozenWindow() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowControlAvailable = false
+        let target = makeTargetContext()
+
+        try await WindowActions(system: system).performWindow(.minimize, target: target)
+
+        XCTAssertEqual(system.operations, [.validateWindow, .pressWindowControl(.minimize), .setWindowMinimized])
+        XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
+    }
+
+    func testUnsupportedMinimizePreservesWindowError() async {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowControlAvailable = false
+        system.minimizeError = GestureTargetError.windowControlUnavailable(.minimize)
+
+        do {
+            try await WindowActions(system: system).performWindow(.minimize, target: makeTargetContext())
+            XCTFail("Expected unsupported window to fail")
+        } catch GestureTargetError.windowControlUnavailable(.minimize) {
+        } catch { XCTFail("Unexpected error: \(error)") }
+
+        XCTAssertEqual(system.operations, [.validateWindow, .pressWindowControl(.minimize), .setWindowMinimized])
+    }
+
+    func testPOPOUnsupportedMinimizePostsCommandMToCapturedWindow() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowControlAvailable = false
+        system.windowFocused = true
+        system.minimizeError = GestureTargetError.windowControlUnavailable(.minimize)
+        let target = makeTargetContext(bundleIdentifier: "com.netease.game.popo")
+        let keyCode = UInt16(kVK_ANSI_M)
+
+        try await WindowActions(system: system).performWindow(.minimize, target: target)
+
+        XCTAssertEqual(system.operations, [
+            .validateWindow,
+            .pressWindowControl(.minimize),
+            .setWindowMinimized,
+            .validateWindow,
+            .isWindowFocused,
+            .isApplicationActive,
+            .verifyFocusedWindow,
+            .postShortcut(
+                keyCode: keyCode,
+                modifiers: NSEvent.ModifierFlags.command.rawValue,
+                orderedChord: ShortcutChord(modifiers: [.command], keyCode: keyCode)
+            ),
         ])
         XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
     }
@@ -614,12 +670,15 @@ final class WindowActionsTests: XCTestCase {
         XCTAssertEqual(system.operations, [.hideApplication])
     }
 
-    private func makeTargetContext(withWindow: Bool = true) -> GestureTargetContext {
+    private func makeTargetContext(
+        withWindow: Bool = true,
+        bundleIdentifier: String = "com.apple.Safari"
+    ) -> GestureTargetContext {
         GestureTargetContext(
             policy: .frontmostWindow,
             identity: GestureTargetIdentity(
                 processIdentifier: 101,
-                bundleIdentifier: "com.apple.Safari"
+                bundleIdentifier: bundleIdentifier
             ),
             application: nil,
             window: withWindow
@@ -655,6 +714,7 @@ private enum TargetSystemOperation: Equatable {
     case validateWindow
     case pressWindowControl(WindowCommand)
     case hideApplication
+    case setWindowMinimized
     case centerWindow
     case maximizeWindow
     case setMainWindow
@@ -677,6 +737,7 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     var windowControlAvailable = true
     var validateError: Error?
     var hideError: Error?
+    var minimizeError: Error?
     var activeError: Error?
     var windowFocused = false
     var focusQueryError: Error?
@@ -702,6 +763,11 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     func hideApplication(_ target: GestureTargetContext) throws {
         record(.hideApplication, target: target)
         if let hideError { throw hideError }
+    }
+
+    func setWindowMinimized(_ target: GestureTargetContext) throws {
+        record(.setWindowMinimized, target: target)
+        if let minimizeError { throw minimizeError }
     }
 
     func maximizeWindow(_ target: GestureTargetContext) async throws {
