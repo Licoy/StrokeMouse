@@ -51,12 +51,11 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         } catch GestureTargetError.axOperationFailed(_, let code)
             where code == .noValue || code == .attributeUnsupported
         {
-            if command == .fullscreen || command == .minimize { return false }
-            throw GestureTargetError.windowControlUnavailable(command)
+            return false
         }
 
         let result = AXUIElementPerformAction(control, kAXPressAction as CFString)
-        if command == .minimize && result == .actionUnsupported { return false }
+        if result == .actionUnsupported { return false }
         guard result == .success else {
             throw GestureTargetError.axOperationFailed(
                 operation: .pressWindowControl,

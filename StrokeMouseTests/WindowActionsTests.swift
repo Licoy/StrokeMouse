@@ -516,6 +516,7 @@ final class WindowActionsTests: XCTestCase {
         system.activeStates = [true]
         let actions = WindowActions(system: system)
         let target = makeTargetContext()
+        let keyCode = UInt16(kVK_ANSI_F)
 
         try await actions.performWindow(.fullscreen, target: target)
 
@@ -530,11 +531,9 @@ final class WindowActionsTests: XCTestCase {
             .isApplicationActive,
             .verifyFocusedWindow,
             .postShortcut(
-                keyCode: 3,
-                modifiers: UInt(
-                    NSEvent.ModifierFlags.control.rawValue
-                        | NSEvent.ModifierFlags.command.rawValue
-                )
+                keyCode: keyCode,
+                modifiers: NSEvent.ModifierFlags.control.rawValue | NSEvent.ModifierFlags.command.rawValue,
+                orderedChord: ShortcutChord(modifiers: [.control, .command], keyCode: keyCode)
             ),
         ])
         XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
@@ -547,6 +546,8 @@ final class WindowActionsTests: XCTestCase {
 
         try await actions.performWindow(.close, target: target)
         try await actions.performWindow(.minimize, target: target)
+        try await actions.performWindow(.zoom, target: target)
+        try await actions.performWindow(.fullscreen, target: target)
         try await actions.performWindow(.center, target: target)
         try await actions.performWindow(.maximize, target: target)
         try await actions.performWindow(.hide, target: target)
@@ -556,6 +557,10 @@ final class WindowActionsTests: XCTestCase {
             .pressWindowControl(.close),
             .validateWindow,
             .pressWindowControl(.minimize),
+            .validateWindow,
+            .pressWindowControl(.zoom),
+            .validateWindow,
+            .pressWindowControl(.fullscreen),
             .validateWindow,
             .centerWindow,
             .validateWindow,
@@ -588,6 +593,51 @@ final class WindowActionsTests: XCTestCase {
         } catch { XCTFail("Unexpected error: \(error)") }
 
         XCTAssertEqual(system.operations, [.validateWindow, .pressWindowControl(.minimize), .setWindowMinimized])
+    }
+
+    func testPOPOUnsupportedClosePostsCommandWToCapturedWindow() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.windowControlAvailable = false
+        system.windowFocused = true
+        let target = makeTargetContext(bundleIdentifier: "com.netease.game.popo")
+        let keyCode = UInt16(kVK_ANSI_W)
+
+        try await WindowActions(system: system).performWindow(.close, target: target)
+
+        XCTAssertEqual(system.operations, [
+            .validateWindow,
+            .pressWindowControl(.close),
+            .validateWindow,
+            .isWindowFocused,
+            .isApplicationActive,
+            .verifyFocusedWindow,
+            .postShortcut(
+                keyCode: keyCode,
+                modifiers: NSEvent.ModifierFlags.command.rawValue,
+                orderedChord: ShortcutChord(modifiers: [.command], keyCode: keyCode)
+            ),
+        ])
+        XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
+    }
+
+    func testUnsupportedCloseAndZoomDoNotSendUnverifiedShortcuts() async {
+        let cases: [(WindowCommand, GestureTargetContext)] = [
+            (.close, makeTargetContext()),
+            (.zoom, makeTargetContext(bundleIdentifier: "com.netease.game.popo")),
+        ]
+        for (command, target) in cases {
+            let system = RecordingGestureTargetSystemClient()
+            system.windowControlAvailable = false
+
+            do {
+                try await WindowActions(system: system).performWindow(command, target: target)
+                XCTFail("Expected unsupported window control to fail")
+            } catch GestureTargetError.windowControlUnavailable(let failedCommand) {
+                XCTAssertEqual(failedCommand, command)
+            } catch { XCTFail("Unexpected error: \(error)") }
+
+            XCTAssertEqual(system.operations, [.validateWindow, .pressWindowControl(command)])
+        }
     }
 
     func testPOPOUnsupportedMinimizePostsCommandMToCapturedWindow() async throws {
