@@ -4,7 +4,7 @@
 
 ## 一句话
 
-**StrokeMouse** 是 macOS 上的鼠标与触控板手势自定义应用：统一处理鼠标绘制、鼠标按键映射（侧键 / 中键单击）、鼠标组合（按住右键 + 滚轮 / 左键、屏幕边缘右键 / 滚轮）、触控板绘制（单修饰键 + 指针轨迹）和实验性触控手势（多指），匹配配置后执行动作。
+**StrokeMouse** 是 macOS 上的鼠标与触控板手势自定义应用：统一处理鼠标绘制、鼠标按键映射（侧键 / 中键单击）、鼠标组合（按住右键 + 滚轮 / 左键、屏幕边缘右键 / 滚轮 / 右键绘制）、触控板绘制（单修饰键 + 指针轨迹）和实验性触控手势（多指），匹配配置后执行动作。
 
 Bundle ID：Release `com.strokemouse.app`；Debug `com.strokemouse.app.dev`（显示名 **StrokeMouse Dev**，与正式版在辅助功能中分开授权）。
 
@@ -141,7 +141,7 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 - `MouseEventTap` 依赖 `AXIsProcessTrusted()`；未授权时不得假装在监听。
 - `MouseEventTap` 使用 `.defaultTap`，只捕获已配置触发键且由它收到 down 的 down/up。前台 App 不会收到配对的 down/up，因此不得出现或选中右键菜单。未达到 `minStrokeDistance` 的短按必须用带 `.eventSourceUserData` 标记的合成 down/up 回放，标记事件直接放行且不得重入手势引擎；例外一是冻结目标存在该按键的鼠标按键映射，此时短按执行映射且不回放；例外二是右键移动归拖动滚动所有时，位移达到固定 10pt 的 `MouseDragScrollSession.deadzone` 即开始滚动且不回放，未达到时仍回放。未监控按钮和没有配对 down 的事件始终放行。左键默认放行：仅当已启用的鼠标绘制 profile 存在 `secondaryAction`，或存在「按住右键 + 左键」鼠标组合时，left down/up 才进入同一 tap 掩码（在无会话时重装 tap 切换）；且只有本次会话的候选含第二动作或该组合时，触发键按住期间的 left down 与其配对 up 才被成对吞掉，组合优先于第二动作。触发键之前已按下的左键保留其 up；新的 left down 清除遗留的待吞 up。leftMouseDragged 同样不得进入掩码。
 - `MouseEventTap` 仅在存在已启用的滚轮鼠标组合时把 `scrollWheel` 加入掩码（无会话时重装 tap 切换）。只有无 `eventSourceUserData` 标记、scroll / momentum phase 均为 0 的设备滚轮参与判断：按住右键时只吞会话候选含该方向组合的刻度；边缘滚轮不占用 session gate，只用 `GestureSessionGate.transientAdmission` 冻结配置，按未过滤作用域的配置先吞下，再在独立队列解析目标。被吞的刻度要么执行组合，要么回放，不得丢失；回放必须按原增量新建事件并带 `combinationReplayMarker`，不得重投原事件副本（其 `location` 已过期）。右键按下在 AX 目标查询前先做纯位置过滤，只有边缘组合可用的按下在其他位置直接放行。存在滚轮组合时整个 tap（按键边沿 + 左键 + 滚轮）安装在 `.cghidEventTap`，先于会话层滚动工具拿到原始刻度；HID 创建失败回退会话层并记录日志，不能让整个 mouse 通道失败。此时按键类功能也先于会话层的其他鼠标工具生效，且看不到其他程序投到会话层的合成鼠标事件；无滚轮组合时仍用 `.cgSessionEventTap`。
-- `MouseEventTap.shouldCapture` 在 tap 线程同步执行，只用 identity 判定是否吞下按下（前台策略仅 `NSWorkspace`，指针策略一次 hit-test），不得复制 AX 窗口：目标应用 AX 响应慢会超过 WindowServer 的 tap 超时，按下漏给应用、会话被打断。接受按下后由 `deferWindowCapture` 在独立队列捕获按下时刻的窗口，挂到候选的 `pendingWindow`，动作执行前等待，超过 `Constants.gestureWindowCaptureTimeout` 按目标不可用报错；修饰键会话同样延迟窗口捕获，避免占住鼠标判定要等的 input core。tap 被停用、按下判定耗时 ≥ 50ms、窗口捕获 ≥ 100ms 或超时都要记日志。
+- `MouseEventTap.shouldCapture` 在 tap 线程同步执行，只用 identity 判定是否吞下按下（前台策略仅 `NSWorkspace`，指针策略一次 hit-test），不得复制 AX 窗口：目标应用 AX 响应慢会超过 WindowServer 的 tap 超时，按下漏给应用、会话被打断。接受按下后由 `deferWindowCapture` 在独立队列捕获按下时刻的窗口（前台与指针两种策略各自独立捕获，互不阻塞），挂到候选的 `pendingWindow`，需要捕获目标的动作（`requiresCapturedTarget`）执行前等待，超过 `Constants.gestureWindowCaptureTimeout` 按目标不可用报错；修饰键会话同样延迟窗口捕获，避免占住鼠标判定要等的 input core。tap 被停用、按下判定耗时 ≥ 50ms、窗口捕获 ≥ 100ms 或超时都要记日志。
 - **禁止**把 `mouseMoved` 或任何 `mouseDragged` 放进 filtering tap 的 `eventsOfInterest`：`.defaultTap` 会同步拦截系统光标更新，在 macOS 14 上可导致按住触发键后光标冻结、退出 App 才恢复。所有连续移动事件必须完全绕过 event tap；路径只用 `GestureRuntime` 的 120Hz timer + `NSEvent.mouseLocation` 采样，起点与终点用 down/up 事件自身坐标（Quartz→AppKit 转换）补齐。
 - `ModifierEventTap` 必须保持 listen-only，只监听 `flagsChanged`；仅支持 Fn / Control / Option / Shift / Command 中**精确的单个键**，出现额外支持键立即取消。不得吞掉键盘事件，短路径不执行动作，轨迹仍由 120Hz 指针采样获得。
 - `ScrollEventTap` 的掩码只含 `scrollWheel`。回调内禁止 AX、NSWorkspace、IPC 或主线程同步调用；经 `MouseCombinationScrollBridge` 调用的 `MouseEventTap` 滚轮判断同样只读加锁状态，后续工作全部异步。滚动增强前先经该 bridge 询问鼠标组合是否消费此刻度（与两个 tap 的安装顺序无关），反向前给设备事件打 `combinationInspectedMarker`，避免另一个 tap 把反向后的事件当成反方向组合；`MouseEventTap` 位于 HID 层（`inspectsWheelAtHID`）时已先判断过每个刻度，bridge 不再询问也不打标记。合成滚动事件必须带 `eventSourceUserData` 标记，命中后直接放行，并投递到 `.cgSessionEventTap`，不得投到 HID。不得写入 `location`：创建时已带当前光标，过期坐标会被系统当成指针位置。tap 仅在总开关、至少一项滚动功能、辅助功能已授权时安装；不受手势暂停和 `GestureRuntime.suppress` 影响。滚动偏好只存本机 `UserDefaults`，不进入 `PortableSettingsV1`。
@@ -165,13 +165,15 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
    - 调整参数前用 `Issue17LetterRecognitionTests`（Issue #17 真实字母轨迹）与各录制 fixture 回归，详见 `docs/elastic-path-recognition.md`
 4. 鼠标绘制可选 `GestureProfile.secondaryAction`：会话中点击过左键则只执行匹配手势的第二动作，匹配手势没有第二动作时不执行任何动作（`secondaryActionUnavailable`）；所有候选仍参与匹配，左键只选择动作；未达到有效轨迹的左键会话直接取消、不回放点击；触控板绘制与触控手势始终执行主动作
 5. 鼠标按键映射复用 mouse 会话与 `MouseEventTap`，不新增 tap 或掩码：按住期间位移未达 `minStrokeDistance` 时在松开执行映射，超过则走绘制识别、不执行映射；冻结目标没有该按键的绘制候选时不采样、不显示 HUD，松开即按单击执行。只取最具体作用域层（应用 > 应用组 > 全局），同层多条为冲突，执行零个动作并提示；成功不弹匹配提示。全局映射受 `GestureInputKind.mouseButton` 抑制，与鼠标绘制分开。修饰键取自按下事件自身的 flags（`shouldCapture` 第三个参数，经 `ModifierEventTap.supportedKeys` 换算），在 tap 线程决定捕获前过滤候选：按住的支持键集合必须与映射配置的修饰键（或空集）完全相等，绘制候选不看修饰键；所选修饰键若同时用于触控板绘制，modifier 会话先占用 session gate，映射不会触发
-6. 鼠标组合保存在 `GestureInput.mouseCombination`：「按住右键 + 滚轮 / 左键」复用右键 mouse 会话与冻结目标，触发后松开右键不再识别绘制、不回放点击，左键每次按住只触发一次，普通滚轮每格触发、高精度（continuous）滚轮按事件时间戳限频 120ms；「边缘 + 右键」在未开始绘制且松开时仍在所选边缘时执行；「边缘 + 滚轮」按处理时间限频 100ms，未命中作用域时回放。作用域优先级与冲突规则同鼠标按键映射，全局组合受 `GestureInputKind.mouseCombination` 抑制。边缘为各显示器 Quartz 边界内 3 点，相邻显示器接缝也算边缘
+6. 鼠标组合保存在 `GestureInput.mouseCombination`：「按住右键 + 滚轮 / 左键」复用右键 mouse 会话与冻结目标，触发后松开右键不再识别绘制、不回放点击，左键每次按住只触发一次，普通滚轮每格触发、高精度（continuous）滚轮按事件时间戳限频 60ms；「边缘 + 右键」在未开始绘制且松开时仍在所选边缘时执行；「边缘 + 滚轮」按处理时间限频 100ms，未命中作用域时回放。作用域优先级与冲突规则同鼠标按键映射，全局组合受 `GestureInputKind.mouseCombination` 抑制。边缘为各显示器 Quartz 边界内 3 点，相邻显示器接缝也算边缘；「边缘 + 右键手势」（`rightGesture`）保存 1–5 个 `drawingPaths` 样本，按右键按下位置判定是否进入边缘绘制，松开可在屏幕内，复用指针采样、`ElasticPathMatcher` 与多样本编辑，短按回放右键、错误轨迹零执行；它只压过同级或更宽作用域的普通右键绘制与拖动滚动，更具体作用域的候选照常优先。只有边缘绘制无效时拒绝整个配置，其他无效组合保持可加载并在运行时忽略。滚轮组合触发的普通快捷键（有主键、不含 Fn）使用私有事件源，修饰键只作为主键 flags，不合成修饰键按下 / 松开，避免罗技等驱动把后续纵向滚轮变成横向；仍投递到 `.cghidEventTap`，不得改为 `postToPid`，否则系统与第三方全局热键收不到
 7. 触控手势支持 40 类：三至五指轻点 / 轻点两下 / 点按 / 点按两下 / 四向滑动，以及二至五指捏合 / 张开 / 顺逆时针旋转；混合变换、对角滑动和 near-miss 必须拒绝。物理按下过触控板的触点序列不得识别为任何轻点 / 滑动等触控手势（`.physicallyPressed`）；点按在按下时执行，单 / 双次由独立的 `clickResolver` 判定，截止计时不因触点序列进行中而顺延
 8. mouse / modifier / multitouch 通过同一 session gate 仲裁；第一个合法 begin 冻结配置 revision、候选 profile、目标应用和精确窗口，其他来源忽略到物理输入归零；单个边缘滚轮刻度不是会话，不得占用 gate
 9. 使用冻结应用的 `bundleIdentifier` 过滤 `AppScope`；触控手势中应用专属配置优先于全局，同级多个精确匹配视为冲突并执行零个动作；命中动作始终复用冻结目标
 
 10. 拖动滚动保持 `mouseCombination.dragScroll` 输入，沿用右键会话与指针采样，不增加 filtering tap 移动掩码；固定从指针下内容开始，不激活冻结窗口，松手 / 取消 / 暂停立即停止，无惯性或光标锁定，合成滚轮带标记且不进入滚动增强。移动模式先按最具体作用域选择，同级拖动滚动与右键绘制或多条拖动滚动冲突时零执行，并使用独立的移动冲突提示；确定冲突（相同全局、应用列表相交、同一应用组）由 `MouseMovementConflict` 在所有 UI 入口拦截：编辑器按草稿作用域检查，列表启用 / 批量启用、移动、删除应用组并转为全局时拒绝并列出冲突手势，复制出的冲突副本与导入的冲突手势以停用状态加入，已存在的冲突在列表中显示警告；不自动停用或删除已有绘制
-11. 系统动作使用独立 `system` 语义与可选快捷键覆盖，应用程序窗口沿冻结目标，其余系统导航保持当前系统上下文，普通快捷键仍激活冻结目标；编辑器读取 `com.apple.symbolichotkeys` 提示系统快捷键已关闭或与此处不一致，未设置覆盖且系统条目已关闭时执行报错，不静默失败；主动作或第二动作包含最大化窗口的配置 / 导出使用 v5，否则包含系统动作或拖动滚动时使用 v4，只有 Fn 快捷键时 v3，其他配置 v2
+11. 系统动作使用独立 `system` 语义与可选快捷键覆盖，应用程序窗口沿冻结目标，其余系统导航保持当前系统上下文，普通快捷键仍激活冻结目标；编辑器读取 `com.apple.symbolichotkeys` 提示系统快捷键已关闭或与此处不一致，未设置覆盖且系统条目已关闭时执行报错，不静默失败；含边缘右键绘制（`mouseCombination.rightGesture`）的配置 / 导出使用 v7，否则包含「打开 URL → 使用选中文本」（`openURLWithSelection`）时使用 v6，主动作或第二动作包含最大化窗口时使用 v5，包含系统动作或拖动滚动时使用 v4，只有 Fn 快捷键时 v3，其他配置 v2
+12. 「打开 URL → 使用选中文本」向冻结目标发送 ⌘C，最多等待 1 秒剪贴板变化，把文本按非保留字符百分号编码后替换模板中唯一作为查询参数值的 `{0}`（仅 http / https，需有主机名），复制的文本保留在剪贴板；同一时间只允许一个复制在途
+13. 窗口关闭 / 最小化 / 缩放 / 全屏先按 AX 窗口按钮；最小化按钮不可用时写 `kAXMinimizedAttribute`，仍不可写才在确认冻结窗口获得焦点后发送 ⌘M；全屏回退 ⌃⌘F；关闭和缩放不回退快捷键（⌘W 常只关标签页），失败明确报错；不得按 bundle ID 写应用特例
 
 调参常量见 `Constants.swift`。
 
@@ -196,9 +198,3 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 - 工程生成：`project.yml`
 - 版本：`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` 在 `project.yml`
 - 发布：`RELEASING.md`、`.github/workflows/release.yml`
-
-## Edge drawing and targeted wheel shortcuts
-
-- Screen-edge right drawings use `mouseCombination.rightGesture` and optional `drawingPaths`, require config format v7, and reuse the existing sampler/matcher/editor. Admit by the press location; release may leave the edge. Short presses still replay a native right click. Admitted edge drawings take drawing precedence over ordinary drawings and drag scrolling.
-- Ordinary wheel-combination shortcuts use task-local `ShortcutAction.Delivery.targetProcess`, private event source state, and `postToPid` to the frozen target. Retain window validation/focusing; missing PID fails without a global fallback. Carry modifiers on primary key flags, without synthetic physical modifier edges. Fn, modifier-only and system actions retain system routing.
-- Precise held-wheel repeats use 60 ms; no sensitivity setting or extra motion accumulator. Deferred window capture resolves frontmost/pointer policies independently; actions requiring no captured target do not wait for a window.
