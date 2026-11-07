@@ -383,6 +383,21 @@ final class ShortcutConfigCompatibilityTests: XCTestCase {
         }
     }
 
+    func testOnlyInvalidEdgeDrawingsRejectTheLibrary() throws {
+        try withTemporaryDirectory { directory in
+            let store = ConfigStore(configURL: directory.appendingPathComponent("source.json"))
+            let heldRightClick = GestureProfile(name: "Held right click",
+                input: .mouseCombination(.init(action: .rightClick)), action: .media(.playPause))
+            XCTAssertNoThrow(try store.validateBackupGestureFile(.init(version: 2, gestures: [heldRightClick])))
+            let edgeDrawing = GestureProfile(name: "Edge drawing",
+                input: .mouseCombination(.init(edge: .top, action: .rightGesture)), action: .media(.playPause))
+            XCTAssertThrowsError(try store.validateBackupGestureFile(.init(version: 7, gestures: [edgeDrawing]))) {
+                XCTAssertEqual($0 as? ConfigStoreFailure,
+                               .invalidConfiguration(.invalidMouseCombination(edgeDrawing.id)))
+            }
+        }
+    }
+
     func testV4BackupCodecAndMergePreserveSystemOverridesAndDragScroll() throws {
         let fn = ShortcutChord(modifiers: [.function, .control], keyCode: 123)
         var system = GestureProfile(name: "System", pattern: .freePath(PathTemplates.up),

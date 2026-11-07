@@ -619,7 +619,10 @@ final class ConfigStore {
                     throw ConfigStoreFailure.invalidConfiguration(.invalidMouseCombination(profile.id))
                 }
             }
-            if case .mouseCombination(let combo) = profile.input, !combo.isValid {
+            // Other invalid combinations stay loadable and are ignored at runtime,
+            // but an edge drawing's paths feed recognition and must be usable.
+            if case .mouseCombination(let combo) = profile.input,
+               combo.action == .rightGesture, !combo.isValid {
                 throw ConfigStoreFailure.invalidConfiguration(.invalidMouseCombination(profile.id))
             }
             guard let drawn = profile.input.recognitionDrawing else { continue }

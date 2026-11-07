@@ -857,7 +857,8 @@ final class GestureRuntime {
             guard ids.insert(profile.id).inserted else {
                 throw GestureRuntimeConfigurationError.duplicateProfileID(profile.id)
             }
-            if case .mouseCombination(let combo) = profile.input, !combo.isValid {
+            if case .mouseCombination(let combo) = profile.input,
+               combo.action == .rightGesture, !combo.isValid {
                 throw GestureRuntimeConfigurationError.invalidDrawnPath(profile.id)
             }
             guard let drawn = profile.input.recognitionDrawing else { continue }

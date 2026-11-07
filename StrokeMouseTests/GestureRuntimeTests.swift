@@ -2916,6 +2916,16 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(mouse.replayedClicks, 0)
     }
 
+    func testInvalidCombinationsAreIgnoredButInvalidEdgeDrawingsReject() throws {
+        let (runtime, _, _) = makeButtonMappingRuntime()
+        XCTAssertNoThrow(try runtime.apply(configuration(revision: 1, enabled: true,
+            profiles: [combinationProfile(action: .rightClick)])))
+        let edgeDrawing = combinationProfile(edge: .top, action: .rightGesture)
+        XCTAssertThrowsError(try runtime.apply(configuration(revision: 2, enabled: true, profiles: [edgeDrawing]))) {
+            XCTAssertEqual($0 as? GestureRuntimeConfigurationError, .invalidDrawnPath(edgeDrawing.id))
+        }
+    }
+
     func testEdgeDrawingShortClickReplaysAndWrongShapeDoesNotExecute() async throws {
         let (runtime, mouse, platform) = makeButtonMappingRuntime()
         let paths = [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: -150)]]
