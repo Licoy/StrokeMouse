@@ -638,6 +638,56 @@ enum AppleScriptPreset: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+struct SelectionURLTemplate {
+    enum ValidationError: LocalizedError {
+        case invalidAddress
+        case invalidPlaceholder
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidAddress: return L10n.string("action.selectionURL.invalidAddress")
+            case .invalidPlaceholder: return L10n.string("action.selectionURL.invalidPlaceholder")
+            }
+        }
+    }
+
+    static let placeholder = "{0}"
+    private static let unreserved = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+    )
+
+    private let prefix: String
+    private let suffix: String
+
+    init(_ template: String) throws {
+        let parts = template.components(separatedBy: Self.placeholder)
+        guard parts.count == 2 else { throw ValidationError.invalidPlaceholder }
+
+        let address = template.prefix { $0 != "#" }
+        guard let queryStart = address.firstIndex(of: "?"),
+              address[address.index(after: queryStart)...].split(separator: "&").contains(where: { item in
+                  guard let equals = item.firstIndex(of: "="), equals != item.startIndex else { return false }
+                  return item[item.index(after: equals)...] == Self.placeholder
+              })
+        else { throw ValidationError.invalidPlaceholder }
+
+        guard let url = URL(string: parts[0] + "hi" + parts[1], encodingInvalidCharacters: false),
+              let scheme = url.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              let host = url.host, !host.isEmpty
+        else { throw ValidationError.invalidAddress }
+
+        prefix = parts[0]
+        suffix = parts[1]
+    }
+
+    func url(for selection: String) throws -> URL {
+        guard let encoded = selection.addingPercentEncoding(withAllowedCharacters: Self.unreserved),
+              let url = URL(string: prefix + encoded + suffix, encodingInvalidCharacters: false)
+        else { throw ValidationError.invalidAddress }
+        return url
+    }
+}
+
 enum GestureAction: Equatable, Sendable {
     case none
     case shortcut(
@@ -648,6 +698,7 @@ enum GestureAction: Equatable, Sendable {
     )
     case openApp(bundleId: String, name: String)
     case openURL(String)
+    case openURLWithSelection(template: String)
     case shell(String)
     case media(MediaCommand)
     case window(WindowCommand)
@@ -662,7 +713,7 @@ enum GestureAction: Equatable, Sendable {
         case .none: return "action.none"
         case .shortcut, .shortcutSequence: return "action.shortcut"
         case .openApp: return "action.openApp"
-        case .openURL: return "action.openURL"
+        case .openURL, .openURLWithSelection: return "action.openURL"
         case .shell: return "action.shell"
         case .media: return "action.media"
         case .window: return "action.window"
@@ -681,7 +732,7 @@ enum GestureAction: Equatable, Sendable {
             return chord.map(KeyCodeNames.shortcutDisplay(chord:)) ?? display
         case .openApp(_, let name):
             return name
-        case .openURL(let url):
+        case .openURL(let url), .openURLWithSelection(let url):
             return url
         case .shell(let cmd):
             return cmd
@@ -732,6 +783,7 @@ private enum PersistedGestureAction: Codable {
     )
     case openApp(bundleId: String, name: String)
     case openURL(String)
+    case openURLWithSelection(template: String)
     case shell(String)
     case media(MediaCommand)
     case window(WindowCommand)
@@ -751,6 +803,7 @@ private enum PersistedGestureAction: Codable {
             )
         case .openApp(let bundleId, let name): self = .openApp(bundleId: bundleId, name: name)
         case .openURL(let url): self = .openURL(url)
+        case .openURLWithSelection(let template): self = .openURLWithSelection(template: template)
         case .shell(let command): self = .shell(command)
         case .media(let command): self = .media(command)
         case .window(let command): self = .window(command)
@@ -798,6 +851,7 @@ private enum PersistedGestureAction: Codable {
             )
         case .openApp(let bundleId, let name): return .openApp(bundleId: bundleId, name: name)
         case .openURL(let url): return .openURL(url)
+        case .openURLWithSelection(let template): return .openURLWithSelection(template: template)
         case .shell(let command): return .shell(command)
         case .media(let command): return .media(command)
         case .window(let command): return .window(command)
@@ -1164,6 +1218,14 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     /// Fn cannot be decoded safely by v2 releases, including in later chords
     /// and secondary actions, so only libraries using it require v3.
     static func requiredVersion(for gestures: [GestureProfile]) -> Int {
+        if gestures.contains(where: { profile in
+            profile.actions.contains { action in
+                if case .openURLWithSelection = action { return true }
+                return false
+            }
+        }) {
+            return Constants.selectionURLConfigVersion
+        }
         if gestures.contains(where: { $0.actions.contains(.window(.maximize)) }) {
             return Constants.maximizeWindowConfigVersion
         }
@@ -1196,7 +1258,8 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
 
     var hasSupportedVersion: Bool {
         [Constants.configVersion, Constants.fnShortcutConfigVersion,
-         Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion].contains(version)
+         Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion,
+         Constants.selectionURLConfigVersion].contains(version)
             && version >= Self.requiredVersion(for: gestures)
     }
 

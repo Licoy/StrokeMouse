@@ -1,9 +1,114 @@
+import AppKit
 import ApplicationServices
+import Carbon.HIToolbox
 import XCTest
 @testable import StrokeMouse
 
 @MainActor
 final class ActionExecutorTests: XCTestCase {
+    func testSelectionURLCopiesInFrozenWindowAndEncodesOnlySelection() async throws {
+        let pasteboard = NSPasteboard(name: .init(UUID().uuidString))
+        defer { pasteboard.releaseGlobally() }
+        let platform = RecordingGestureTargetActionPlatform()
+        platform.onPostShortcut = {
+            pasteboard.clearContents()
+            Task { @MainActor in
+                pasteboard.setString("中文 a+b & #?", forType: .string)
+                pasteboard.setData(Data([1]), forType: .rtf)
+            }
+        }
+        var opened: [String] = []
+        let executor = ActionExecutor(targetPlatform: platform, pasteboard: pasteboard) {
+            opened.append($0.absoluteString)
+            return true
+        }
+        let target = makeTargetContext()
+        try await executor.execute(
+            .openURLWithSelection(template: "https://www.baidu.com/s?other=a+b%2f&wd={0}#results"),
+            target: .resolved(target)
+        )
+
+        XCTAssertEqual(platform.shortcuts.map(\.orderedChord), [
+            ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_C))
+        ])
+        XCTAssertTrue(platform.shortcuts.first?.target.window === target.window)
+        XCTAssertEqual(opened, ["https://www.baidu.com/s?other=a+b%2f&wd=%E4%B8%AD%E6%96%87%20a%2Bb%20%26%20%23%3F#results"])
+        XCTAssertEqual(pasteboard.string(forType: .string), "中文 a+b & #?")
+        XCTAssertEqual(pasteboard.data(forType: .rtf), Data([1]))
+    }
+
+    func testSelectionURLTimesOutWithOldTextAndRejectsOverlappingCopy() async throws {
+        let pasteboard = NSPasteboard(name: .init(UUID().uuidString))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        pasteboard.setString("old", forType: .string)
+        let platform = RecordingGestureTargetActionPlatform()
+        let executor = ActionExecutor(targetPlatform: platform, pasteboard: pasteboard) { _ in
+            XCTFail("No URL should open for old clipboard content")
+            return false
+        }
+        let action = GestureAction.openURLWithSelection(template: "https://example.com/?q={0}")
+        let target = GestureTargetResolution.resolved(makeTargetContext())
+        let overlap = expectation(description: "Concurrent copy rejected")
+        platform.onPostShortcut = { [weak executor] in
+            Task { @MainActor in
+                defer { overlap.fulfill() }
+                guard let executor else { return XCTFail("Executor was released") }
+                do {
+                    try await executor.execute(action, target: target)
+                    XCTFail("Expected overlapping action to fail")
+                } catch ActionExecutionError.selectionCopyInProgress {
+                } catch { XCTFail("Unexpected error: \(error)") }
+            }
+        }
+
+        do {
+            try await executor.execute(action, target: target)
+            XCTFail("Expected unchanged clipboard to time out")
+        } catch ActionExecutionError.selectionCopyTimedOut {}
+        await fulfillment(of: [overlap], timeout: 1)
+        XCTAssertEqual(platform.shortcuts.count, 1)
+        XCTAssertEqual(pasteboard.string(forType: .string), "old")
+    }
+
+    func testSelectionURLRejectsNonTextAndUnavailableWindow() async throws {
+        let pasteboard = NSPasteboard(name: .init(UUID().uuidString))
+        defer { pasteboard.releaseGlobally() }
+        let platform = RecordingGestureTargetActionPlatform()
+        platform.onPostShortcut = {
+            pasteboard.clearContents()
+            pasteboard.setData(Data([1]), forType: .png)
+        }
+        let executor = ActionExecutor(targetPlatform: platform, pasteboard: pasteboard) { _ in
+            XCTFail("No URL should open")
+            return false
+        }
+        let action = GestureAction.openURLWithSelection(template: "https://example.com/?q={0}")
+
+        do {
+            try await executor.execute(action, target: .resolved(makeTargetContext()))
+            XCTFail("Expected non-text copy to fail")
+        } catch ActionExecutionError.selectionCopyHasNoText {}
+
+        do {
+            try await executor.execute(action, target: .unavailable(.windowUnavailable))
+            XCTFail("Expected unavailable target to fail")
+        } catch GestureTargetError.windowUnavailable {}
+        XCTAssertEqual(platform.shortcuts.count, 1)
+    }
+
+    func testFixedURLStillOpensWithoutTargetOrCopy() async throws {
+        let platform = RecordingGestureTargetActionPlatform()
+        var opened: [String] = []
+        let executor = ActionExecutor(targetPlatform: platform) {
+            opened.append($0.absoluteString)
+            return true
+        }
+        try await executor.executeForTesting(.openURL("https://example.com/?q=a+b"))
+        XCTAssertEqual(opened, ["https://example.com/?q=a+b"])
+        XCTAssertTrue(platform.shortcuts.isEmpty)
+    }
+
     func testShortcutReceivesResolvedApplicationOnlyTarget() async throws {
         let platform = RecordingGestureTargetActionPlatform()
         let executor = ActionExecutor(targetPlatform: platform)
@@ -341,6 +446,7 @@ private final class RecordingGestureTargetActionPlatform: GestureTargetActionPla
     }
 
     var error: Error?
+    var onPostShortcut: (() -> Void)?
     private(set) var shortcuts: [ShortcutCall] = []
     private(set) var windows: [WindowCall] = []
 
@@ -348,7 +454,8 @@ private final class RecordingGestureTargetActionPlatform: GestureTargetActionPla
         keyCode: UInt16,
         modifiers: UInt,
         orderedChord: ShortcutChord?,
-        target: GestureTargetContext
+        target: GestureTargetContext,
+        beforePosting: (() -> Void)?
     ) async throws {
         shortcuts.append(ShortcutCall(
             keyCode: keyCode,
@@ -357,6 +464,8 @@ private final class RecordingGestureTargetActionPlatform: GestureTargetActionPla
             target: target
         ))
         if let error { throw error }
+        beforePosting?()
+        onPostShortcut?()
     }
 
     func performWindow(

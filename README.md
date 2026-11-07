@@ -171,6 +171,8 @@ xcodebuild -scheme StrokeMouse -configuration Debug test
 
 > Shortcuts activate the frozen app first and also bring its exact window forward when one was captured, which may switch focus or Spaces. Locations without a regular window, such as the Finder desktop, can still run shortcuts and **Hide App**; Close, Minimize, Zoom, Maximize Window, Full Screen, and Center still require an exact window. A short click never activates the target.
 
+To search for selected text, choose **Open URL → Use Selected Text** and enter a template such as `https://www.baidu.com/s?wd={0}`. The gesture copies from the captured window, leaves the text on the clipboard, and opens the resulting URL in your default browser.
+
 Release all modifier keys before starting shortcut recording, then press the keys in the order you want them replayed. Fn must be pressed physically; a key remapped to Fn in System Settings, such as Caps Lock, also works. Caps Lock may remain enabled once its key is released.
 
 Default gesture examples (right button by default; each gesture can use a different button):
@@ -195,7 +197,7 @@ Path:
 
 Day to day, multi-select under **Settings → Gestures** to export / import JSON packages. For a full-library backup, copy the file above or edit by hand (keep the structure valid). Settings can **Reveal in Finder**.
 
-Libraries and exports containing Maximize Window as a primary or secondary action use format **v5**. Otherwise, libraries and exported packages containing system actions or drag-to-scroll use configuration format **v4** and require a version supporting these features. Fn shortcuts alone use **v3**; other libraries remain **v2**. Existing v1/v2/v3/v4 configurations remain readable, and all shortcut bindings are preserved in backups.
+Libraries, exports, and backups containing **Open URL → Use Selected Text** use gesture format **v6**. Earlier formats remain readable. Without this action, Maximize Window requires **v5**, system actions and drag-to-scroll require **v4**, Fn shortcuts require **v3**, and other libraries use **v2**.
 
 ## Tech stack
 

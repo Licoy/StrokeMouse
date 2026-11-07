@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 import Observation
 import OSLog
@@ -8,6 +9,9 @@ enum ActionExecutionError: LocalizedError {
     case invalidURL(String)
     case openFailed
     case targetRequiredForTest
+    case selectionCopyInProgress
+    case selectionCopyTimedOut
+    case selectionCopyHasNoText
     case systemShortcutDisabled(SystemCommand)
 
     var errorDescription: String? {
@@ -20,6 +24,12 @@ enum ActionExecutionError: LocalizedError {
             return L10n.string("action.openFailed")
         case .targetRequiredForTest:
             return L10n.string("editor.testActionNeedsTarget")
+        case .selectionCopyInProgress:
+            return L10n.string("action.selectionURL.copyInProgress")
+        case .selectionCopyTimedOut:
+            return L10n.string("action.selectionURL.copyTimedOut")
+        case .selectionCopyHasNoText:
+            return L10n.string("action.selectionURL.copyHasNoText")
         case .systemShortcutDisabled(let command):
             return String(
                 format: L10n.string("system.error.shortcutDisabled"),
@@ -32,17 +42,36 @@ enum ActionExecutionError: LocalizedError {
 
 @MainActor
 protocol GestureTargetActionPlatform {
+    /// Runs the callback after the target is ready and immediately before posting the shortcut.
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
         orderedChord: ShortcutChord?,
-        target: GestureTargetContext
+        target: GestureTargetContext,
+        beforePosting: (() -> Void)?
     ) async throws
 
     func performWindow(
         _ command: WindowCommand,
         target: GestureTargetContext
     ) async throws
+}
+
+extension GestureTargetActionPlatform {
+    func performShortcut(
+        keyCode: UInt16,
+        modifiers: UInt,
+        orderedChord: ShortcutChord? = nil,
+        target: GestureTargetContext
+    ) async throws {
+        try await performShortcut(
+            keyCode: keyCode,
+            modifiers: modifiers,
+            orderedChord: orderedChord,
+            target: target,
+            beforePosting: nil
+        )
+    }
 }
 
 @MainActor
@@ -77,16 +106,23 @@ final class ActionExecutor {
     private let applicationSwitcher: any ApplicationSwitching
     private let globalChordPoster: (ShortcutChord) throws -> Void
     private let systemShortcutStatus: (SystemCommand) -> SystemShortcutStatus
+    private let pasteboard: NSPasteboard?
+    private let urlOpener: (URL) -> Bool
+    private var isCopyingSelection = false
 
     init(
         targetPlatform: (any GestureTargetActionPlatform)? = nil,
         applicationSwitcher: (any ApplicationSwitching)? = nil,
         globalChordPoster: ((ShortcutChord) throws -> Void)? = nil,
-        systemShortcutStatus: ((SystemCommand) -> SystemShortcutStatus)? = nil
+        systemShortcutStatus: ((SystemCommand) -> SystemShortcutStatus)? = nil,
+        pasteboard: NSPasteboard? = nil,
+        urlOpener: ((URL) -> Bool)? = nil
     ) {
         self.targetPlatform = targetPlatform ?? WindowActions()
         self.applicationSwitcher = applicationSwitcher ?? MacApplicationSwitcher()
         self.systemShortcutStatus = systemShortcutStatus ?? { $0.currentSystemShortcut() }
+        self.pasteboard = pasteboard
+        self.urlOpener = urlOpener ?? { NSWorkspace.shared.open($0) }
         self.globalChordPoster = globalChordPoster ?? { chord in
             try ShortcutAction.post(
                 keyCode: chord.legacyKeyCode,
@@ -153,7 +189,15 @@ final class ActionExecutor {
         case .openApp(let bundleIdentifier, _):
             try await openApplication(bundleIdentifier: bundleIdentifier)
         case .openURL(let string):
-            try openURL(string)
+            guard let url = URL(string: string) else {
+                throw ActionExecutionError.invalidURL(string)
+            }
+            try openURL(url)
+        case .openURLWithSelection(let template):
+            try await openURLWithSelection(
+                SelectionURLTemplate(template),
+                target: target.requireContext()
+            )
         case .shell(let command):
             try await ScriptActions.runShell(command)
         case .media(let command):
@@ -218,11 +262,50 @@ final class ActionExecutor {
         }
     }
 
-    private func openURL(_ string: String) throws {
-        guard let url = URL(string: string) else {
-            throw ActionExecutionError.invalidURL(string)
+    private func openURLWithSelection(
+        _ template: SelectionURLTemplate,
+        target: GestureTargetContext
+    ) async throws {
+        guard !isCopyingSelection else { throw ActionExecutionError.selectionCopyInProgress }
+        isCopyingSelection = true
+        defer { isCopyingSelection = false }
+
+        let pasteboard = pasteboard ?? .general
+        let copy = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_C))
+        var changeCount = 0
+        try await targetPlatform.performShortcut(
+            keyCode: copy.legacyKeyCode,
+            modifiers: copy.legacyModifiers,
+            orderedChord: copy,
+            target: target,
+            beforePosting: { changeCount = pasteboard.changeCount }
+        )
+
+        let clock = ContinuousClock()
+        let deadline = clock.now + .seconds(1)
+        var clipboardChanged = false
+        while clock.now < deadline {
+            try Task.checkCancellation()
+            if pasteboard.changeCount != changeCount {
+                clipboardChanged = true
+                // An app may clear the clipboard before writing its copied items.
+                if let types = pasteboard.types, !types.isEmpty {
+                    guard let text = pasteboard.string(forType: .string),
+                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    else { throw ActionExecutionError.selectionCopyHasNoText }
+                    try openURL(template.url(for: text))
+                    return
+                }
+            }
+            try await clock.sleep(until: min(deadline, clock.now + .milliseconds(25)))
         }
-        guard NSWorkspace.shared.open(url) else {
+        throw clipboardChanged
+            ? ActionExecutionError.selectionCopyHasNoText
+            : ActionExecutionError.selectionCopyTimedOut
+    }
+
+    private func openURL(_ url: URL) throws {
+        guard urlOpener(url) else {
             throw ActionExecutionError.openFailed
         }
     }
@@ -231,7 +314,7 @@ final class ActionExecutor {
 extension GestureAction {
     var requiresCapturedTarget: Bool {
         switch self {
-        case .shortcut, .shortcutSequence, .window:
+        case .shortcut, .shortcutSequence, .window, .openURLWithSelection:
             return true
         case .system(let system):
             return system.command.requiresCapturedTarget

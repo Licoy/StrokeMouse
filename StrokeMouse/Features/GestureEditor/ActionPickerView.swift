@@ -51,6 +51,8 @@ struct ActionPickerView: View {
     @State private var appBundleId = ""
     @State private var appName = ""
     @State private var urlString = "https://"
+    @State private var usesSelectedText = false
+    @State private var selectionURLTemplate = ""
     @State private var shellCommand = "echo 'Hello from StrokeMouse'"
     @State private var mediaCommand: MediaCommand = .playPause
     @State private var windowActionSelection: WindowActionSelection = .window(.minimize)
@@ -370,10 +372,7 @@ struct ActionPickerView: View {
                 openAppEditor
 
             case .openURL:
-                TextField("URL", text: $urlString)
-                    .onChange(of: urlString) { _, newValue in
-                        action = .openURL(newValue)
-                    }
+                urlEditor
 
             case .shell:
                 Text(L10n.string("action.shell"))
@@ -472,6 +471,59 @@ struct ActionPickerView: View {
         appBundleId = app.bundleId
         appName = app.name
         action = .openApp(bundleId: app.bundleId, name: app.name)
+    }
+
+    private var urlEditor: some View {
+        Group {
+            Picker(L10n.string("action.selectionURL.mode"), selection: $usesSelectedText) {
+                Text(L10n.string("action.selectionURL.fixed")).tag(false)
+                Text(L10n.string("action.selectionURL.selectedText")).tag(true)
+            }
+            if usesSelectedText {
+                HStack {
+                    TextField(
+                        L10n.string("action.selectionURL.template"),
+                        text: $selectionURLTemplate,
+                        prompt: Text(verbatim: "https://www.baidu.com/s?wd=\(SelectionURLTemplate.placeholder)")
+                    )
+                    .onChange(of: selectionURLTemplate) { _, _ in applyURLAction() }
+                    Button {
+                        let pasteboard = NSPasteboard.general
+                        pasteboard.clearContents()
+                        pasteboard.setString(SelectionURLTemplate.placeholder, forType: .string)
+                    } label: {
+                        Label(L10n.string("action.selectionURL.copyPlaceholder"), systemImage: "document.on.document")
+                    }
+                    .controlSize(.small)
+                }
+
+                switch Result(catching: { try SelectionURLTemplate(selectionURLTemplate).url(for: "hi") }) {
+                case .success(let preview):
+                    LabeledContent {
+                        Text(verbatim: preview.absoluteString)
+                            .textSelection(.enabled)
+                    } label: {
+                        Text(L10n.string("action.selectionURL.preview"))
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                case .failure(let error):
+                    Text(error.localizedDescription)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            } else {
+                TextField("URL", text: $urlString)
+                    .onChange(of: urlString) { _, _ in applyURLAction() }
+            }
+        }
+        .onChange(of: usesSelectedText) { _, _ in applyURLAction() }
+    }
+
+    private func applyURLAction() {
+        action = usesSelectedText
+            ? .openURLWithSelection(template: selectionURLTemplate)
+            : .openURL(urlString)
     }
 
     private func clearOpenApp() {
@@ -596,6 +648,9 @@ struct ActionPickerView: View {
             appName = name
         case .openURL(let url):
             urlString = url
+        case .openURLWithSelection(let template):
+            selectionURLTemplate = template
+            usesSelectedText = true
         case .shell(let command):
             shellCommand = command
         case .media(let command):
@@ -633,7 +688,7 @@ struct ActionPickerView: View {
         case .openApp:
             action = .openApp(bundleId: appBundleId, name: appName)
         case .openURL:
-            action = .openURL(urlString)
+            applyURLAction()
         case .shell:
             action = .shell(shellCommand)
         case .media:

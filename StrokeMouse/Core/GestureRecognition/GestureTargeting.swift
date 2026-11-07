@@ -58,6 +58,8 @@ enum GestureTargetAXOperation: String, Equatable, Sendable {
     case validateWindow
     case copyWindowControl
     case pressWindowControl
+    case checkMinimizedWritable
+    case setMinimized
     case setMainWindow
     case raiseWindow
     case copyPosition

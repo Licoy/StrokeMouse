@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 
 @MainActor
@@ -9,6 +10,7 @@ protocol GestureTargetSystemClient: AnyObject {
         target: GestureTargetContext
     ) throws -> Bool
     func hideApplication(_ target: GestureTargetContext) throws
+    func setWindowMinimized(_ target: GestureTargetContext) throws
     func maximizeWindow(_ target: GestureTargetContext) async throws
     func centerWindow(_ target: GestureTargetContext) throws
     func setMainWindow(_ target: GestureTargetContext) throws
@@ -27,6 +29,8 @@ protocol GestureTargetSystemClient: AnyObject {
 
 @MainActor
 struct WindowActions: GestureTargetActionPlatform {
+    private static let windowShortcutFallbackBundleID = "com.netease.game.popo"
+
     private let system: any GestureTargetSystemClient
     private let activationTimeout: Duration
     private let pollInterval: Duration
@@ -45,28 +49,21 @@ struct WindowActions: GestureTargetActionPlatform {
         _ command: WindowCommand,
         target: GestureTargetContext
     ) async throws {
+        if command != .hide {
+            _ = try target.requireWindow()
+            try system.validateWindow(target)
+        }
+
         switch command {
         case .hide:
             try system.hideApplication(target)
         case .maximize:
-            _ = try target.requireWindow()
-            try system.validateWindow(target)
             try await system.maximizeWindow(target)
         case .center:
-            _ = try target.requireWindow()
-            try system.validateWindow(target)
             try system.centerWindow(target)
-        case .close, .minimize, .zoom:
-            _ = try target.requireWindow()
-            try system.validateWindow(target)
-            guard try system.pressWindowControl(command, target: target) else {
-                throw GestureTargetError.windowControlUnavailable(command)
-            }
-        case .fullscreen:
-            _ = try target.requireWindow()
-            try system.validateWindow(target)
-            if try !system.pressWindowControl(.fullscreen, target: target) {
-                try await performFullscreenShortcut(target: target)
+        case .close, .minimize, .zoom, .fullscreen:
+            if try !system.pressWindowControl(command, target: target) {
+                try await performWindowControlFallback(command, target: target)
             }
         }
     }
@@ -74,35 +71,35 @@ struct WindowActions: GestureTargetActionPlatform {
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
-        orderedChord: ShortcutChord? = nil,
-        target: GestureTargetContext
+        orderedChord: ShortcutChord?,
+        target: GestureTargetContext,
+        beforePosting: (() -> Void)?
     ) async throws {
-        guard target.window != nil else {
-            try await performApplicationShortcut(
-                keyCode: keyCode,
-                modifiers: modifiers,
-                orderedChord: orderedChord,
-                target: target
-            )
-            return
-        }
-        try system.validateWindow(target)
-        if try system.isWindowFocused(target) {
-            if try !system.isApplicationActive(target) {
+        if target.window != nil {
+            try system.validateWindow(target)
+            if try system.isWindowFocused(target) {
+                if try !system.isApplicationActive(target) {
+                    guard system.activateApplication(target) else {
+                        throw GestureTargetError.activationFailed(target.processIdentifier)
+                    }
+                    try await waitUntilActive(target)
+                }
+            } else {
+                try system.setMainWindow(target)
+                try system.raiseWindow(target)
                 guard system.activateApplication(target) else {
                     throw GestureTargetError.activationFailed(target.processIdentifier)
                 }
                 try await waitUntilActive(target)
             }
-        } else {
-            try system.setMainWindow(target)
-            try system.raiseWindow(target)
+            try system.verifyFocusedWindow(target)
+        } else if try !system.isApplicationActive(target) {
             guard system.activateApplication(target) else {
                 throw GestureTargetError.activationFailed(target.processIdentifier)
             }
             try await waitUntilActive(target)
         }
-        try system.verifyFocusedWindow(target)
+        beforePosting?()
         try system.postShortcut(
             keyCode: keyCode,
             modifiers: modifiers,
@@ -111,34 +108,34 @@ struct WindowActions: GestureTargetActionPlatform {
         )
     }
 
-    private func performApplicationShortcut(
-        keyCode: UInt16,
-        modifiers: UInt,
-        orderedChord: ShortcutChord?,
+    private func performWindowControlFallback(
+        _ command: WindowCommand,
         target: GestureTargetContext
     ) async throws {
-        if try !system.isApplicationActive(target) {
-            guard system.activateApplication(target) else {
-                throw GestureTargetError.activationFailed(target.processIdentifier)
+        let chord: ShortcutChord
+        switch command {
+        case .close where target.bundleIdentifier == Self.windowShortcutFallbackBundleID:
+            chord = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_W))
+        case .minimize:
+            do {
+                try system.setWindowMinimized(target)
+                return
+            } catch GestureTargetError.windowControlUnavailable(.minimize)
+                where target.bundleIdentifier == Self.windowShortcutFallbackBundleID
+            {
+                chord = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_M))
             }
-            try await waitUntilActive(target)
+        case .fullscreen:
+            chord = ShortcutChord(modifiers: [.control, .command], keyCode: UInt16(kVK_ANSI_F))
+        default:
+            throw GestureTargetError.windowControlUnavailable(command)
         }
-        try system.postShortcut(
-            keyCode: keyCode,
-            modifiers: modifiers,
-            orderedChord: orderedChord,
+        try await performShortcut(
+            keyCode: chord.legacyKeyCode,
+            modifiers: chord.legacyModifiers,
+            orderedChord: chord,
             target: target
         )
-    }
-
-    private func performFullscreenShortcut(
-        target: GestureTargetContext
-    ) async throws {
-        let modifiers = UInt(
-            NSEvent.ModifierFlags.control.rawValue
-                | NSEvent.ModifierFlags.command.rawValue
-        )
-        try await performShortcut(keyCode: 3, modifiers: modifiers, target: target)
     }
 
     private func waitUntilActive(_ target: GestureTargetContext) async throws {

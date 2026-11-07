@@ -51,11 +51,11 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         } catch GestureTargetError.axOperationFailed(_, let code)
             where code == .noValue || code == .attributeUnsupported
         {
-            if command == .fullscreen { return false }
-            throw GestureTargetError.windowControlUnavailable(command)
+            return false
         }
 
         let result = AXUIElementPerformAction(control, kAXPressAction as CFString)
+        if result == .actionUnsupported { return false }
         guard result == .success else {
             throw GestureTargetError.axOperationFailed(
                 operation: .pressWindowControl,
@@ -63,6 +63,27 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
             )
         }
         return true
+    }
+
+    func setWindowMinimized(_ target: GestureTargetContext) throws {
+        let window = try target.requireWindow().element
+        let attribute = kAXMinimizedAttribute as CFString
+        var writable = DarwinBoolean(false)
+        let check = AXUIElementIsAttributeSettable(window, attribute, &writable)
+        if check == .attributeUnsupported || check == .noValue || (check == .success && !writable.boolValue) {
+            throw GestureTargetError.windowControlUnavailable(.minimize)
+        }
+        guard check == .success else {
+            throw GestureTargetError.axOperationFailed(operation: .checkMinimizedWritable, code: check)
+        }
+
+        let result = AXUIElementSetAttributeValue(window, attribute, kCFBooleanTrue)
+        if result == .attributeUnsupported {
+            throw GestureTargetError.windowControlUnavailable(.minimize)
+        }
+        guard result == .success else {
+            throw GestureTargetError.axOperationFailed(operation: .setMinimized, code: result)
+        }
     }
 
     func hideApplication(_ target: GestureTargetContext) throws {
