@@ -29,8 +29,6 @@ protocol GestureTargetSystemClient: AnyObject {
 
 @MainActor
 struct WindowActions: GestureTargetActionPlatform {
-    private static let windowShortcutFallbackBundleID = "com.netease.game.popo"
-
     private let system: any GestureTargetSystemClient
     private let activationTimeout: Duration
     private let pollInterval: Duration
@@ -114,15 +112,13 @@ struct WindowActions: GestureTargetActionPlatform {
     ) async throws {
         let chord: ShortcutChord
         switch command {
-        case .close where target.bundleIdentifier == Self.windowShortcutFallbackBundleID:
-            chord = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_W))
         case .minimize:
             do {
                 try system.setWindowMinimized(target)
                 return
-            } catch GestureTargetError.windowControlUnavailable(.minimize)
-                where target.bundleIdentifier == Self.windowShortcutFallbackBundleID
-            {
+            } catch GestureTargetError.windowControlUnavailable(.minimize) {
+                // ⌘M is the standard Window › Minimize item. Close has no such
+                // fallback: ⌘W often closes only a tab.
                 chord = ShortcutChord(modifiers: [.command], keyCode: UInt16(kVK_ANSI_M))
             }
         case .fullscreen:

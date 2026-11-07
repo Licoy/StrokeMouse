@@ -581,56 +581,30 @@ final class WindowActionsTests: XCTestCase {
         XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
     }
 
-    func testUnsupportedMinimizePreservesWindowError() async {
+    func testFailedMinimizeAttributeDoesNotSendShortcut() async {
         let system = RecordingGestureTargetSystemClient()
         system.windowControlAvailable = false
-        system.minimizeError = GestureTargetError.windowControlUnavailable(.minimize)
+        system.minimizeError = GestureTargetError.axOperationFailed(
+            operation: .setMinimized,
+            code: .cannotComplete
+        )
 
         do {
             try await WindowActions(system: system).performWindow(.minimize, target: makeTargetContext())
-            XCTFail("Expected unsupported window to fail")
-        } catch GestureTargetError.windowControlUnavailable(.minimize) {
+            XCTFail("Expected the AX failure to surface")
+        } catch GestureTargetError.axOperationFailed(.setMinimized, .cannotComplete) {
         } catch { XCTFail("Unexpected error: \(error)") }
 
         XCTAssertEqual(system.operations, [.validateWindow, .pressWindowControl(.minimize), .setWindowMinimized])
     }
 
-    func testPOPOUnsupportedClosePostsCommandWToCapturedWindow() async throws {
-        let system = RecordingGestureTargetSystemClient()
-        system.windowControlAvailable = false
-        system.windowFocused = true
-        let target = makeTargetContext(bundleIdentifier: "com.netease.game.popo")
-        let keyCode = UInt16(kVK_ANSI_W)
-
-        try await WindowActions(system: system).performWindow(.close, target: target)
-
-        XCTAssertEqual(system.operations, [
-            .validateWindow,
-            .pressWindowControl(.close),
-            .validateWindow,
-            .isWindowFocused,
-            .isApplicationActive,
-            .verifyFocusedWindow,
-            .postShortcut(
-                keyCode: keyCode,
-                modifiers: NSEvent.ModifierFlags.command.rawValue,
-                orderedChord: ShortcutChord(modifiers: [.command], keyCode: keyCode)
-            ),
-        ])
-        XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
-    }
-
     func testUnsupportedCloseAndZoomDoNotSendUnverifiedShortcuts() async {
-        let cases: [(WindowCommand, GestureTargetContext)] = [
-            (.close, makeTargetContext()),
-            (.zoom, makeTargetContext(bundleIdentifier: "com.netease.game.popo")),
-        ]
-        for (command, target) in cases {
+        for command in [WindowCommand.close, .zoom] {
             let system = RecordingGestureTargetSystemClient()
             system.windowControlAvailable = false
 
             do {
-                try await WindowActions(system: system).performWindow(command, target: target)
+                try await WindowActions(system: system).performWindow(command, target: makeTargetContext())
                 XCTFail("Expected unsupported window control to fail")
             } catch GestureTargetError.windowControlUnavailable(let failedCommand) {
                 XCTAssertEqual(failedCommand, command)
@@ -640,12 +614,12 @@ final class WindowActionsTests: XCTestCase {
         }
     }
 
-    func testPOPOUnsupportedMinimizePostsCommandMToCapturedWindow() async throws {
+    func testUnsettableMinimizePostsCommandMToCapturedWindow() async throws {
         let system = RecordingGestureTargetSystemClient()
         system.windowControlAvailable = false
         system.windowFocused = true
         system.minimizeError = GestureTargetError.windowControlUnavailable(.minimize)
-        let target = makeTargetContext(bundleIdentifier: "com.netease.game.popo")
+        let target = makeTargetContext()
         let keyCode = UInt16(kVK_ANSI_M)
 
         try await WindowActions(system: system).performWindow(.minimize, target: target)
@@ -720,15 +694,12 @@ final class WindowActionsTests: XCTestCase {
         XCTAssertEqual(system.operations, [.hideApplication])
     }
 
-    private func makeTargetContext(
-        withWindow: Bool = true,
-        bundleIdentifier: String = "com.apple.Safari"
-    ) -> GestureTargetContext {
+    private func makeTargetContext(withWindow: Bool = true) -> GestureTargetContext {
         GestureTargetContext(
             policy: .frontmostWindow,
             identity: GestureTargetIdentity(
                 processIdentifier: 101,
-                bundleIdentifier: bundleIdentifier
+                bundleIdentifier: "com.apple.Safari"
             ),
             application: nil,
             window: withWindow
