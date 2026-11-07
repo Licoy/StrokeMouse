@@ -170,7 +170,7 @@ struct TargetedGesture {
     /// The target an action runs against, waiting for a deferred window capture.
     func actionTarget() async -> GestureTargetResolution {
         guard let pendingWindow else { return target }
-        return await pendingWindow.snapshot().resolution(for: profile.targetPolicy)
+        return await pendingWindow.snapshot(for: profile.targetPolicy).resolution(for: profile.targetPolicy)
     }
 }
 
@@ -179,6 +179,34 @@ struct TargetedGesture {
 final class DeferredGestureTarget: @unchecked Sendable {
     private let lock = NSLock()
     private var resolved: GestureTargetSnapshot?
+    private var policyCaptures: [GestureTargetPolicy: DeferredGestureTarget] = [:]
+    private var policyResults: [GestureTargetPolicy: GestureTargetSnapshot] = [:]
+
+    func preparePolicies(_ policies: Set<GestureTargetPolicy>) {
+        lock.withLock { policyCaptures = Dictionary(uniqueKeysWithValues: policies.map { ($0, DeferredGestureTarget()) }) }
+    }
+
+    func snapshot(for policy: GestureTargetPolicy) async -> GestureTargetSnapshot {
+        let capture = lock.withLock { policyCaptures[policy] }
+        return await (capture ?? self).snapshot()
+    }
+
+    func resolve(_ snapshot: GestureTargetSnapshot, for policy: GestureTargetPolicy) {
+        let result = lock.withLock { () -> (DeferredGestureTarget?, GestureTargetSnapshot?) in
+            guard resolved == nil else { return (nil, nil) }
+            policyResults[policy] = snapshot
+            let capture = policyCaptures[policy]
+            guard policyResults.count == policyCaptures.count else { return (capture, nil) }
+            let combined = GestureTargetSnapshot(
+                frontmostWindow: policyResults[.frontmostWindow]?.frontmostWindow
+                    ?? .unavailable(.targetNotCaptured(.frontmostWindow)),
+                windowUnderPointer: policyResults[.windowUnderPointer]?.windowUnderPointer
+                    ?? .unavailable(.targetNotCaptured(.windowUnderPointer)))
+            return (capture, combined)
+        }
+        result.0?.resolve(snapshot)
+        if let combined = result.1 { resolve(combined) }
+    }
     private var waiters: [CheckedContinuation<GestureTargetSnapshot, Never>] = []
 
     var resolvedSnapshot: GestureTargetSnapshot? {
@@ -194,6 +222,8 @@ final class DeferredGestureTarget: @unchecked Sendable {
             return waiters
         }
         guard let pending else { return false }
+        let captures = lock.withLock { Array(policyCaptures.values) }
+        captures.forEach { $0.resolve(snapshot) }
         pending.forEach { $0.resume(returning: snapshot) }
         return true
     }

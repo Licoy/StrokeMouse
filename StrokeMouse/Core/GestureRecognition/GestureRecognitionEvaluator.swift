@@ -174,8 +174,7 @@ enum GestureRecognitionEvaluator {
         policy: GestureRecognitionPolicy
     ) -> GestureRecognitionEvaluation {
         let includesDrawn: (GestureProfile) -> Bool = { profile in
-            if case .drawn = profile.input { return true }
-            return false
+            return profile.input.recognitionDrawing != nil
         }
         let tiers = GestureScopeTier.allCases.compactMap { tier -> [GestureProfile]? in
             let members = profiles.filter { GestureScopeTier($0.scope) == tier }
@@ -315,7 +314,7 @@ enum GestureRecognitionEvaluator {
     }
 
     private static func templatePaths(for profile: GestureProfile) -> [[CGPoint]]? {
-        guard case .drawn(let drawn) = profile.input else { return nil }
+        guard let drawn = profile.input.recognitionDrawing else { return nil }
         let paths = drawn.allPaths.map { $0.map(\.cgPoint) }
         return paths.allSatisfy { $0.count >= 2 } ? paths : nil
     }

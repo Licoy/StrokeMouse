@@ -78,15 +78,79 @@ struct ShortcutEventDescriptor: Equatable {
 
 enum ShortcutActionError: LocalizedError {
     case eventSourceUnavailable
+    case targetProcessRequired
     case eventCreationFailed(keyCode: UInt16)
 
     var errorDescription: String? {
-        L10n.string("action.shortcutExecutionFailed")
+        if case .targetProcessRequired = self { return L10n.string("action.targetUnavailable") }
+        return L10n.string("action.shortcutExecutionFailed")
     }
 }
 
 enum ShortcutAction {
     static let injectedEventMarker: Int64 = 0x5354_4D53_484F_5254
+
+    enum Delivery: Equatable, Sendable {
+        case hardware
+        case targetProcess
+    }
+
+    enum Destination: Equatable {
+        case hardware
+        case process(pid_t)
+    }
+
+    static func destination(delivery: Delivery, processIdentifier: pid_t?) throws -> Destination {
+        guard delivery == .targetProcess else { return .hardware }
+        guard let processIdentifier, processIdentifier > 0 else { throw ShortcutActionError.targetProcessRequired }
+        return .process(processIdentifier)
+    }
+
+    // Task-local, rather than global mutable state: overlapping gesture actions
+    // must not change each other's keyboard delivery policy across awaits.
+    @TaskLocal static var postingDelivery: Delivery = .hardware
+
+    static func delivery(for input: GestureInput, action: GestureAction) -> Delivery {
+        guard case .mouseCombination(let combo) = input, combo.action.wheelDirection != nil else {
+            return .hardware
+        }
+        switch action {
+        case .shortcut(let keyCode, let modifiers, _, let chord):
+            let hasPrimaryKey = chord.map { $0.keyCode != nil } ?? !modifierKeys.contains { $0.keyCode == keyCode }
+            let hasFunction = chord?.modifiers.contains(.function)
+                ?? (modifiers & UInt(CGEventFlags.maskSecondaryFn.rawValue) != 0 || keyCode == UInt16(kVK_Function))
+            return hasPrimaryKey && !hasFunction ? .targetProcess : .hardware
+        case .shortcutSequence(let chords):
+            return chords.allSatisfy { $0.keyCode != nil && !$0.modifiers.contains(.function) }
+                ? .targetProcess : .hardware
+        default: return .hardware
+        }
+    }
+
+    static func makeSource(delivery: Delivery) -> CGEventSource? {
+        guard let source = CGEventSource(stateID: delivery == .targetProcess ? .privateState : .hidSystemState) else {
+            return nil
+        }
+        if delivery == .targetProcess {
+            source.localEventsSuppressionInterval = 0
+            let allowed: CGEventFilterMask = [.permitLocalMouseEvents, .permitLocalKeyboardEvents, .permitSystemDefinedEvents]
+            source.setLocalEventsFilterDuringSuppressionState(allowed, state: .eventSuppressionStateSuppressionInterval)
+            source.setLocalEventsFilterDuringSuppressionState(allowed, state: .eventSuppressionStateRemoteMouseDrag)
+        }
+        return source
+    }
+
+    static func makePostingPlan(
+        keyCode: UInt16, modifiers: UInt, orderedChord: ShortcutChord? = nil, delivery: Delivery
+    ) -> [ShortcutEventDescriptor] {
+        let plan = makeEventPlan(keyCode: keyCode, modifiers: modifiers, orderedChord: orderedChord)
+        guard delivery == .targetProcess else { return plan }
+        // Carry Cmd/Shift/etc on the primary key's flags, without manufacturing
+        // physical modifier presses. Logitech otherwise turns the next vertical
+        // wheel frames into horizontal frames while the synthetic Shift is down.
+        let modifiers = Set(modifierKeys.map(\.keyCode))
+        return plan.filter { !modifiers.contains($0.keyCode) }
+    }
 
     private struct ModifierKey {
         let appKitFlag: NSEvent.ModifierFlags
@@ -111,21 +175,28 @@ enum ShortcutAction {
     static func post(
         keyCode: UInt16,
         modifiers: UInt,
-        orderedChord: ShortcutChord? = nil
+        orderedChord: ShortcutChord? = nil,
+        processIdentifier: pid_t? = nil
     ) throws {
-        guard let source = CGEventSource(stateID: .hidSystemState) else {
+        let delivery = postingDelivery
+        let destination = try destination(delivery: delivery, processIdentifier: processIdentifier)
+        guard let source = makeSource(delivery: delivery) else {
             throw ShortcutActionError.eventSourceUnavailable
         }
 
-        let plan = makeEventPlan(
+        let plan = makePostingPlan(
             keyCode: keyCode,
             modifiers: modifiers,
-            orderedChord: orderedChord
+            orderedChord: orderedChord,
+            delivery: delivery
         )
         let events = try plan.map { try makeEvent($0, source: source) }
 
         for event in events {
-            event.post(tap: .cghidEventTap)
+            switch destination {
+            case .hardware: event.post(tap: .cghidEventTap)
+            case .process(let pid): event.postToPid(pid)
+            }
         }
     }
 

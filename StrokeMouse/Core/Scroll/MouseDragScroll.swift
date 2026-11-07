@@ -94,7 +94,7 @@ enum MouseDragScrollSelection {
         let movement = targeted.filter {
             switch $0.profile.input {
             case .drawn: return true
-            case .mouseCombination(let combo): return combo.action == .dragScroll
+            case .mouseCombination(let combo): return combo.action == .dragScroll || combo.action == .rightGesture
             default: return false
             }
         }

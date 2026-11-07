@@ -196,3 +196,9 @@ SPARKLE_PUBLIC_KEY="..." ARCH=x86_64 ./scripts/package-app.sh
 - 工程生成：`project.yml`
 - 版本：`MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` 在 `project.yml`
 - 发布：`RELEASING.md`、`.github/workflows/release.yml`
+
+## Edge drawing and targeted wheel shortcuts
+
+- Screen-edge right drawings use `mouseCombination.rightGesture` and optional `drawingPaths`, require config format v7, and reuse the existing sampler/matcher/editor. Admit by the press location; release may leave the edge. Short presses still replay a native right click. Admitted edge drawings take drawing precedence over ordinary drawings and drag scrolling.
+- Ordinary wheel-combination shortcuts use task-local `ShortcutAction.Delivery.targetProcess`, private event source state, and `postToPid` to the frozen target. Retain window validation/focusing; missing PID fails without a global fallback. Carry modifiers on primary key flags, without synthetic physical modifier edges. Fn, modifier-only and system actions retain system routing.
+- Precise held-wheel repeats use 60 ms; no sensitivity setting or extra motion accumulator. Deferred window capture resolves frontmost/pointer policies independently; actions requiring no captured target do not wait for a window.

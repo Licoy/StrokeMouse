@@ -41064,6 +41064,100 @@
           }
         }
       }
+    },
+    "combination.action.rightGesture": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right-button gesture"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右键手势"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右鍵手勢"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오른쪽 버튼 제스처"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右ボタンジェスチャー"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Жест правой кнопкой"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geste avec le bouton droit"
+          }
+        }
+      }
+    },
+    "combination.hint.rightGesture": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press and hold the right button at this screen edge, draw into the screen, then release to run the matched action. Record the shape below; release may be away from the edge."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在所选屏幕边缘按住右键，向屏幕内绘制手势，松开后执行匹配动作；在下方录制轨迹，松开时无需停在边缘。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在所選螢幕邊緣按住右鍵，向螢幕內繪製手勢，放開後執行配對動作；在下方錄製軌跡，放開時無需停在邊緣。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "화면 가장자리에서 오른쪽 버튼을 누른 채 화면 안쪽으로 그린 후 놓으세요. 아래에서 모양을 기록하세요. 가장자리 밖에서 놓아도 됩니다."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択した画面端で右ボタンを押したまま画面内へ描き、離すと一致したアクションが実行されます。下で軌跡を記録してください。画面端以外で離せます。"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зажмите правую кнопку у выбранного края, нарисуйте жест внутрь экрана и отпустите для выполнения действия. Запишите форму ниже; отпускать у края не требуется."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maintenez le bouton droit au bord choisi, dessinez vers l’intérieur de l’écran, puis relâchez pour exécuter l’action reconnue. Enregistrez la forme ci-dessous ; vous pouvez relâcher loin du bord."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

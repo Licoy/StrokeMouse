@@ -26,7 +26,7 @@ struct GestureEditorView: View {
     init(profile: GestureProfile, onSave: @escaping (GestureProfile) -> Void, onCancel: @escaping () -> Void) {
         _profile = State(initialValue: profile)
         let paths: [[CodablePoint]]
-        if case .drawn(let drawn) = profile.input {
+        if let drawn = profile.input.recognitionDrawing {
             paths = drawn.allPaths
         } else {
             paths = []
@@ -280,6 +280,10 @@ struct GestureEditorView: View {
             drawn.additionalPaths = Array(sampleState.samples.dropFirst())
             profile.input = .drawn(drawn)
         }
+        if case .mouseCombination(var combo) = profile.input, combo.action == .rightGesture {
+            combo.drawingPaths = sampleState.samples
+            profile.input = .mouseCombination(combo)
+        }
         profile.secondaryAction = isSecondaryActionEnabled
             && GestureProfile.supportsSecondaryAction(profile.input)
             ? secondaryActionDraft
@@ -298,7 +302,11 @@ struct GestureEditorView: View {
 
     /// Localized reason saving is disabled.
     private var saveBlocker: String? {
-        if case .drawn = profile.input, !sampleState.canSave {
+        if (profile.input.recognitionDrawing != nil || {
+            if case .mouseCombination(let combo) = profile.input { return combo.action == .rightGesture }
+            if case .drawn = profile.input { return true }
+            return false
+        }()), !sampleState.canSave {
             return L10n.string("editor.saveNeedsPath")
         }
         if scopeMode == .group,

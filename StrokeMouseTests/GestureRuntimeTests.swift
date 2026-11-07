@@ -2819,6 +2819,7 @@ final class GestureRuntimeTests: XCTestCase {
         mouse.release(.right, at: CGPoint(x: 200, y: 200))
         await drainMainActor()
         XCTAssertEqual(platform.shortcutCount, 2)
+        XCTAssertEqual(platform.shortcutDeliveries, [.targetProcess, .targetProcess])
         XCTAssertEqual(mouse.replayedClicks, 0)
         XCTAssertEqual(runtime.state.lastOutcome, .matched(profileID: combo.id, score: nil))
     }
@@ -2829,7 +2830,7 @@ final class GestureRuntimeTests: XCTestCase {
         try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
         let location = CGPoint(x: 200, y: 200)
         XCTAssertTrue(mouse.press(.right, at: location))
-        for frame in 0...10 {
+        for frame in 0...4 {
             XCTAssertTrue(mouse.scroll(.up, at: location, preciseTimestamp: 1 + Double(frame) / 100))
         }
         mouse.release(.right, at: location)
@@ -2895,6 +2896,67 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(platform.shortcutCount, 1)
         XCTAssertEqual(runtime.state.lastOutcome, .conflict([scoped.id, duplicate.id]))
         XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testEdgeDrawingStartsAtEdgeAndFinishesInsideScreen() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let paths = [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: -150)]]
+        let combo = GestureProfile(name: "Edge lock", input: .mouseCombination(
+            MouseCombinationGesture(edge: .top, action: .rightGesture, drawingPaths: paths)),
+            action: .shortcut(keyCode: 1, modifiers: 0, display: "S", orderedChord: nil))
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        XCTAssertFalse(mouse.press(.right, at: CGPoint(x: frame.midX, y: frame.midY)))
+        XCTAssertTrue(mouse.press(.right, at: edge))
+        mouse.release(.right, at: CGPoint(x: edge.x, y: edge.y + 150))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 1)
+        XCTAssertEqual(runtime.lastMatch?.profile.id, combo.id)
+        XCTAssertEqual(mouse.replayedClicks, 0)
+    }
+
+    func testEdgeDrawingShortClickReplaysAndWrongShapeDoesNotExecute() async throws {
+        let (runtime, mouse, platform) = makeButtonMappingRuntime()
+        let paths = [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: -150)]]
+        let combo = GestureProfile(name: "Edge", input: .mouseCombination(
+            MouseCombinationGesture(edge: .top, action: .rightGesture, drawingPaths: paths)),
+            action: .shortcut(keyCode: 1, modifiers: 0, display: "S", orderedChord: nil))
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        XCTAssertTrue(mouse.press(.right, at: edge))
+        mouse.release(.right, at: edge)
+        await drainMainActor()
+        XCTAssertEqual(mouse.replayedClicks, 1)
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertTrue(mouse.press(.right, at: edge))
+        mouse.release(.right, at: CGPoint(x: edge.x + 150, y: edge.y))
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutCount, 0)
+        XCTAssertEqual(mouse.replayedClicks, 1)
+    }
+
+    func testWheelTargetsFrozenFinderProcessAcrossApplicationChanges() async throws {
+        let mouse = RuntimeMouseEventSource()
+        let platform = RuntimeActionPlatform()
+        let capturer = MutableRuntimeTargetCapturer(processIdentifier: 101, bundleIdentifier: "com.apple.finder")
+        let runtime = GestureRuntime(permissionManager: RuntimePermissionProvider(trusted: true),
+            actionExecutor: ActionExecutor(targetPlatform: platform), targetCapturer: capturer,
+            mouseEventTap: mouse, trackpadClickEventTap: RuntimeTrackpadClickSource(),
+            multitouchSourceFactory: { RuntimeMultitouchSource() })
+        let combo = combinationProfile(action: .wheelUp)
+        try runtime.apply(configuration(revision: 1, enabled: true, profiles: [combo]))
+        let point = CGPoint(x: 200, y: 200)
+        XCTAssertTrue(mouse.press(.right, at: point))
+        capturer.processIdentifier = 202
+        capturer.bundleIdentifier = "com.google.Chrome"
+        XCTAssertTrue(mouse.scroll(.up, at: point))
+        XCTAssertTrue(mouse.scroll(.up, at: point))
+        mouse.release(.right, at: point)
+        await drainMainActor()
+        XCTAssertEqual(platform.shortcutProcessIdentifiers, [101, 101])
+        XCTAssertEqual(platform.shortcutDeliveries, [.targetProcess, .targetProcess])
     }
 
     func testEdgeRightClickAndInteriorNativeClick() async throws {
@@ -3102,6 +3164,20 @@ final class GestureRuntimeTests: XCTestCase {
         XCTAssertEqual(resolved.frontmostWindow.context?.processIdentifier, 101)
         let later = await pending.snapshot()
         XCTAssertEqual(later.frontmostWindow.context?.processIdentifier, 101)
+    }
+
+    func testDeferredTargetPoliciesResolveIndependently() async throws {
+        let pending = DeferredGestureTarget()
+        pending.preparePolicies([.frontmostWindow, .windowUnderPointer])
+        let snapshot = GestureTargetSnapshot(
+            frontmostWindow: .unavailable(.targetNotCaptured(.frontmostWindow)),
+            windowUnderPointer: .unavailable(.targetNotCaptured(.windowUnderPointer)))
+        pending.resolve(snapshot, for: .frontmostWindow)
+        let ready = await pending.snapshot(for: .frontmostWindow)
+        XCTAssertNil(ready.frontmostWindow.context)
+        XCTAssertNil(pending.resolvedSnapshot, "The pointer target is still pending")
+        pending.resolve(snapshot, for: .windowUnderPointer)
+        XCTAssertNotNil(pending.resolvedSnapshot)
     }
 
     private func waitForCombination(_ predicate: () -> Bool) async {
@@ -4399,6 +4475,7 @@ private final class RuntimeActionPlatform: GestureTargetActionPlatform {
     private(set) var shortcutCount = 0
     private(set) var shortcutProcessIdentifiers: [pid_t] = []
     private(set) var shortcutKeyCodes: [UInt16] = []
+    private(set) var shortcutDeliveries: [ShortcutAction.Delivery] = []
 
     func performShortcut(
         keyCode: UInt16,
@@ -4409,6 +4486,7 @@ private final class RuntimeActionPlatform: GestureTargetActionPlatform {
     ) async throws {
         beforePosting?()
         shortcutCount += 1
+        shortcutDeliveries.append(ShortcutAction.postingDelivery)
         shortcutProcessIdentifiers.append(target.processIdentifier)
         shortcutKeyCodes.append(keyCode)
     }

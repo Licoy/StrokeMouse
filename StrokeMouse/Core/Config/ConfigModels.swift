@@ -110,7 +110,7 @@ enum GesturePattern: Codable, Equatable, Sendable {
     }
 }
 
-struct CodablePoint: Codable, Equatable, Sendable {
+struct CodablePoint: Codable, Equatable, Hashable, Sendable {
     var x: Double
     var y: Double
 
@@ -1218,6 +1218,10 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     /// Fn cannot be decoded safely by v2 releases, including in later chords
     /// and secondary actions, so only libraries using it require v3.
     static func requiredVersion(for gestures: [GestureProfile]) -> Int {
+        if gestures.contains(where: {
+            if case .mouseCombination(let combo) = $0.input { return combo.action == .rightGesture }
+            return false
+        }) { return Constants.edgeDrawingConfigVersion }
         if gestures.contains(where: { profile in
             profile.actions.contains { action in
                 if case .openURLWithSelection = action { return true }
@@ -1259,7 +1263,7 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     var hasSupportedVersion: Bool {
         [Constants.configVersion, Constants.fnShortcutConfigVersion,
          Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion,
-         Constants.selectionURLConfigVersion].contains(version)
+         Constants.selectionURLConfigVersion, Constants.edgeDrawingConfigVersion].contains(version)
             && version >= Self.requiredVersion(for: gestures)
     }
 

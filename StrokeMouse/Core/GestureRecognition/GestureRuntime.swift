@@ -857,7 +857,10 @@ final class GestureRuntime {
             guard ids.insert(profile.id).inserted else {
                 throw GestureRuntimeConfigurationError.duplicateProfileID(profile.id)
             }
-            guard case .drawn(let drawn) = profile.input else { continue }
+            if case .mouseCombination(let combo) = profile.input, !combo.isValid {
+                throw GestureRuntimeConfigurationError.invalidDrawnPath(profile.id)
+            }
+            guard let drawn = profile.input.recognitionDrawing else { continue }
             guard drawn.allPaths.count <= DrawnGesture.maximumSampleCount,
                   drawn.allPaths.allSatisfy({ path in
                       path.count >= 2
@@ -1425,7 +1428,7 @@ final class GestureRuntime {
             return
         }
         let frozenConfiguration = admission.context.configuration
-        let targeted = Self.targetedCandidates(
+        var targeted = Self.targetedCandidates(
             for: admission,
             snapshot: snapshot,
             heldModifiers: heldModifiers
@@ -1440,6 +1443,18 @@ final class GestureRuntime {
             candidate.pendingWindow = pendingWindow
             return candidate
         }
+        // A drawing armed at an edge owns drawing for this hold. Normal mouse
+        // drawings remain available everywhere else, including the same shape.
+        let edgeDrawings = targeted.filter {
+            if case .mouseCombination(let combo) = $0.profile.input { return combo.action == .rightGesture }
+            return false
+        }
+        if !edgeDrawings.isEmpty {
+            targeted.removeAll {
+                if case .drawn = $0.profile.input { return true }
+                return MouseMovementConflict.isDragScroll($0.profile.input)
+            }
+        }
         let point = Self.appKitLocation(fromQuartz: quartzLocation)
         let mode: SessionMode = admission.context.isDiagnostic
             || !diagnosticTokens.isEmpty
@@ -1450,11 +1465,10 @@ final class GestureRuntime {
             lastDrawDiagnostic = nil
         }
         let tracksPath = mode == .diagnostic || targeted.contains {
-            if case .drawn = $0.profile.input { return true }
-            return false
+            $0.profile.input.recognitionDrawing != nil
         }
         let preparedTemplates = targeted.flatMap { item -> [TemplateMatcher.PreparedPath] in
-            guard case .drawn(let drawn) = item.profile.input else { return [] }
+            guard let drawn = item.profile.input.recognitionDrawing else { return [] }
             let paths = drawn.allPaths.map { $0.map(\.cgPoint) }
             guard paths.allSatisfy({ $0.count >= 2 }) else { return [] }
             return GestureTemplateCache.shared.preparedPaths(
@@ -2128,13 +2142,16 @@ final class GestureRuntime {
         let pending = DeferredGestureTarget()
         let policies = targetPolicies(for: admission)
         let started = DispatchTime.now()
-        targetCaptureQueue.async {
-            let snapshot = capturer.capture(policies: policies, at: quartzLocation)
-            let milliseconds = (DispatchTime.now().uptimeNanoseconds - started.uptimeNanoseconds) / 1_000_000
-            if milliseconds >= 100 {
-                logger.notice("Window target capture took \(milliseconds) ms")
+        pending.preparePolicies(policies)
+        for policy in policies {
+            targetCaptureQueue.async {
+                let snapshot = capturer.capture(policies: [policy], at: quartzLocation)
+                let milliseconds = (DispatchTime.now().uptimeNanoseconds - started.uptimeNanoseconds) / 1_000_000
+                if milliseconds >= 100 {
+                    logger.notice("Window target capture took \(milliseconds) ms")
+                }
+                pending.resolve(snapshot, for: policy)
             }
-            pending.resolve(snapshot)
         }
         let timeout = Constants.gestureWindowCaptureTimeout
         targetCaptureQueue.asyncAfter(deadline: started + timeout) {
@@ -2869,11 +2886,12 @@ final class GestureRuntime {
         guard mode.executesActions else { return }
         Task { @MainActor [weak self] in
             do {
-                let target = await targeted.actionTarget()
-                try await self?.actionExecutor.execute(
-                    action,
-                    target: target
-                )
+                let target = action.requiresCapturedTarget ? await targeted.actionTarget() : targeted.target
+                try await ShortcutAction.$postingDelivery.withValue(
+                    ShortcutAction.delivery(for: targeted.profile.input, action: action)
+                ) {
+                    try await self?.actionExecutor.execute(action, target: target)
+                }
             } catch {
                 self?.lastError = error.localizedDescription
                 self?.recordOutcome(

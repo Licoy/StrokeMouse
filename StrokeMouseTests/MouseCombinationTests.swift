@@ -149,7 +149,7 @@ final class MouseCombinationTests: XCTestCase {
     }
 
     func testPreciseWheelRepeatGateKeepsNotchesAndReversalsResponsive() {
-        var gate = MouseCombinationWheelRepeatGate()
+        var gate = MouseCombinationWheelRepeatGate(interval: 0.12)
         XCTAssertTrue(gate.shouldExecute(action: .wheelUp, preciseTimestamp: 1))
         for frame in 1...10 {
             XCTAssertFalse(gate.shouldExecute(action: .wheelUp, preciseTimestamp: 1 + Double(frame) / 100))
@@ -213,6 +213,31 @@ final class MouseCombinationTests: XCTestCase {
                 MouseEventTap.combinationReplayMarker
             )
         }
+    }
+
+    func testPreciseDriverWheelRespondsAtSixtyMilliseconds() {
+        var gate = MouseCombinationWheelRepeatGate()
+        XCTAssertTrue(gate.shouldExecute(action: .wheelUp, preciseTimestamp: 1))
+        XCTAssertFalse(gate.shouldExecute(action: .wheelUp, preciseTimestamp: 1.03))
+        XCTAssertTrue(gate.shouldExecute(action: .wheelUp, preciseTimestamp: 1.061))
+        XCTAssertTrue(gate.shouldExecute(action: .wheelDown, preciseTimestamp: 1.062))
+    }
+
+    func testEdgeDrawingRoundTripAndPressAdmission() throws {
+        let paths = [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: -100)]]
+        let combo = MouseCombinationGesture(edge: .top, action: .rightGesture, drawingPaths: paths)
+        XCTAssertTrue(combo.isValid)
+        XCTAssertTrue(combo.acceptsRightPress(at: CGPoint(x: 200, y: 1),
+                                              displays: [CGRect(x: 0, y: 0, width: 1000, height: 800)]))
+        XCTAssertFalse(combo.acceptsRightPress(at: CGPoint(x: 200, y: 100),
+                                               displays: [CGRect(x: 0, y: 0, width: 1000, height: 800)]))
+        let profile = GestureProfile(name: "Edge", input: .mouseCombination(combo), action: .none)
+        XCTAssertEqual(try JSONDecoder().decode(GestureProfile.self, from: JSONEncoder().encode(profile)), profile)
+        XCTAssertEqual(GestureConfigFile.requiredVersion(for: [profile]), 7)
+        XCTAssertFalse(MouseCombinationGesture(action: .rightGesture, drawingPaths: paths).isValid)
+        XCTAssertFalse(MouseCombinationGesture(edge: .top, action: .rightGesture).isValid)
+        XCTAssertFalse(MouseCombinationGesture(edge: .top, action: .rightGesture,
+            drawingPaths: [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: 0)]]).isValid)
     }
 
     private func wheel(_ delta: Int32, units: CGScrollEventUnit = .line, marker: Int64 = 0) throws -> CGEvent {

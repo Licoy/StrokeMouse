@@ -15,6 +15,7 @@ enum Constants {
     static let extendedActionsConfigVersion = 4
     static let maximizeWindowConfigVersion = 5
     static let selectionURLConfigVersion = 6
+    static let edgeDrawingConfigVersion = 7
 
     /// Public repository (About → GitHub).
     static let githubURL = URL(string: "https://github.com/Licoy/StrokeMouse")!
