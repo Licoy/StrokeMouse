@@ -196,13 +196,12 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         keyCode: UInt16,
         modifiers: UInt,
         orderedChord: ShortcutChord?,
-        target: GestureTargetContext
+        target _: GestureTargetContext
     ) throws {
         try ShortcutAction.post(
             keyCode: keyCode,
             modifiers: modifiers,
-            orderedChord: orderedChord,
-            processIdentifier: target.processIdentifier
+            orderedChord: orderedChord
         )
     }
 

@@ -2819,7 +2819,7 @@ final class GestureRuntimeTests: XCTestCase {
         mouse.release(.right, at: CGPoint(x: 200, y: 200))
         await drainMainActor()
         XCTAssertEqual(platform.shortcutCount, 2)
-        XCTAssertEqual(platform.shortcutDeliveries, [.targetProcess, .targetProcess])
+        XCTAssertEqual(platform.shortcutDeliveries, [.flagsOnly, .flagsOnly])
         XCTAssertEqual(mouse.replayedClicks, 0)
         XCTAssertEqual(runtime.state.lastOutcome, .matched(profileID: combo.id, score: nil))
     }
@@ -2956,7 +2956,7 @@ final class GestureRuntimeTests: XCTestCase {
         mouse.release(.right, at: point)
         await drainMainActor()
         XCTAssertEqual(platform.shortcutProcessIdentifiers, [101, 101])
-        XCTAssertEqual(platform.shortcutDeliveries, [.targetProcess, .targetProcess])
+        XCTAssertEqual(platform.shortcutDeliveries, [.flagsOnly, .flagsOnly])
     }
 
     func testEdgeRightClickAndInteriorNativeClick() async throws {

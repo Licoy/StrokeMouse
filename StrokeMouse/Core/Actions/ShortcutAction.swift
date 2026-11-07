@@ -78,60 +78,49 @@ struct ShortcutEventDescriptor: Equatable {
 
 enum ShortcutActionError: LocalizedError {
     case eventSourceUnavailable
-    case targetProcessRequired
     case eventCreationFailed(keyCode: UInt16)
 
     var errorDescription: String? {
-        if case .targetProcessRequired = self { return L10n.string("action.targetUnavailable") }
-        return L10n.string("action.shortcutExecutionFailed")
+        L10n.string("action.shortcutExecutionFailed")
     }
 }
 
 enum ShortcutAction {
     static let injectedEventMarker: Int64 = 0x5354_4D53_484F_5254
 
+    /// Both deliveries post at the HID tap, so global and system hotkeys still
+    /// see the shortcut; they differ only in how modifiers are expressed.
     enum Delivery: Equatable, Sendable {
-        case hardware
-        case targetProcess
-    }
-
-    enum Destination: Equatable {
-        case hardware
-        case process(pid_t)
-    }
-
-    static func destination(delivery: Delivery, processIdentifier: pid_t?) throws -> Destination {
-        guard delivery == .targetProcess else { return .hardware }
-        guard let processIdentifier, processIdentifier > 0 else { throw ShortcutActionError.targetProcessRequired }
-        return .process(processIdentifier)
+        case modifierKeys
+        case flagsOnly
     }
 
     // Task-local, rather than global mutable state: overlapping gesture actions
     // must not change each other's keyboard delivery policy across awaits.
-    @TaskLocal static var postingDelivery: Delivery = .hardware
+    @TaskLocal static var postingDelivery: Delivery = .modifierKeys
 
     static func delivery(for input: GestureInput, action: GestureAction) -> Delivery {
         guard case .mouseCombination(let combo) = input, combo.action.wheelDirection != nil else {
-            return .hardware
+            return .modifierKeys
         }
         switch action {
         case .shortcut(let keyCode, let modifiers, _, let chord):
             let hasPrimaryKey = chord.map { $0.keyCode != nil } ?? !modifierKeys.contains { $0.keyCode == keyCode }
             let hasFunction = chord?.modifiers.contains(.function)
                 ?? (modifiers & UInt(CGEventFlags.maskSecondaryFn.rawValue) != 0 || keyCode == UInt16(kVK_Function))
-            return hasPrimaryKey && !hasFunction ? .targetProcess : .hardware
+            return hasPrimaryKey && !hasFunction ? .flagsOnly : .modifierKeys
         case .shortcutSequence(let chords):
             return chords.allSatisfy { $0.keyCode != nil && !$0.modifiers.contains(.function) }
-                ? .targetProcess : .hardware
-        default: return .hardware
+                ? .flagsOnly : .modifierKeys
+        default: return .modifierKeys
         }
     }
 
     static func makeSource(delivery: Delivery) -> CGEventSource? {
-        guard let source = CGEventSource(stateID: delivery == .targetProcess ? .privateState : .hidSystemState) else {
+        guard let source = CGEventSource(stateID: delivery == .flagsOnly ? .privateState : .hidSystemState) else {
             return nil
         }
-        if delivery == .targetProcess {
+        if delivery == .flagsOnly {
             source.localEventsSuppressionInterval = 0
             let allowed: CGEventFilterMask = [.permitLocalMouseEvents, .permitLocalKeyboardEvents, .permitSystemDefinedEvents]
             source.setLocalEventsFilterDuringSuppressionState(allowed, state: .eventSuppressionStateSuppressionInterval)
@@ -144,7 +133,7 @@ enum ShortcutAction {
         keyCode: UInt16, modifiers: UInt, orderedChord: ShortcutChord? = nil, delivery: Delivery
     ) -> [ShortcutEventDescriptor] {
         let plan = makeEventPlan(keyCode: keyCode, modifiers: modifiers, orderedChord: orderedChord)
-        guard delivery == .targetProcess else { return plan }
+        guard delivery == .flagsOnly else { return plan }
         // Carry Cmd/Shift/etc on the primary key's flags, without manufacturing
         // physical modifier presses. Logitech otherwise turns the next vertical
         // wheel frames into horizontal frames while the synthetic Shift is down.
@@ -175,11 +164,9 @@ enum ShortcutAction {
     static func post(
         keyCode: UInt16,
         modifiers: UInt,
-        orderedChord: ShortcutChord? = nil,
-        processIdentifier: pid_t? = nil
+        orderedChord: ShortcutChord? = nil
     ) throws {
         let delivery = postingDelivery
-        let destination = try destination(delivery: delivery, processIdentifier: processIdentifier)
         guard let source = makeSource(delivery: delivery) else {
             throw ShortcutActionError.eventSourceUnavailable
         }
@@ -193,10 +180,7 @@ enum ShortcutAction {
         let events = try plan.map { try makeEvent($0, source: source) }
 
         for event in events {
-            switch destination {
-            case .hardware: event.post(tap: .cghidEventTap)
-            case .process(let pid): event.postToPid(pid)
-            }
+            event.post(tap: .cghidEventTap)
         }
     }
 

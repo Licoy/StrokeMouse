@@ -348,14 +348,13 @@ final class ShortcutActionTests: XCTestCase {
     func testWheelTabShortcutCarriesFlagsWithoutPhysicalModifierPresses() throws {
         let chord = ShortcutChord(modifiers: [.command, .shift], keyCode: UInt16(kVK_ANSI_LeftBracket))
         let plan = ShortcutAction.makePostingPlan(keyCode: chord.legacyKeyCode,
-            modifiers: chord.legacyModifiers, orderedChord: chord, delivery: .targetProcess)
+            modifiers: chord.legacyModifiers, orderedChord: chord, delivery: .flagsOnly)
         XCTAssertEqual(plan, [
             event(kVK_ANSI_LeftBracket, isKeyDown: true, flags: [.maskCommand, .maskShift]),
             event(kVK_ANSI_LeftBracket, isKeyDown: false, flags: [.maskCommand, .maskShift])])
-        let source = try XCTUnwrap(ShortcutAction.makeSource(delivery: .targetProcess))
+        let source = try XCTUnwrap(ShortcutAction.makeSource(delivery: .flagsOnly))
         XCTAssertNotEqual(source.sourceStateID, .hidSystemState)
         XCTAssertEqual(source.localEventsSuppressionInterval, 0)
-        XCTAssertEqual(try ShortcutAction.destination(delivery: .targetProcess, processIdentifier: 123), .process(123))
         for descriptor in plan {
             let event = try ShortcutAction.makeEvent(descriptor, source: source)
             XCTAssertEqual(event.getIntegerValueField(.eventSourceUserData), ShortcutAction.injectedEventMarker)
@@ -363,46 +362,39 @@ final class ShortcutActionTests: XCTestCase {
         }
     }
 
-    func testIsolatedDeliveryIsLimitedToWheelShortcutsWithoutFunction() {
+    func testFlagsOnlyDeliveryIsLimitedToWheelShortcutsWithoutFunction() {
         let wheel = GestureInput.mouseCombination(MouseCombinationGesture(action: .wheelUp))
         let shortcut = GestureAction.shortcut(chord: ShortcutChord(modifiers: [.command, .shift], keyCode: 33))
-        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: shortcut), .targetProcess)
+        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: shortcut), .flagsOnly)
         let edge = GestureInput.mouseCombination(MouseCombinationGesture(edge: .top, action: .wheelDown))
-        XCTAssertEqual(ShortcutAction.delivery(for: edge, action: shortcut), .targetProcess)
+        XCTAssertEqual(ShortcutAction.delivery(for: edge, action: shortcut), .flagsOnly)
         let leftClick = GestureInput.mouseCombination(MouseCombinationGesture(action: .leftClick))
-        XCTAssertEqual(ShortcutAction.delivery(for: leftClick, action: shortcut), .hardware)
+        XCTAssertEqual(ShortcutAction.delivery(for: leftClick, action: shortcut), .modifierKeys)
         let drawing = GestureInput.drawn(DrawnGesture(activation: .mouse(.default),
             points: [CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: 100)]))
-        XCTAssertEqual(ShortcutAction.delivery(for: drawing, action: shortcut), .hardware)
+        XCTAssertEqual(ShortcutAction.delivery(for: drawing, action: shortcut), .modifierKeys)
         let function = GestureAction.shortcut(chord: ShortcutChord(modifiers: [.function], keyCode: 123))
-        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: function), .hardware)
+        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: function), .modifierKeys)
         let modifierOnly = GestureAction.shortcut(chord: ShortcutChord(modifiers: [.command], keyCode: nil))
-        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: modifierOnly), .hardware)
-        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: .none), .hardware)
+        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: modifierOnly), .modifierKeys)
+        XCTAssertEqual(ShortcutAction.delivery(for: wheel, action: .none), .modifierKeys)
     }
 
-    func testHardwarePostingKeepsExistingModifierSequence() {
+    func testModifierKeyPostingKeepsExistingModifierSequence() {
         let chord = ShortcutChord(modifiers: [.command, .shift], keyCode: 33)
         XCTAssertEqual(ShortcutAction.makePostingPlan(keyCode: 33, modifiers: chord.legacyModifiers,
-            orderedChord: chord, delivery: .hardware),
+            orderedChord: chord, delivery: .modifierKeys),
             ShortcutAction.makeEventPlan(keyCode: 33, modifiers: chord.legacyModifiers, orderedChord: chord))
     }
 
     func testPostingPolicySurvivesSuspensionAndRestoresCaller() async throws {
-        XCTAssertEqual(ShortcutAction.postingDelivery, .hardware)
-        let inside = try await ShortcutAction.$postingDelivery.withValue(.targetProcess) {
+        XCTAssertEqual(ShortcutAction.postingDelivery, .modifierKeys)
+        let inside = try await ShortcutAction.$postingDelivery.withValue(.flagsOnly) {
             try await Task.sleep(nanoseconds: 1_000_000)
             return ShortcutAction.postingDelivery
         }
-        XCTAssertEqual(inside, .targetProcess)
-        XCTAssertEqual(ShortcutAction.postingDelivery, .hardware)
-    }
-
-    func testTargetedWheelDeliveryRequiresAPositiveFrozenProcess() throws {
-        XCTAssertEqual(try ShortcutAction.destination(delivery: .targetProcess, processIdentifier: 321), .process(321))
-        XCTAssertThrowsError(try ShortcutAction.destination(delivery: .targetProcess, processIdentifier: nil))
-        XCTAssertThrowsError(try ShortcutAction.destination(delivery: .targetProcess, processIdentifier: 0))
-        XCTAssertEqual(try ShortcutAction.destination(delivery: .hardware, processIdentifier: 321), .hardware)
+        XCTAssertEqual(inside, .flagsOnly)
+        XCTAssertEqual(ShortcutAction.postingDelivery, .modifierKeys)
     }
 
     private func event(
