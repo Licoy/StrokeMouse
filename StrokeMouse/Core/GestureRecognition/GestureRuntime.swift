@@ -1444,14 +1444,18 @@ final class GestureRuntime {
             candidate.pendingWindow = pendingWindow
             return candidate
         }
-        // A drawing armed at an edge owns drawing for this hold. Normal mouse
-        // drawings remain available everywhere else, including the same shape.
-        let edgeDrawings = targeted.filter {
-            if case .mouseCombination(let combo) = $0.profile.input { return combo.action == .rightGesture }
-            return false
-        }
-        if !edgeDrawings.isEmpty {
+        // A drawing armed at an edge owns drawing for this hold at its scope
+        // tier and any less specific one; a more specific ordinary drawing or
+        // drag scroll still wins. Normal mouse drawings remain available
+        // everywhere else, including the same shape.
+        let edgeTier = targeted.compactMap { item -> GestureScopeTier? in
+            guard case .mouseCombination(let combo) = item.profile.input,
+                  combo.action == .rightGesture else { return nil }
+            return GestureScopeTier(item.profile.scope)
+        }.min()
+        if let edgeTier {
             targeted.removeAll {
+                guard GestureScopeTier($0.profile.scope) >= edgeTier else { return false }
                 if case .drawn = $0.profile.input { return true }
                 return MouseMovementConflict.isDragScroll($0.profile.input)
             }

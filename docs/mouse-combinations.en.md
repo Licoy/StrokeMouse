@@ -59,7 +59,7 @@ Drag scrolling and system actions still need real-app checks for both axes, scre
 
 ## Right-button drawings starting at a screen edge
 
-Choose **Screen Edge → Top/Bottom/Left/Right → Right-button gesture**, record a shape, and select an action. For example, hold right at the top edge, draw into the screen, and release to run the Lock Screen AppleScript preset. Only the press position must be at the edge; release may be inside the screen. A short press replays the normal right click; an unmatched drawing runs nothing. An admitted edge drawing takes precedence over regular right-button drawings and drag scrolling; application/group/global precedence still applies between edge drawings. Libraries and exports containing an edge drawing require format v7; older libraries remain readable.
+Choose **Screen Edge → Top/Bottom/Left/Right → Right-button gesture**, record a shape, and select an action. For example, hold right at the top edge, draw into the screen, and release to run the Lock Screen AppleScript preset. Only the press position must be at the edge; release may be inside the screen. A short press replays the normal right click; an unmatched drawing runs nothing. An admitted edge drawing takes precedence over regular right-button drawings and drag scrolling at the same or a broader scope; more specific ones still win (an app-specific regular drawing beats a global edge drawing), and application/group/global precedence also applies between edge drawings. Libraries and exports containing an edge drawing require format v7; older libraries remain readable.
 
 ## Shortcuts from wheel combinations
 

@@ -2926,6 +2926,27 @@ final class GestureRuntimeTests: XCTestCase {
         }
     }
 
+    func testEdgeDrawingYieldsOnlyToMoreSpecificOrdinaryDrawings() async throws {
+        let paths = [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: -150)]]
+        let shortcut = GestureAction.shortcut(keyCode: 1, modifiers: 0, display: "S", orderedChord: nil)
+        let edgeDrawing = GestureProfile(name: "Edge", input: .mouseCombination(
+            MouseCombinationGesture(edge: .top, action: .rightGesture, drawingPaths: paths)), action: shortcut)
+        let drawing = DrawnGesture(activation: .mouse(.default), points: paths[0])
+        let globalDrawing = GestureProfile(name: "Global", input: .drawn(drawing), action: shortcut)
+        let appDrawing = GestureProfile(name: "App", input: .drawn(drawing), action: shortcut,
+                                        scope: .apps(["com.example.target"]))
+        let frame = CGDisplayBounds(CGMainDisplayID())
+        let edge = CGPoint(x: frame.midX, y: frame.minY + 1)
+        for (others, winner) in [([globalDrawing], edgeDrawing.id), ([appDrawing], appDrawing.id)] {
+            let (runtime, mouse, _) = makeButtonMappingRuntime()
+            try runtime.apply(configuration(revision: 1, enabled: true, profiles: [edgeDrawing] + others))
+            XCTAssertTrue(mouse.press(.right, at: edge))
+            mouse.release(.right, at: CGPoint(x: edge.x, y: edge.y + 150))
+            await drainMainActor()
+            XCTAssertEqual(runtime.lastMatch?.profile.id, winner)
+        }
+    }
+
     func testEdgeDrawingShortClickReplaysAndWrongShapeDoesNotExecute() async throws {
         let (runtime, mouse, platform) = makeButtonMappingRuntime()
         let paths = [[CodablePoint(x: 0, y: 0), CodablePoint(x: 0, y: -150)]]
