@@ -35,7 +35,7 @@ Custom mouse and trackpad gestures for macOS. Draw a stroke while holding a mous
 - **Menu bar app**: enable/disable gestures, open settings, quit; icon tints by status (normal / paused / needs permission); optional **hide menu bar icon** (confirm if Dock is also hidden; reopen via Dock or relaunch to open settings)
 - **Gesture library**: sidebar by **Global / per-app** (new gestures inherit the selected scope); search / filter / sort; multi-select batch enable, disable, delete; **JSON import/export** (skip or force-import duplicates); turn off global gestures in chosen apps from **General → Apps Without Global Gestures** or each app's sidebar entry
 - **Mouse drawing**: each gesture can independently use the right, middle, or a side button; only buttons referenced by enabled profiles are monitored; optionally add a **left-click secondary action**—click the left button once while drawing and only that action runs on release
-- **Mouse combinations**: hold right and scroll up/down, click left, or drag to scroll; at any display’s top/bottom/left/right edge, right-click or scroll to run an action without drawing. Configure these under **Gestures → Add → Mouse Combinations**; app scopes and existing actions apply. [Details](docs/mouse-combinations.en.md).
+- **Mouse combinations**: hold right and scroll up/down, click left, or drag to scroll; at any display’s top/bottom/left/right edge, right-click or scroll to run an action without drawing, or draw a **Right-button gesture** that starts at the edge. Configure these under **Gestures → Add → Mouse Combinations**; app scopes and existing actions apply. [Details](docs/mouse-combinations.en.md).
 - **Mouse button mappings**: a single click on a side or middle button runs an action directly (e.g. back side button → ⌘[), no drawing needed, and can require one held modifier (e.g. only ⌘ + back side button); when the same button also draws gestures, a press under the minimum stroke distance counts as a click and a longer one as a drawing, so nothing fires twice; global / per-app scopes apply, and apps without a mapping keep the button's native behavior
 - **Trackpad Draw**: hold exactly one of Fn / Control / Option / Shift / Command (Fn by default) and move the pointer; pressing an additional supported modifier cancels that recognition attempt
 - **Experimental Touch Gestures**: the built-in trackpad supports 40 gesture classes—three- to five-finger taps, double taps, clicks, double clicks, and four-way swipes, plus two- to five-finger pinches, spreads, and clockwise / counterclockwise rotations
@@ -197,7 +197,7 @@ Path:
 
 Day to day, multi-select under **Settings → Gestures** to export / import JSON packages. For a full-library backup, copy the file above or edit by hand (keep the structure valid). Settings can **Reveal in Finder**.
 
-Libraries, exports, and backups containing **Open URL → Use Selected Text** use gesture format **v6**. Earlier formats remain readable. Without this action, Maximize Window requires **v5**, system actions and drag-to-scroll require **v4**, Fn shortcuts require **v3**, and other libraries use **v2**.
+Libraries, exports, and backups containing a screen-edge **Right-button gesture** use gesture format **v7**. Otherwise, **Open URL → Use Selected Text** requires **v6**, Maximize Window **v5**, system actions and drag-to-scroll **v4**, Fn shortcuts **v3**, and other libraries use **v2**. Earlier formats remain readable, but older app versions cannot read newer formats.
 
 ## Tech stack
 
