@@ -300,13 +300,18 @@ struct GestureEditorView: View {
 
     private var canSave: Bool { saveBlocker == nil }
 
+    /// Drawings and edge drawings both save the recorded samples.
+    private var recordsPath: Bool {
+        switch profile.input {
+        case .drawn: return true
+        case .mouseCombination(let combo): return combo.action == .rightGesture
+        default: return false
+        }
+    }
+
     /// Localized reason saving is disabled.
     private var saveBlocker: String? {
-        if (profile.input.recognitionDrawing != nil || {
-            if case .mouseCombination(let combo) = profile.input { return combo.action == .rightGesture }
-            if case .drawn = profile.input { return true }
-            return false
-        }()), !sampleState.canSave {
+        if recordsPath, !sampleState.canSave {
             return L10n.string("editor.saveNeedsPath")
         }
         if scopeMode == .group,
