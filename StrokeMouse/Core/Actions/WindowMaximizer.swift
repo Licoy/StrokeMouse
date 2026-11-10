@@ -86,15 +86,18 @@ struct WindowMaximizer {
     @discardableResult
     func applyLayout(_ window: AXUIElement, to requested: CGRect, knownAcceptedSize: CGSize? = nil) async throws -> CGRect {
         try ax.requireWritable(window, attribute: kAXPositionAttribute as CFString)
-        try ax.requireWritable(window, attribute: kAXSizeAttribute as CFString)
         let original = try ax.readFrame(window)
         if Self.framesMatch(original, requested) { return original }
-        var size = requested.size
-        guard let dimensions = AXValueCreate(.cgSize, &size) else {
-            throw GestureTargetError.unexpectedAXValue(operation: .setSize)
+        var resized = original
+        if !sizeMatches(original.size, requested.size) {
+            try ax.requireWritable(window, attribute: kAXSizeAttribute as CFString)
+            var size = requested.size
+            guard let dimensions = AXValueCreate(.cgSize, &size) else {
+                throw GestureTargetError.unexpectedAXValue(operation: .setSize)
+            }
+            try ax.write(window, attribute: kAXSizeAttribute as CFString, value: dimensions)
+            resized = try await waitForLayoutSize(window, original: original, requested: requested, knownAcceptedSize: knownAcceptedSize)
         }
-        try ax.write(window, attribute: kAXSizeAttribute as CFString, value: dimensions)
-        let resized = try await waitForLayoutSize(window, original: original, requested: requested, knownAcceptedSize: knownAcceptedSize)
 
         // Position must be sent after the asynchronous resize has settled;
         // otherwise AppKit may clamp it against the window's old dimensions.
@@ -171,35 +174,22 @@ struct WindowMaximizer {
 extension MacGestureTargetSystemClient {
     func maximizeWindow(_ target: GestureTargetContext) async throws {
         let window = try target.requireWindow().element
-        let maximizer = WindowMaximizer()
-        let frame = try maximizer.ax.readFrame(window)
-        let screens = NSScreen.screens
-        guard let zeroScreen = screens.first else { throw GestureTargetError.noScreens }
-        let appKitFrame = GestureTargetScreenGeometry.appKitWindowFrame(
-            axOrigin: frame.origin,
-            windowSize: frame.size,
-            zeroScreenFrame: zeroScreen.frame
-        )
-        guard let index = GestureTargetScreenGeometry.targetScreenIndex(
-            for: appKitFrame,
-            screenFrames: screens.map(\.frame)
-        ) else { throw GestureTargetError.noScreens }
-        let destination = GestureTargetScreenGeometry.maximizedAXFrame(
-            visibleFrame: screens[index].visibleFrame,
-            zeroScreenFrame: zeroScreen.frame
-        )
-        try await maximizeWindow(window, to: destination, using: maximizer)
+        try await performFrameChange(window, maximize: true) { frame in
+            let screens = NSScreen.screens
+            guard let zeroScreen = screens.first else { throw GestureTargetError.noScreens }
+            let appKitFrame = GestureTargetScreenGeometry.appKitWindowFrame(
+                axOrigin: frame.origin, windowSize: frame.size, zeroScreenFrame: zeroScreen.frame
+            )
+            guard let index = GestureTargetScreenGeometry.targetScreenIndex(
+                for: appKitFrame, screenFrames: screens.map(\.frame)
+            ) else { throw GestureTargetError.noScreens }
+            return GestureTargetScreenGeometry.maximizedAXFrame(
+                visibleFrame: screens[index].visibleFrame, zeroScreenFrame: zeroScreen.frame
+            )
+        }
     }
 
-    /// Compare with the same tolerance as AX readback verification. A rounded
-    /// maximized frame must never replace the user's pre-maximize restore point.
     func maximizeWindow(_ window: AXUIElement, to destination: CGRect, using maximizer: WindowMaximizer) async throws {
-        guard !maximizingWindows.contains(where: { CFEqual($0, window) }) else { return }
-        let current = try maximizer.ax.readFrame(window)
-        guard !WindowMaximizer.framesMatch(current, destination) else { return }
-        maximizingWindows.append(window)
-        defer { maximizingWindows.removeAll { CFEqual($0, window) } }
-        rememberFrame(window, frame: current)
-        try await maximizer.maximize(window, to: destination)
+        try await performFrameChange(window, using: maximizer, maximize: true) { _ in destination }
     }
 }

@@ -12,9 +12,9 @@ extension MacGestureTargetSystemClient {
     func applyWindowLayout(_ layout: WindowLayout, target: GestureTargetContext) async throws {
         guard layout.isValid else { throw WindowLayoutError.invalidLayout }
         let window = try target.requireWindow().element
-        let current = try WindowFrameAXClient().readFrame(window)
-        let destination = try layout.frame(in: screenGeometry(for: current).usable)
-        try await applyFrame(destination, window: window, previous: current)
+        try await performFrameChange(window) { current in
+            try layout.frame(in: self.screenGeometry(for: current).usable)
+        }
     }
 
     func performExtendedWindow(_ command: WindowCommand, target: GestureTargetContext) async throws {
@@ -27,64 +27,49 @@ extension MacGestureTargetSystemClient {
             try await restoreWindowFrame(window)
             return
         }
-        let current = try WindowFrameAXClient().readFrame(window)
-        let geometry = try screenGeometry(for: current)
-        var destination = current
-        switch command {
-        case .maximizeHeight:
-            destination.origin.y = geometry.usable.minY
-            destination.size.height = geometry.usable.height
-        case .maximizeWidth:
-            destination.origin.x = geometry.usable.minX
-            destination.size.width = geometry.usable.width
-        case .nextScreen:
-            guard geometry.screens.count > 1 else { throw WindowLayoutError.noOtherScreen }
-            let next = geometry.screens[(geometry.index + 1) % geometry.screens.count]
-            let nextFrame = GestureTargetScreenGeometry.maximizedAXFrame(
-                visibleFrame: next.visibleFrame, zeroScreenFrame: geometry.screens[0].frame
-            )
-            // Preserve relative placement and size across displays with different resolutions.
-            destination = CGRect(
-                x: nextFrame.minX + (current.minX - geometry.usable.minX) / geometry.usable.width * nextFrame.width,
-                y: nextFrame.minY + (current.minY - geometry.usable.minY) / geometry.usable.height * nextFrame.height,
-                width: min(current.width / geometry.usable.width * nextFrame.width, nextFrame.width),
-                height: min(current.height / geometry.usable.height * nextFrame.height, nextFrame.height)
-            )
-            destination.origin.x = min(max(destination.minX, nextFrame.minX), nextFrame.maxX - destination.width)
-            destination.origin.y = min(max(destination.minY, nextFrame.minY), nextFrame.maxY - destination.height)
-        default:
-            throw GestureTargetError.windowControlUnavailable(command)
+        try await performFrameChange(window) { current in
+            let geometry = try self.screenGeometry(for: current)
+            var destination = current
+            switch command {
+            case .maximizeHeight:
+                destination.origin.y = geometry.usable.minY
+                destination.size.height = geometry.usable.height
+            case .maximizeWidth:
+                destination.origin.x = geometry.usable.minX
+                destination.size.width = geometry.usable.width
+            case .nextScreen:
+                guard geometry.screens.count > 1 else { throw WindowLayoutError.noOtherScreen }
+                let next = geometry.screens[(geometry.index + 1) % geometry.screens.count]
+                let nextFrame = GestureTargetScreenGeometry.maximizedAXFrame(
+                    visibleFrame: next.visibleFrame, zeroScreenFrame: geometry.screens[0].frame
+                )
+                // Preserve relative placement and size across displays with different resolutions.
+                destination = CGRect(
+                    x: nextFrame.minX + (current.minX - geometry.usable.minX) / geometry.usable.width * nextFrame.width,
+                    y: nextFrame.minY + (current.minY - geometry.usable.minY) / geometry.usable.height * nextFrame.height,
+                    width: min(current.width / geometry.usable.width * nextFrame.width, nextFrame.width),
+                    height: min(current.height / geometry.usable.height * nextFrame.height, nextFrame.height)
+                )
+                destination.origin.x = min(max(destination.minX, nextFrame.minX), nextFrame.maxX - destination.width)
+                destination.origin.y = min(max(destination.minY, nextFrame.minY), nextFrame.maxY - destination.height)
+            default:
+                throw GestureTargetError.windowControlUnavailable(command)
+            }
+            return destination
         }
-        try await applyFrame(destination, window: window, previous: current)
     }
 
     func restoreWindowFrame(_ window: AXUIElement, using resizer: WindowMaximizer? = nil) async throws {
-        guard let saved = previousFrames.last(where: { CFEqual($0.window, window) }) else {
-            throw WindowLayoutError.noPreviousFrame
+        try await performFrameChange(window, using: resizer) { _ in
+            guard let saved = self.previousFrames.last(where: { CFEqual($0.window, window) }) else {
+                throw WindowLayoutError.noPreviousFrame
+            }
+            return saved.frame
         }
-        let current = try (resizer?.ax ?? WindowFrameAXClient()).readFrame(window)
-        // The last two layouts can be toggled repeatedly.
-        try await applyFrame(saved.frame, window: window, previous: current, using: resizer)
     }
 
-    private func applyFrame(_ destination: CGRect, window: AXUIElement, previous: CGRect, using suppliedResizer: WindowMaximizer? = nil) async throws {
-        let knownSize = acceptedLayoutSizes.last {
-            CFEqual($0.window, window) && $0.requested == destination.size
-        }?.accepted
-        let expected = CGRect(origin: destination.origin, size: knownSize ?? destination.size)
-        guard !WindowMaximizer.framesMatch(previous, expected) else { return }
-        // Record before writing so partially applied operations can also be undone.
-        rememberFrame(window, frame: previous)
-        do {
-            var resizer = suppliedResizer ?? WindowMaximizer()
-            if suppliedResizer == nil { resizer.completionTimeout = .milliseconds(1500) }
-            let applied = try await resizer.applyLayout(window, to: destination, knownAcceptedSize: knownSize)
-            acceptedLayoutSizes.removeAll { CFEqual($0.window, window) }
-            acceptedLayoutSizes.append((window, destination.size, applied.size))
-            if acceptedLayoutSizes.count > 100 { acceptedLayoutSizes.removeFirst() }
-        } catch GestureTargetError.windowMaximizeFailed {
-            throw WindowLayoutError.frameNotApplied
-        }
+    func applyFrame(_ destination: CGRect, window: AXUIElement, using resizer: WindowMaximizer? = nil) async throws {
+        try await performFrameChange(window, using: resizer) { _ in destination }
     }
 
     private func screenGeometry(for frame: CGRect) throws -> (screens: [NSScreen], index: Int, usable: CGRect) {

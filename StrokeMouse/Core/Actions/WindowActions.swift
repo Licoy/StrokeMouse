@@ -14,7 +14,7 @@ protocol GestureTargetSystemClient: AnyObject {
     func hideApplication(_ target: GestureTargetContext) throws
     func setWindowMinimized(_ target: GestureTargetContext) throws
     func maximizeWindow(_ target: GestureTargetContext) async throws
-    func centerWindow(_ target: GestureTargetContext) throws
+    func centerWindow(_ target: GestureTargetContext) async throws
     func setMainWindow(_ target: GestureTargetContext) throws
     func raiseWindow(_ target: GestureTargetContext) throws
     func activateApplication(_ target: GestureTargetContext) -> Bool
@@ -69,7 +69,7 @@ struct WindowActions: GestureTargetActionPlatform {
         case .maximize:
             try await system.maximizeWindow(target)
         case .center:
-            try system.centerWindow(target)
+            try await system.centerWindow(target)
         case .restoreFrame, .restoreMinimized, .minimizeAll, .restoreAllMinimized,
              .maximizeHeight, .maximizeWidth, .nextScreen:
             try await system.performExtendedWindow(command, target: target)

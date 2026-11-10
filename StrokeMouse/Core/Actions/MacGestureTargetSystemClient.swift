@@ -5,7 +5,8 @@ import Foundation
 @MainActor
 final class MacGestureTargetSystemClient: GestureTargetSystemClient {
     // Kept for this executor's lifetime; AX identity avoids confusing windows with the same title.
-    var maximizingWindows: [AXUIElement] = []
+    var frameOperations = WindowFrameOperationQueue()
+    var frameResizer = WindowMaximizer()
     var previousFrames: [(window: AXUIElement, frame: CGRect)] = []
     var acceptedLayoutSizes: [(window: AXUIElement, requested: CGSize, accepted: CGSize)] = []
 
@@ -98,55 +99,22 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         }
     }
 
-    func centerWindow(_ target: GestureTargetContext) throws {
+    func centerWindow(_ target: GestureTargetContext) async throws {
         let window = try target.requireWindow().element
-        let origin = try GestureTargetAXAccessor.copyPoint(
-            from: window,
-            attribute: GestureTargetAXAttribute(
-                name: kAXPositionAttribute as CFString,
-                operation: .copyPosition
+        try await performFrameChange(window) { current in
+            let screens = NSScreen.screens
+            guard let zeroScreen = screens.first else { throw GestureTargetError.noScreens }
+            let appKitFrame = GestureTargetScreenGeometry.appKitWindowFrame(
+                axOrigin: current.origin, windowSize: current.size, zeroScreenFrame: zeroScreen.frame
             )
-        )
-        let size = try GestureTargetAXAccessor.copySize(
-            from: window,
-            attribute: GestureTargetAXAttribute(
-                name: kAXSizeAttribute as CFString,
-                operation: .copySize
-            )
-        )
-        let screens = NSScreen.screens
-        guard let zeroScreen = screens.first else {
-            throw GestureTargetError.noScreens
-        }
-        let appKitFrame = GestureTargetScreenGeometry.appKitWindowFrame(
-            axOrigin: origin,
-            windowSize: size,
-            zeroScreenFrame: zeroScreen.frame
-        )
-        guard let screenIndex = GestureTargetScreenGeometry.targetScreenIndex(
-            for: appKitFrame,
-            screenFrames: screens.map(\.frame)
-        ) else {
-            throw GestureTargetError.noScreens
-        }
-        var newAXOrigin = GestureTargetScreenGeometry.centeredAXOrigin(
-            windowSize: size,
-            visibleFrame: screens[screenIndex].visibleFrame,
-            zeroScreenFrame: zeroScreen.frame
-        )
-        guard let value = AXValueCreate(.cgPoint, &newAXOrigin) else {
-            throw GestureTargetError.unexpectedAXValue(operation: .setPosition)
-        }
-        let previous = CGRect(origin: origin, size: size)
-        guard !WindowMaximizer.framesMatch(previous, CGRect(origin: newAXOrigin, size: size)) else { return }
-        rememberFrame(window, frame: previous)
-        let result = AXUIElementSetAttributeValue(
-            window,
-            kAXPositionAttribute as CFString,
-            value
-        )
-        guard result == .success else {
-            throw GestureTargetError.axOperationFailed(operation: .setPosition, code: result)
+            guard let index = GestureTargetScreenGeometry.targetScreenIndex(
+                for: appKitFrame, screenFrames: screens.map(\.frame)
+            ) else { throw GestureTargetError.noScreens }
+            return CGRect(origin: GestureTargetScreenGeometry.centeredAXOrigin(
+                windowSize: current.size,
+                visibleFrame: screens[index].visibleFrame,
+                zeroScreenFrame: zeroScreen.frame
+            ), size: current.size)
         }
     }
 

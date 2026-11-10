@@ -210,15 +210,19 @@ final class WindowMaximizerTests: XCTestCase {
 }
 
 @MainActor
-private final class RecordingWindowAX {
-    let window = AXUIElementCreateApplication(101)
+final class RecordingWindowAX {
+    let window: AXUIElement
+
+    init(pid: pid_t = 101) { window = AXUIElementCreateApplication(pid) }
     var frame = CGRect(x: 100, y: 100, width: 800, height: 600)
     var appliedFrame: CGRect?
     var unwritableAttribute: String?
     var preflightError: AXError = .success
     var failedWriteAttribute: String?
+    var ignoresPosition = false
     var readbackError: Error?
     var delayedReads = 0
+    var holdsResize = false
     var onFirstWrite: (() -> Void)?
     private(set) var writes: [String] = []
     private(set) var receivedWindows: [AXUIElement] = []
@@ -231,7 +235,7 @@ private final class RecordingWindowAX {
                 self.receivedWindows.append(window)
                 self.readCount += 1
                 if !self.writes.isEmpty, let error = self.readbackError { throw error }
-                if let pending = self.pendingFrame {
+                if let pending = self.pendingFrame, !self.holdsResize {
                     if self.delayedReads == 0 {
                         self.frame = pending
                         self.pendingFrame = nil
@@ -253,7 +257,7 @@ private final class RecordingWindowAX {
                 if attribute as String == kAXPositionAttribute {
                     var point = CGPoint.zero
                     guard AXValueGetValue(value, .cgPoint, &point) else { return .illegalArgument }
-                    self.frame.origin = point
+                    if !self.ignoresPosition { self.frame.origin = point }
                 } else {
                     var size = CGSize.zero
                     guard AXValueGetValue(value, .cgSize, &size) else { return .illegalArgument }
