@@ -322,6 +322,9 @@ struct GestureEditorView: View {
         if !isDragScroll {
             let actions = isSecondaryActionEnabled && GestureProfile.supportsSecondaryAction(profile.input)
                 ? [profile.action, secondaryActionDraft] : [profile.action]
+            for case .customWindow(let layout) in actions where !layout.isValid {
+                return L10n.string("window.error.invalidLayout")
+            }
             for case .openURLWithSelection(let template) in actions {
                 if (try? SelectionURLTemplate(template)) == nil {
                     return L10n.string("editor.saveNeedsSelectionURLTemplate")
@@ -375,7 +378,7 @@ private extension GestureEditorView.ActionKind {
         case .openURL, .openURLWithSelection: return .openURL
         case .shell: return .shell
         case .media: return .media
-        case .window: return .window
+        case .window, .customWindow: return .window
         case .applicationSwitch: return .window
         case .appleScript: return .appleScript
         }

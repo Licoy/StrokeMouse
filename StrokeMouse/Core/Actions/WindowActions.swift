@@ -4,6 +4,8 @@ import Foundation
 
 @MainActor
 protocol GestureTargetSystemClient: AnyObject {
+    func performExtendedWindow(_ command: WindowCommand, target: GestureTargetContext) async throws
+    func applyWindowLayout(_ layout: WindowLayout, target: GestureTargetContext) async throws
     func validateWindow(_ target: GestureTargetContext) throws
     func pressWindowControl(
         _ command: WindowCommand,
@@ -27,6 +29,15 @@ protocol GestureTargetSystemClient: AnyObject {
     ) throws
 }
 
+extension GestureTargetSystemClient {
+    func performExtendedWindow(_ command: WindowCommand, target: GestureTargetContext) async throws {
+        throw GestureTargetError.windowControlUnavailable(command)
+    }
+    func applyWindowLayout(_ layout: WindowLayout, target: GestureTargetContext) async throws {
+        throw GestureTargetError.windowResizeUnavailable
+    }
+}
+
 @MainActor
 struct WindowActions: GestureTargetActionPlatform {
     private let system: any GestureTargetSystemClient
@@ -47,7 +58,7 @@ struct WindowActions: GestureTargetActionPlatform {
         _ command: WindowCommand,
         target: GestureTargetContext
     ) async throws {
-        if command != .hide {
+        if ![.hide, .restoreMinimized, .minimizeAll, .restoreAllMinimized].contains(command) {
             _ = try target.requireWindow()
             try system.validateWindow(target)
         }
@@ -59,11 +70,19 @@ struct WindowActions: GestureTargetActionPlatform {
             try await system.maximizeWindow(target)
         case .center:
             try system.centerWindow(target)
+        case .restoreFrame, .restoreMinimized, .minimizeAll, .restoreAllMinimized,
+             .maximizeHeight, .maximizeWidth, .nextScreen:
+            try await system.performExtendedWindow(command, target: target)
         case .close, .minimize, .zoom, .fullscreen:
             if try !system.pressWindowControl(command, target: target) {
                 try await performWindowControlFallback(command, target: target)
             }
         }
+    }
+
+    func performCustomWindow(_ layout: WindowLayout, target: GestureTargetContext) async throws {
+        try system.validateWindow(target)
+        try await system.applyWindowLayout(layout, target: target)
     }
 
     func performShortcut(

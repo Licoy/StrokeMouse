@@ -51,6 +51,8 @@ protocol GestureTargetActionPlatform {
         beforePosting: (() -> Void)?
     ) async throws
 
+    func performCustomWindow(_ layout: WindowLayout, target: GestureTargetContext) async throws
+
     func performWindow(
         _ command: WindowCommand,
         target: GestureTargetContext
@@ -58,6 +60,10 @@ protocol GestureTargetActionPlatform {
 }
 
 extension GestureTargetActionPlatform {
+    func performCustomWindow(_ layout: WindowLayout, target: GestureTargetContext) async throws {
+        throw GestureTargetError.windowResizeUnavailable
+    }
+
     func performShortcut(
         keyCode: UInt16,
         modifiers: UInt,
@@ -207,6 +213,8 @@ final class ActionExecutor {
                 command,
                 target: try target.requireContext()
             )
+        case .customWindow(let layout):
+            try await targetPlatform.performCustomWindow(layout, target: try target.requireContext())
         case .applicationSwitch(let command):
             try applicationSwitcher.perform(command)
         case .system(let system):
@@ -314,7 +322,7 @@ final class ActionExecutor {
 extension GestureAction {
     var requiresCapturedTarget: Bool {
         switch self {
-        case .shortcut, .shortcutSequence, .window, .openURLWithSelection:
+        case .shortcut, .shortcutSequence, .window, .customWindow, .openURLWithSelection:
             return true
         case .system(let system):
             return system.command.requiresCapturedTarget

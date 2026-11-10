@@ -4,13 +4,16 @@ import SwiftUI
 private enum WindowActionSelection: Hashable, Identifiable {
     case window(WindowCommand)
     case applicationSwitch(ApplicationSwitchCommand)
+    case customWindow
 
     static let allCases: [WindowActionSelection] =
         WindowCommand.allCases.map(WindowActionSelection.window)
+        + [.customWindow]
         + ApplicationSwitchCommand.allCases.map(WindowActionSelection.applicationSwitch)
 
     var id: String {
         switch self {
+        case .customWindow: return "window.custom"
         case .window(let command):
             return "window.\(command.rawValue)"
         case .applicationSwitch(let command):
@@ -22,6 +25,7 @@ private enum WindowActionSelection: Hashable, Identifiable {
         switch self {
         case .window(let command):
             return command.displayKey
+        case .customWindow: return "window.custom"
         case .applicationSwitch(let command):
             return command.displayKey
         }
@@ -31,6 +35,7 @@ private enum WindowActionSelection: Hashable, Identifiable {
         switch self {
         case .window(let command):
             return .window(command)
+        case .customWindow: return .customWindow(WindowLayout())
         case .applicationSwitch(let command):
             return .applicationSwitch(command)
         }
@@ -56,6 +61,7 @@ struct ActionPickerView: View {
     @State private var shellCommand = "echo 'Hello from StrokeMouse'"
     @State private var mediaCommand: MediaCommand = .playPause
     @State private var windowActionSelection: WindowActionSelection = .window(.minimize)
+    @State private var windowLayout = WindowLayout()
     @State private var systemAction = SystemAction(command: .missionControl)
     @State private var systemShortcutStatus = SystemShortcutStatus.unknown
     @State private var appleScriptPreset: AppleScriptPreset = .sleep
@@ -407,7 +413,18 @@ struct ActionPickerView: View {
                     }
                 }
                 .onChange(of: windowActionSelection) { _, newValue in
-                    action = newValue.action
+                    action = newValue == .customWindow ? .customWindow(windowLayout) : newValue.action
+                }
+                if windowActionSelection == .customWindow {
+                    WindowLayoutEditor(layout: $windowLayout)
+                        .onChange(of: windowLayout) { _, layout in
+                            action = .customWindow(layout)
+                        }
+                }
+                if [.window(.minimizeAll), .window(.restoreAllMinimized), .window(.restoreMinimized)].contains(windowActionSelection) {
+                    Text(L10n.string("window.applicationWindowsHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 if windowActionSelection == .window(.maximize) {
                     Text(L10n.string("window.maximizeHint"))
@@ -655,6 +672,9 @@ struct ActionPickerView: View {
             shellCommand = command
         case .media(let command):
             mediaCommand = command
+        case .customWindow(let layout):
+            windowLayout = layout
+            windowActionSelection = .customWindow
         case .window(let command):
             windowActionSelection = .window(command)
         case .applicationSwitch(let command):
@@ -694,7 +714,7 @@ struct ActionPickerView: View {
         case .media:
             action = .media(mediaCommand)
         case .window:
-            action = windowActionSelection.action
+            action = windowActionSelection == .customWindow ? .customWindow(windowLayout) : windowActionSelection.action
         case .system:
             action = .system(systemAction)
         case .appleScript:

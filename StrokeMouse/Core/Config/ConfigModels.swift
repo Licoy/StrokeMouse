@@ -527,6 +527,18 @@ enum WindowCommand: String, Codable, CaseIterable, Identifiable, Sendable {
     case fullscreen
     case hide
     case center
+    case restoreFrame
+    case restoreMinimized
+    case minimizeAll
+    case restoreAllMinimized
+    case maximizeHeight
+    case maximizeWidth
+    case nextScreen
+
+    var isExtended: Bool {
+        [.restoreFrame, .restoreMinimized, .minimizeAll, .restoreAllMinimized,
+         .maximizeHeight, .maximizeWidth, .nextScreen].contains(self)
+    }
 
     var id: String { rawValue }
 
@@ -702,6 +714,7 @@ enum GestureAction: Equatable, Sendable {
     case shell(String)
     case media(MediaCommand)
     case window(WindowCommand)
+    case customWindow(WindowLayout)
     case applicationSwitch(ApplicationSwitchCommand)
     case system(SystemAction)
     case appleScript(String)
@@ -716,7 +729,7 @@ enum GestureAction: Equatable, Sendable {
         case .openURL, .openURLWithSelection: return "action.openURL"
         case .shell: return "action.shell"
         case .media: return "action.media"
-        case .window: return "action.window"
+        case .window, .customWindow: return "action.window"
         case .applicationSwitch: return "action.window"
         case .system: return "action.system"
         case .appleScript: return "action.appleScript"
@@ -740,6 +753,8 @@ enum GestureAction: Equatable, Sendable {
             return cmd.rawValue
         case .window(let cmd):
             return cmd.rawValue
+        case .customWindow(let layout):
+            return "\(L10n.string("window.custom")) (\(Int(layout.x))%, \(Int(layout.y))%, \(Int(layout.width))% × \(Int(layout.height))%)"
         case .applicationSwitch(let command):
             return L10n.string(command.displayKey)
         case .system(let system):
@@ -787,6 +802,7 @@ private enum PersistedGestureAction: Codable {
     case shell(String)
     case media(MediaCommand)
     case window(WindowCommand)
+    case customWindow(WindowLayout)
     case applicationSwitch(ApplicationSwitchCommand)
     case system(SystemAction)
     case appleScript(String)
@@ -807,6 +823,7 @@ private enum PersistedGestureAction: Codable {
         case .shell(let command): self = .shell(command)
         case .media(let command): self = .media(command)
         case .window(let command): self = .window(command)
+        case .customWindow(let layout): self = .customWindow(layout)
         case .applicationSwitch(let command):
             let chord = command.shortcutChord
             self = .shortcut(
@@ -855,6 +872,7 @@ private enum PersistedGestureAction: Codable {
         case .shell(let command): return .shell(command)
         case .media(let command): return .media(command)
         case .window(let command): return .window(command)
+        case .customWindow(let layout): return .customWindow(layout)
         case .applicationSwitch(let command): return .applicationSwitch(command)
         case .system(let system): return .system(system)
         case .appleScript(let source): return .appleScript(source)
@@ -1218,6 +1236,15 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     /// Fn cannot be decoded safely by v2 releases, including in later chords
     /// and secondary actions, so only libraries using it require v3.
     static func requiredVersion(for gestures: [GestureProfile]) -> Int {
+        if gestures.contains(where: { profile in
+            profile.actions.contains { action in
+                switch action {
+                case .customWindow: return true
+                case .window(let command): return command.isExtended
+                default: return false
+                }
+            }
+        }) { return Constants.windowLayoutConfigVersion }
         if gestures.contains(where: {
             if case .mouseCombination(let combo) = $0.input { return combo.action == .rightGesture }
             return false
@@ -1263,7 +1290,8 @@ struct GestureConfigFile: Codable, Equatable, Sendable {
     var hasSupportedVersion: Bool {
         [Constants.configVersion, Constants.fnShortcutConfigVersion,
          Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion,
-         Constants.selectionURLConfigVersion, Constants.edgeDrawingConfigVersion].contains(version)
+         Constants.selectionURLConfigVersion, Constants.edgeDrawingConfigVersion,
+         Constants.windowLayoutConfigVersion].contains(version)
             && version >= Self.requiredVersion(for: gestures)
     }
 
