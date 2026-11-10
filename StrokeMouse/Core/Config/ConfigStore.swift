@@ -603,6 +603,9 @@ final class ConfigStore {
                     .duplicateProfileID(profile.id)
                 )
             }
+            for case .customWindow(let layout) in profile.actions where !layout.isValid {
+                throw ConfigStoreFailure.invalidConfiguration(.invalidWindowLayout(profile.id))
+            }
             for case .openURLWithSelection(let template) in profile.actions {
                 do {
                     _ = try SelectionURLTemplate(template)
@@ -666,7 +669,8 @@ final class ConfigStore {
         switch header.version {
         case Constants.configVersion, Constants.fnShortcutConfigVersion,
              Constants.extendedActionsConfigVersion, Constants.maximizeWindowConfigVersion,
-             Constants.selectionURLConfigVersion, Constants.edgeDrawingConfigVersion:
+             Constants.selectionURLConfigVersion, Constants.edgeDrawingConfigVersion,
+             Constants.windowLayoutConfigVersion:
             do {
                 let file = try decoder.decode(GestureConfigFile.self, from: data)
                 let compatibility = try decoder.decode(
@@ -942,6 +946,7 @@ enum ConfigValidationFailure: Equatable, Sendable {
     case invalidAppPolicy(String)
     case invalidMouseCombination(UUID)
     case invalidSelectionURLTemplate(UUID, String)
+    case invalidWindowLayout(UUID)
 
     var localizedDescription: String {
         let key: String
@@ -971,6 +976,8 @@ enum ConfigValidationFailure: Equatable, Sendable {
         case .invalidMouseCombination(let id):
             key = "config.failure.invalidMouseCombination"
             argument = id.uuidString
+        case .invalidWindowLayout:
+            return L10n.string("window.error.invalidLayout")
         case .invalidSelectionURLTemplate(let id, let message):
             return String(
                 format: L10n.string("config.failure.invalidSelectionURLTemplate"),

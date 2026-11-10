@@ -6,6 +6,34 @@ import XCTest
 
 @MainActor
 final class WindowActionsTests: XCTestCase {
+    func testCustomLayoutKeepsFrozenWindowAndValidatesBeforeWriting() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        let target = makeTargetContext()
+        let layout = WindowLayout(x: 0, y: 0, width: 50, height: 100)
+        let executor = ActionExecutor(targetPlatform: WindowActions(system: system))
+        try await executor.execute(.customWindow(layout), target: .resolved(target))
+        XCTAssertEqual(system.operations, [.validateWindow, .applyLayout(layout)])
+        XCTAssertTrue(system.targets.allSatisfy { $0.window === target.window })
+    }
+
+    func testAppWindowCommandsWorkWithoutCapturedVisibleWindow() async throws {
+        for command in [WindowCommand.restoreMinimized, .minimizeAll, .restoreAllMinimized] {
+            let system = RecordingGestureTargetSystemClient()
+            try await WindowActions(system: system).performWindow(command, target: makeTargetContext(withWindow: false))
+            XCTAssertEqual(system.operations, [.extendedWindow(command)])
+        }
+    }
+
+    func testCustomLayoutDoesNotWriteWhenTargetValidationFails() async throws {
+        let system = RecordingGestureTargetSystemClient()
+        system.validateError = GestureTargetError.windowUnavailable
+        do {
+            try await WindowActions(system: system).performCustomWindow(WindowLayout(), target: makeTargetContext())
+            XCTFail("Expected validation failure")
+        } catch GestureTargetError.windowUnavailable { }
+        XCTAssertEqual(system.operations, [.validateWindow])
+    }
+
     func testDefaultMissionControlRunsFromFinderDesktopTarget() async throws {
         let system = RecordingGestureTargetSystemClient()
         system.activeStates = [true]
@@ -732,6 +760,8 @@ final class WindowActionsTests: XCTestCase {
 }
 
 private enum TargetSystemOperation: Equatable {
+    case applyLayout(WindowLayout)
+    case extendedWindow(WindowCommand)
     case validateWindow
     case pressWindowControl(WindowCommand)
     case hideApplication
@@ -767,6 +797,14 @@ private final class RecordingGestureTargetSystemClient: GestureTargetSystemClien
     var verifyError: Error?
     private(set) var operations: [TargetSystemOperation] = []
     private(set) var targets: [GestureTargetContext] = []
+
+    func applyWindowLayout(_ layout: WindowLayout, target: GestureTargetContext) async throws {
+        record(.applyLayout(layout), target: target)
+    }
+
+    func performExtendedWindow(_ command: WindowCommand, target: GestureTargetContext) async throws {
+        record(.extendedWindow(command), target: target)
+    }
 
     func validateWindow(_ target: GestureTargetContext) throws {
         record(.validateWindow, target: target)

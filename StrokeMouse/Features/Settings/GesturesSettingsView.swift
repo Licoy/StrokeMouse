@@ -985,7 +985,8 @@ struct GesturesSettingsView: View {
         GestureProfile(
             name: L10n.string("gestures.newName"),
             input: input,
-            scope: GestureSidebarCatalog.defaultScope(for: sidebarSelection)
+            scope: GestureSidebarCatalog.defaultScope(for: sidebarSelection),
+            targetPolicy: .windowUnderPointer
         )
     }
 

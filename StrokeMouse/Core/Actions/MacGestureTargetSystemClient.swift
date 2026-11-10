@@ -4,6 +4,11 @@ import Foundation
 
 @MainActor
 final class MacGestureTargetSystemClient: GestureTargetSystemClient {
+    // Kept for this executor's lifetime; AX identity avoids confusing windows with the same title.
+    var maximizingWindows: [AXUIElement] = []
+    var previousFrames: [(window: AXUIElement, frame: CGRect)] = []
+    var acceptedLayoutSizes: [(window: AXUIElement, requested: CGSize, accepted: CGSize)] = []
+
     func validateWindow(_ target: GestureTargetContext) throws {
         _ = try validateApplication(target)
         let window = try target.requireWindow().element
@@ -132,6 +137,9 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
         guard let value = AXValueCreate(.cgPoint, &newAXOrigin) else {
             throw GestureTargetError.unexpectedAXValue(operation: .setPosition)
         }
+        let previous = CGRect(origin: origin, size: size)
+        guard !WindowMaximizer.framesMatch(previous, CGRect(origin: newAXOrigin, size: size)) else { return }
+        rememberFrame(window, frame: previous)
         let result = AXUIElementSetAttributeValue(
             window,
             kAXPositionAttribute as CFString,
@@ -233,7 +241,7 @@ final class MacGestureTargetSystemClient: GestureTargetSystemClient {
             return kAXZoomButtonAttribute as CFString
         case .fullscreen:
             return kAXFullScreenButtonAttribute as CFString
-        case .hide, .center, .maximize:
+        default:
             throw GestureTargetError.windowControlUnavailable(command)
         }
     }
