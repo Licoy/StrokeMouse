@@ -28,7 +28,12 @@ only when all of these conditions hold:
 - a point hit test limited to that Dock process returns `noValue` with no element.
 
 Any missing condition, unknown owner, successful Dock hit, or other AX result
-stops capture. The code does not read window titles and does not skip arbitrary
+stops capture.
+
+Nonzero-layer records owned by StrokeMouse itself are also skipped. Its stroke
+HUD and toast panels ignore mouse events, and the deferred window capture can
+read the window list after the HUD is ordered in; without this exemption the
+capture failed intermittently while drawing (issue #35). The code does not read window titles and does not skip arbitrary
 floating windows.
 
 Full capture then reads `AXWindows` only for the candidate PID. Every candidate

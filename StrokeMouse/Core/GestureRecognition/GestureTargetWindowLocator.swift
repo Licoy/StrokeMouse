@@ -63,11 +63,17 @@ enum GestureTargetWindowLocator {
         windows: [GestureTargetVisibleWindow],
         displayBounds: [CGRect],
         dockWindowLevel: Int,
+        ownProcessIdentifier: pid_t = ProcessInfo.processInfo.processIdentifier,
         dockCarrierDoesNotHit: (GestureTargetVisibleWindow) throws -> Bool
     ) throws -> GestureTargetWindowDescriptor {
         for window in windows where window.descriptor.bounds.contains(point) {
             if window.descriptor.layer == 0 {
                 return window.descriptor
+            }
+            // Our own overlays (stroke HUD, toast) ignore mouse events. The
+            // deferred capture can run after the HUD is ordered in.
+            if window.descriptor.processIdentifier == ownProcessIdentifier {
+                continue
             }
             guard window.ownerBundleIdentifier == "com.apple.dock",
                   window.descriptor.layer == dockWindowLevel,

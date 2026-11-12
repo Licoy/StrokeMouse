@@ -38,6 +38,40 @@ final class GestureTargetWindowLocatorTests: XCTestCase {
         }
     }
 
+    func testOwnStrokeOverlayDoesNotBlockNormalWindowBehindIt() throws {
+        // Issue #35: the stroke HUD can be ordered in before the deferred
+        // capture reads the window list.
+        let hud = window(id: 4, pid: 44, layer: 1_500, bounds: display, bundle: "com.strokemouse.app")
+        let normal = window(id: 2, pid: 22, bounds: display)
+
+        let selected = try GestureTargetWindowLocator.locate(
+            at: CGPoint(x: -500, y: 100),
+            windows: [hud, normal],
+            displayBounds: [display],
+            dockWindowLevel: 20,
+            ownProcessIdentifier: 44,
+            dockCarrierDoesNotHit: { _ in XCTFail("Own overlays need no Dock probe"); return false }
+        )
+
+        XCTAssertEqual(selected, normal.descriptor)
+    }
+
+    func testOwnNormalWindowIsStillATarget() throws {
+        let settings = window(id: 4, pid: 44, bounds: display, bundle: "com.strokemouse.app")
+        let normal = window(id: 2, pid: 22, bounds: display)
+
+        let selected = try GestureTargetWindowLocator.locate(
+            at: CGPoint(x: -500, y: 100),
+            windows: [settings, normal],
+            displayBounds: [display],
+            dockWindowLevel: 20,
+            ownProcessIdentifier: 44,
+            dockCarrierDoesNotHit: { _ in false }
+        )
+
+        XCTAssertEqual(selected, settings.descriptor)
+    }
+
     func testSkipsOnlyVerifiedFullDisplayDockCarrier() throws {
         let dock = window(
             id: 3,
