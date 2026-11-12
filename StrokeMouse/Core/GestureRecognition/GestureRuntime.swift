@@ -2254,11 +2254,11 @@ final class GestureRuntime {
             session.centroid = Self.centroid(activeContacts.map(\.position))
         }
         let event = session.classifier.process(frame)
-        if let metrics = session.classifier.lastMetrics {
-            lastTrackpadMetrics = metrics
-        }
         if let event, !session.terminalEventReceived {
             session.terminalEventReceived = true
+            // Rejections before classification have no metrics; clearing them
+            // keeps the previous sequence's values from looking like this one.
+            lastTrackpadMetrics = session.classifier.lastMetrics
             switch event {
             case .recognized where session.physicallyPressed:
                 // A pressed sequence is a click or an app drag, never a

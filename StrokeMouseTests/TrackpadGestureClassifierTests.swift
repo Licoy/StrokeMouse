@@ -644,7 +644,7 @@ final class TrackpadGestureClassifierTests: XCTestCase {
         XCTAssertNil(classifier.process(frame(at: 0.07, points: start)))
         XCTAssertNil(classifier.process(frame(at: 0.20, points: boundary)))
         XCTAssertEqual(
-            classifier.process(frame(at: 0.25, points: [:])),
+            classifier.process(frame(at: 0.30, points: [:])),
             .recognized(.tap(fingers: 3))
         )
 
@@ -652,7 +652,7 @@ final class TrackpadGestureClassifierTests: XCTestCase {
         XCTAssertNil(tooLong.process(frame(at: 0, points: start)))
         XCTAssertNil(tooLong.process(frame(at: 0.07, points: start)))
         XCTAssertEqual(
-            tooLong.process(frame(at: 0.251, points: [:])),
+            tooLong.process(frame(at: 0.301, points: [:])),
             .rejected(.unsupported)
         )
     }
@@ -699,20 +699,23 @@ final class TrackpadGestureClassifierTests: XCTestCase {
 
     func testStableAndFormingTimeoutBoundaries() {
         let points = basePoints(fingers: 3)
+        var four = points
+        four[4] = CGPoint(x: 0.5, y: 0.3)
         var stable = TrackpadGestureClassifier()
         XCTAssertNil(stable.process(frame(at: 0, points: points)))
         XCTAssertNil(stable.process(frame(at: 0.059, points: points)))
+        XCTAssertNil(stable.process(frame(at: 0.07, points: four)))
         XCTAssertEqual(
             stable.process(frame(at: 0.10, points: [:])),
-            .rejected(.unsupported)
+            .recognized(.tap(fingers: 4))
         )
 
         var stableBoundary = TrackpadGestureClassifier()
         XCTAssertNil(stableBoundary.process(frame(at: 0, points: points)))
         XCTAssertNil(stableBoundary.process(frame(at: 0.060, points: points)))
         XCTAssertEqual(
-            stableBoundary.process(frame(at: 0.10, points: [:])),
-            .recognized(.tap(fingers: 3))
+            stableBoundary.process(frame(at: 0.07, points: four)),
+            .rejected(.contactSetChanged)
         )
 
         let six = basePoints(fingers: 6)
@@ -790,6 +793,63 @@ final class TrackpadGestureClassifierTests: XCTestCase {
                 ]
             )),
             .rejected(.contactSetChanged)
+        )
+    }
+
+    func testStaggeredQuickTapLiftingBeforeLockIsRecognized() {
+        var classifier = TrackpadGestureClassifier()
+        let all = basePoints(fingers: 4)
+        XCTAssertNil(classifier.process(frame(
+            at: 0,
+            points: all.filter { $0.key <= 2 }
+        )))
+        XCTAssertNil(classifier.process(frame(at: 0.03, points: all)))
+        XCTAssertNil(classifier.process(frame(
+            at: 0.07,
+            points: all.filter { $0.key != 1 }
+        )))
+        XCTAssertEqual(
+            classifier.process(frame(at: 0.10, points: [:])),
+            .recognized(.tap(fingers: 4))
+        )
+    }
+
+    func testSimultaneousLiftBeforeLockIsRecognized() {
+        var classifier = TrackpadGestureClassifier()
+        let all = basePoints(fingers: 5)
+        XCTAssertNil(classifier.process(frame(at: 0, points: all)))
+        XCTAssertNil(classifier.process(frame(at: 0.03, points: all)))
+        XCTAssertEqual(
+            classifier.process(frame(at: 0.05, points: [:])),
+            .recognized(.tap(fingers: 5))
+        )
+    }
+
+    func testFingerJoiningAfterEarlyLiftIsRejected() {
+        var classifier = TrackpadGestureClassifier()
+        let three = basePoints(fingers: 3)
+        XCTAssertNil(classifier.process(frame(at: 0, points: three)))
+        XCTAssertNil(classifier.process(frame(
+            at: 0.03,
+            points: three.filter { $0.key != 3 }
+        )))
+        var joined = three.filter { $0.key != 3 }
+        joined[4] = CGPoint(x: 0.5, y: 0.3)
+        XCTAssertEqual(
+            classifier.process(frame(at: 0.05, points: joined)),
+            .rejected(.contactSetChanged)
+        )
+    }
+
+    func testSingleFingerLiftBeforeLockIsNotATap() {
+        var classifier = TrackpadGestureClassifier()
+        XCTAssertNil(classifier.process(frame(
+            at: 0,
+            points: [1: CGPoint(x: 0.4, y: 0.5)]
+        )))
+        XCTAssertEqual(
+            classifier.process(frame(at: 0.03, points: [:])),
+            .rejected(.unsupported)
         )
     }
 

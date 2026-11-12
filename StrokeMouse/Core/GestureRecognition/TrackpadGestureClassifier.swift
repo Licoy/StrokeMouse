@@ -104,7 +104,9 @@ struct TrackpadGestureClassifier {
         if active.isEmpty {
             session = nil
             isDraining = false
-            guard current.isLocked else {
+            guard current.isLocked
+                || (2...5).contains(current.ids.count)
+            else {
                 return .rejected(.unsupported)
             }
             return classify(current, endedAt: frame.timestamp)
@@ -131,6 +133,15 @@ struct TrackpadGestureClassifier {
                 isDraining = true
                 return .rejected(.contactSetChanged)
             }
+        } else if ids.isStrictSubset(of: current.ids),
+                  (2...5).contains(current.ids.count)
+        {
+            // A quick tap often lifts before the contacts have been stable
+            // long enough to lock. The first lift ends formation: no finger
+            // may join afterwards, and the release window still applies.
+            session = nil
+            ending = Ending(session: current, firstLiftAt: frame.timestamp)
+            return nil
         } else if ids != current.ids {
             guard frame.timestamp - current.startedAt
                 <= policy.maximumLandingSpread + Self.timeTolerance

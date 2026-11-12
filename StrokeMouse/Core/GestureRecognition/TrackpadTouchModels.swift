@@ -89,7 +89,8 @@ struct TrackpadRecognitionPolicy: Equatable, Sendable {
     var maximumLandingSpread: TimeInterval = 0.100
     var groupedReleaseDuration: TimeInterval = 0.120
     var maximumGestureDuration: TimeInterval = 2.0
-    var maximumTapDuration: TimeInterval = 0.250
+    /// Covers staggered landing and release of four or five fingers.
+    var maximumTapDuration: TimeInterval = 0.300
     var maximumTapTravel: CGFloat = 0.025
     /// Contacts may shift slightly while the press itself flattens them.
     var maximumPressTravel: CGFloat = 0.03
